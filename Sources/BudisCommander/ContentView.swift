@@ -175,6 +175,7 @@ struct ViewerSheet: View {
             HStack {
                 Text(content.title).font(.headline)
                 Spacer()
+                Button("Tisk…") { ViewerPrinter.printContent(content) }.keyboardShortcut("p", modifiers: .command)
                 Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             .padding(10)
