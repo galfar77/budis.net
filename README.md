@@ -40,6 +40,12 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘J | příkazový řádek ve složce aktivního panelu |
 | ⌘B | oblíbené a poslední složky |
 | ⌘[ / ⌘] | zpět / vpřed v historii panelu |
+| ⌘I | porovnat dva soubory (kurzor v každém panelu) řádek po řádku |
+| ⌘H | kontrolní součty MD5, SHA-1, SHA-256 (+ ověření, uložení .sha256) |
+| ⌘G | všechny podsložky najednou (ploché zobrazení, Backspace zpět) |
+| ⌘S | spočítat velikosti složek |
+| ⌘O | atributy: datum změny, práva, skrytý příznak (i rekurzivně) |
+| ⌘V | panel rychlého náhledu místo neaktivního panelu |
 | ⌘R, ⌘A, ⌘., ⌘U | obnovit, označit vše, skryté soubory, zrcadlit adresář |
 
 Na Macu je u F-kláves potřeba držet `fn` (nebo vypnout „Používat klávesy F1, F2 jako standardní funkční klávesy“); spodní lištu lze také klikat.
@@ -67,3 +73,11 @@ Všechny ⌘ zkratky jdou změnit v Nastavení (⌘,) a jsou také v menu **Nás
 
 Skript `make-app.sh` umí podepsat aplikaci a poslat ji k notarizaci, pokud máte placený účet Apple Developer
 (proměnné `SIGN_IDENTITY` a `NOTARY_PROFILE`, viz komentář ve skriptu). Bez nich se podepisuje jen ad hoc.
+
+## Další nástroje (menu Nástroje)
+
+- **Porovnat adresáře podle obsahu**, **rozdělit** a **slepit** soubory (díly name.001, name.002…), **symbolický odkaz**.
+- **Miniatury**, samostatný **sloupec přípony** (Nastavení).
+- **Hexový výpis** binárních souborů v F3.
+- **Fronta přenosů:** další F5/F6 během běžícího přenosu se zařadí do fronty; přerušený přenos jde dokončit příkazem *Pokračovat v přerušeném přenosu*.
+- **Uživatelské příkazy** (menu a tlačítková lišta dole): vlastní shellové příkazy se zástupnými znaky %f, %n, %d, %o, %F.

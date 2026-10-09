@@ -28,12 +28,25 @@ struct AppCommands: Commands {
         CommandMenu("Nástroje") {
             item(.search)
             item(.compare)
+            item(.compareContent)
+            item(.diff)
             item(.sync)
             item(.batchRename)
             item(.commandLine)
             Divider()
             item(.pack)
             item(.unpack)
+            item(.split)
+            item(.combine)
+            Divider()
+            item(.checksum)
+            item(.attributes)
+            item(.dirSizes)
+            item(.symlink)
+            Divider()
+            item(.branch)
+            item(.quickView)
+            item(.thumbnails)
             Divider()
             item(.connect)
             item(.network)
@@ -41,6 +54,16 @@ struct AppCommands: Commands {
             item(.favorites)
             item(.back)
             item(.forward)
+            Divider()
+            item(.resumeTransfer)
+            Divider()
+            Menu("Uživatelské příkazy") {
+                ForEach(settings.userCommands) { cmd in
+                    Button(cmd.name) { model.runUser(cmd) }
+                }
+                Divider()
+                item(.userMenu)
+            }
             Divider()
             item(.refresh)
             item(.markAll)

@@ -11,20 +11,25 @@ struct ViewerContent: Identifiable {
     let id = UUID()
     let title: String
     let kind: Kind
+    /// Soubor, který jde otevřít ve výchozí aplikaci (u binárních souborů).
+    let openURL: URL?
 
-    init(title: String, text: String) {
+    init(title: String, text: String, openURL: URL? = nil) {
         self.title = title
         kind = .text(text)
+        self.openURL = openURL
     }
 
     init(title: String, kind: Kind) {
         self.title = title
         self.kind = kind
+        openURL = nil
     }
 }
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
+    case diff, checksum, attributes, userMenu
     var id: String { rawValue }
 }
 
@@ -40,6 +45,13 @@ final class AppModel: ObservableObject {
     @Published var notice: String?
     @Published var batchItems: [FileItem] = []
     @Published var canCancel = false
+    @Published var quickView = false
+    @Published var queueCount = 0
+    @Published var diffFiles: (URL, URL)?
+    @Published var checksumItems: [FileItem] = []
+    @Published var attributeItems: [FileItem] = []
+    private var queue: [QueuedJob] = []
+    private var interrupted: TransferPlan?
     @Published var showCommandLine = false
     let runner = CommandRunner()
     private var transferTask: Task<Void, Never>?
@@ -109,35 +121,65 @@ final class AppModel: ObservableObject {
 
     // MARK: F5 / F6
 
-    func transfer(move: Bool) async {
+    struct TransferPlan {
+        let move: Bool
+        let src: PaneState
+        let dst: PaneState
+        var items: [FileItem]
+        let srcKey: String
+        let dstKey: String
+    }
+
+    struct QueuedJob {
+        let run: @MainActor () async -> Void
+    }
+
+    private func locationKey(_ p: PaneState) -> String {
+        p.connection != nil ? "\(p.connection?.displayName ?? "")|\(p.remotePath)" : "local|\(p.url.path)"
+    }
+
+    /// Ověří zadání a zeptá se uživatele; vrátí plán přenosu, který se pak zařadí do fronty.
+    func prepareTransfer(move: Bool) -> TransferPlan? {
         let src = active, dst = other
         let items = src.targets
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty else { return nil }
 
         if dst.isArchive {
             Dialogs.error("Archiv je otevřený jen pro čtení, nelze do něj kopírovat.")
-            return
+            return nil
         }
         if src.isArchive && move {
             Dialogs.error("Z archivu lze soubory jen kopírovat (F5), ne přesouvat.")
-            return
+            return nil
         }
         let sameFolder: Bool
         if src.connection == nil && dst.connection == nil { sameFolder = src.url == dst.url }
         else { sameFolder = src.connection === dst.connection && src.remotePath == dst.remotePath }
-        if sameFolder {
+        if sameFolder && !src.branch {
             Dialogs.error("Zdrojový a cílový adresář jsou stejné.")
+            return nil
+        }
+        let verb = move ? "Přesunout" : "Kopírovat"
+        guard Dialogs.confirm("\(verb) \(describe(items))?", info: "Cíl: \(dst.title)", ok: verb) else { return nil }
+        return TransferPlan(move: move, src: src, dst: dst, items: items, srcKey: locationKey(src), dstKey: locationKey(dst))
+    }
+
+    func transfer(plan: TransferPlan) async {
+        let src = plan.src, dst = plan.dst, move = plan.move
+        let items = plan.items
+        guard locationKey(src) == plan.srcKey, locationKey(dst) == plan.dstKey else {
+            Dialogs.error("Panely mezitím přešly do jiných složek. Vraťte je do původních a pokračujte z menu Nástroje.")
+            interrupted = plan
             return
         }
-        let destTitle = dst.title
         let verb = move ? "Přesunout" : "Kopírovat"
-        guard Dialogs.confirm("\(verb) \(describe(items))?", info: "Cíl: \(destTitle)", ok: verb) else { return }
 
         var overwriteAll = false
         var cancelled = false
+        var remaining: [FileItem] = []
         var errors: [String] = []
         for (i, item) in items.enumerated() {
-            if Task.isCancelled { cancelled = true; break }
+            if Task.isCancelled { cancelled = true; remaining = Array(items[i...]); break }
             progress = Double(i) / Double(items.count)
             progressText = "\(verb) \(item.name) (\(i + 1)/\(items.count))"
             let report = progressReporter(index: i, count: items.count, verb: verb)
@@ -172,6 +214,7 @@ final class AppModel: ObservableObject {
                         try? FileManager.default.removeItem(at: dst.url.appendingPathComponent(item.name))
                     }
                     cancelled = true
+                    remaining = Array(items[i...])
                     break
                 }
                 errors.append("\(item.name): \(error.localizedDescription)")
@@ -179,7 +222,10 @@ final class AppModel: ObservableObject {
         }
         src.marked = []
         finish(src, dst)
-        if cancelled { showNotice("Přenos zrušen.") }
+        interrupted = cancelled
+            ? TransferPlan(move: move, src: src, dst: dst, items: remaining, srcKey: plan.srcKey, dstKey: plan.dstKey)
+            : nil
+        if cancelled { showNotice("Přenos zrušen. Zbylé položky (\(remaining.count)) jde dokončit z menu Nástroje.") }
         if !errors.isEmpty { Dialogs.error(errors.joined(separator: "\n")) }
     }
 
@@ -367,8 +413,10 @@ final class AppModel: ObservableObject {
         guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return }
         defer { try? handle.close() }
         let data = (try? handle.read(upToCount: 512 * 1024)) ?? Data()
-        if data.contains(0) {
-            NSWorkspace.shared.open(fileURL)   // binární soubor – výchozí aplikace
+        if data.prefix(4096).contains(0) {
+            // Binární soubor: hexadecimální výpis prvních 64 kB, s možností otevřít ve výchozí aplikaci.
+            let dump = LocalFS.hexDump(data.prefix(64 * 1024))
+            viewer = ViewerContent(title: item.name + " (hex)", text: dump, openURL: pane.connection == nil ? fileURL : nil)
             return
         }
         viewer = ViewerContent(title: item.name, text: String(decoding: data, as: UTF8.self))
@@ -461,7 +509,20 @@ final class AppModel: ObservableObject {
         case .mirror: other.navigate(to: active.url)
         case .connect: sheet = .server
         case .network: sheet = .network
-        case .compare: compare()
+        case .compare: Task { await compare() }
+        case .compareContent: Task { await compare(byContent: true) }
+        case .diff: startDiff()
+        case .checksum: startChecksum()
+        case .branch: active.toggleBranch()
+        case .dirSizes: calcDirSizes()
+        case .attributes: startAttributes()
+        case .quickView: quickView.toggle()
+        case .split: startSplit()
+        case .combine: startCombine()
+        case .symlink: makeSymlink()
+        case .userMenu: sheet = .userMenu
+        case .resumeTransfer: resumeTransfer()
+        case .thumbnails: Settings.shared.showThumbs.toggle()
         case .batchRename: startBatchRename()
         case .pack: Task { await pack() }
         case .unpack: Task { await unpack() }
@@ -477,23 +538,57 @@ final class AppModel: ObservableObject {
 
     // MARK: Spuštění úloh se zrušením
 
-    private func runCancellable(_ work: @escaping @MainActor () async -> Void) {
-        guard transferTask == nil else {
-            showNotice("Právě probíhá jiná operace.")
+    /// Spustí úlohu, nebo ji (u přenosů) zařadí do fronty, pokud už jiná běží.
+    private func runCancellable(queue allowQueue: Bool = false, _ work: @escaping @MainActor () async -> Void) {
+        if transferTask != nil {
+            if allowQueue {
+                queue.append(QueuedJob(run: work))
+                queueCount = queue.count
+                showNotice("Přidáno do fronty (ve frontě: \(queue.count))")
+            } else {
+                showNotice("Právě probíhá jiná operace.")
+            }
             return
         }
+        startJob(work)
+    }
+
+    private func startJob(_ work: @escaping @MainActor () async -> Void) {
         canCancel = true
         transferTask = Task {
             await work()
             transferTask = nil
             canCancel = false
+            if !queue.isEmpty {
+                let next = queue.removeFirst()
+                queueCount = queue.count
+                startJob(next.run)
+            }
         }
     }
 
-    func startTransfer(move: Bool) { runCancellable { await self.transfer(move: move) } }
+    func startTransfer(move: Bool) {
+        guard let plan = prepareTransfer(move: move) else { return }
+        runCancellable(queue: true) { await self.transfer(plan: plan) }
+    }
+
+    func resumeTransfer() {
+        guard let plan = interrupted else {
+            showNotice("Není žádný přerušený přenos.")
+            return
+        }
+        interrupted = nil
+        runCancellable(queue: true) { await self.transfer(plan: plan) }
+    }
+
     func startDelete() { runCancellable { await self.delete() } }
     func startSync() { runCancellable { await self.syncMirror() } }
-    func cancelTransfer() { transferTask?.cancel() }
+
+    /// Zruší běžící úlohu; `all` zruší i celou frontu.
+    func cancelTransfer(all: Bool = false) {
+        if all { queue.removeAll(); queueCount = 0 }
+        transferTask?.cancel()
+    }
 
     // MARK: Zrcadlení adresářů
 
@@ -572,12 +667,16 @@ final class AppModel: ObservableObject {
 
     // MARK: Porovnání adresářů
 
+    private enum MarkSide { case a, b, both }
+
     /// Označí v obou panelech soubory, které chybí v druhém panelu nebo jsou novější / jiné.
     /// Označené soubory pak stačí zkopírovat (F5) a adresáře jsou sesynchronizované.
-    func compare() {
+    func compare(byContent: Bool = false) async {
         let a = left, b = right
         a.clearFilter()
         b.clearFilter()
+        let content = byContent && a.connection == nil && b.connection == nil
+        var toCheck: [(x: FileItem, y: FileItem, side: MarkSide)] = []
         func files(_ p: PaneState) -> [String: FileItem] {
             Dictionary(p.items.filter { !$0.isParent }.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         }
@@ -589,17 +688,240 @@ final class AppModel: ObservableObject {
             guard let y = fb[name] else { markA.insert(x.id); continue }
             if x.isDirectory || y.isDirectory { continue }
             if let dx = x.modified, let dy = y.modified, abs(dx.timeIntervalSince(dy)) > tolerance {
-                if dx > dy { markA.insert(x.id) } else { markB.insert(y.id) }
+                if content && x.size == y.size { toCheck.append((x, y, dx > dy ? .a : .b)) }
+                else if dx > dy { markA.insert(x.id) } else { markB.insert(y.id) }
             } else if x.size != y.size {
                 markA.insert(x.id)
                 markB.insert(y.id)
+            } else if content {
+                toCheck.append((x, y, .both))
             }
         }
         for (name, y) in fb where fa[name] == nil { markB.insert(y.id) }
 
+        if !toCheck.isEmpty {
+            notice = "Porovnávám obsah \(toCheck.count) souborů…"
+            let pairs = toCheck.map { ($0.x.url, $0.y.url) }
+            let differs: [Bool] = await Task.detached { pairs.map { !LocalFS.sameContent($0.0, $0.1) } }.value
+            notice = nil
+            for (i, d) in differs.enumerated() where d {
+                let c = toCheck[i]
+                switch c.side {
+                case .a: markA.insert(c.x.id)
+                case .b: markB.insert(c.y.id)
+                case .both: markA.insert(c.x.id); markB.insert(c.y.id)
+                }
+            }
+        }
+
         a.marked = markA
         b.marked = markB
         showNotice("Porovnání: vlevo označeno \(markA.count), vpravo \(markB.count) (chybějící, novější nebo jiné). Zkopírujte je klávesou F5.")
+    }
+
+    // MARK: Porovnání souborů, součty, atributy
+
+    func startDiff() {
+        guard left.connection == nil, right.connection == nil else {
+            Dialogs.error("Porovnání souborů funguje jen mezi lokálními soubory.")
+            return
+        }
+        guard let a = left.current, let b = right.current, !a.isDirectory, !b.isDirectory, !a.isParent, !b.isParent else {
+            Dialogs.error("Postavte kurzor v obou panelech na soubor, který chcete porovnat.")
+            return
+        }
+        diffFiles = (a.url, b.url)
+        sheet = .diff
+    }
+
+    func startChecksum() {
+        guard active.connection == nil else {
+            Dialogs.error("Kontrolní součty se počítají jen z lokálních souborů.")
+            return
+        }
+        let files = active.targets.filter { !$0.isDirectory }
+        guard !files.isEmpty else {
+            Dialogs.error("Vyberte aspoň jeden soubor.")
+            return
+        }
+        checksumItems = files
+        sheet = .checksum
+    }
+
+    func startAttributes() {
+        guard active.connection == nil, !active.isArchive else {
+            Dialogs.error("Atributy lze měnit jen u souborů na lokálním disku.")
+            return
+        }
+        let items = active.targets
+        guard !items.isEmpty else { return }
+        attributeItems = items
+        sheet = .attributes
+    }
+
+    func applyAttributes(_ change: LocalFS.AttributeChange, to urls: [URL]) async {
+        notice = "Nastavuji atributy…"
+        let errors = await Task.detached { LocalFS.apply(change, to: urls) }.value
+        notice = nil
+        active.reload()
+        other.reload()
+        if errors.isEmpty { showNotice("Atributy nastaveny.") } else { Dialogs.error(errors.prefix(10).joined(separator: "\n")) }
+    }
+
+    func calcDirSizes() {
+        let pane = active
+        guard pane.connection == nil else { return }
+        var dirs = pane.targets.filter { $0.isDirectory }
+        if dirs.isEmpty { dirs = pane.items.filter { $0.isDirectory && !$0.isParent } }
+        guard !dirs.isEmpty else { return }
+        Task { await pane.computeDirSizes(for: dirs) }
+    }
+
+    // MARK: Dělení a slepování souborů, odkazy
+
+    private func localDestination(_ src: PaneState) -> URL {
+        other.connection == nil && !other.isArchive ? other.url : src.url
+    }
+
+    func startSplit() {
+        let src = active
+        guard src.connection == nil, let item = src.current, !item.isDirectory, !item.isParent else {
+            Dialogs.error("Vyberte lokální soubor, který chcete rozdělit.")
+            return
+        }
+        let dir = localDestination(src)
+        guard let text = Dialogs.prompt("Rozdělit „\(item.name)“",
+                                        info: "Velikost jednoho dílu v MB (např. 100, 700, 4000).\nDíly se uloží do \(dir.path)",
+                                        initial: "100", ok: "Rozdělit") else { return }
+        guard let mb = Double(text.replacingOccurrences(of: ",", with: ".")), mb >= 0.001 else {
+            Dialogs.error("Zadejte velikost dílu jako číslo v MB.")
+            return
+        }
+        let partSize = Int64(mb * 1_048_576)
+        let url = item.url
+        let name = item.name
+        runCancellable {
+            let flag = CancelFlag()
+            self.progress = 0
+            self.progressText = "Dělím \(name)…"
+            let report: @Sendable (Double) -> Void = { [weak self] f in
+                Task { @MainActor in self?.progress = f }
+            }
+            do {
+                let count = try await withTaskCancellationHandler {
+                    try await Task.detached {
+                        try LocalFS.split(file: url, partSize: partSize, into: dir, flag: flag, progress: report)
+                    }.value
+                } onCancel: {
+                    flag.set()
+                }
+                self.showNotice("Soubor rozdělen na \(count) dílů.")
+            } catch is CancellationError {
+                self.showNotice("Dělení zrušeno.")
+            } catch {
+                Dialogs.error(error.localizedDescription)
+            }
+            self.progress = nil
+            self.progressText = ""
+            src.reload()
+            self.other.reload()
+        }
+    }
+
+    func startCombine() {
+        let src = active
+        guard src.connection == nil, let item = src.current, !item.isDirectory, !item.isParent,
+              item.name.lowercased().hasSuffix(".001") else {
+            Dialogs.error("Postavte kurzor na první díl souboru (název končí na .001).")
+            return
+        }
+        let dir = localDestination(src)
+        let target = String(item.name.dropLast(4))
+        let dest = dir.appendingPathComponent(target)
+        if FileManager.default.fileExists(atPath: dest.path) {
+            guard Dialogs.confirm("„\(target)“ už existuje. Přepsat?", ok: "Přepsat") else { return }
+        }
+        let first = item.url
+        runCancellable {
+            let flag = CancelFlag()
+            self.progress = 0
+            self.progressText = "Slepuji \(target)…"
+            let report: @Sendable (Double) -> Void = { [weak self] f in
+                Task { @MainActor in self?.progress = f }
+            }
+            do {
+                try await withTaskCancellationHandler {
+                    try await Task.detached {
+                        try LocalFS.combine(first: first, to: dest, flag: flag, progress: report)
+                    }.value
+                } onCancel: {
+                    flag.set()
+                }
+                self.showNotice("Soubor slepen: \(target)")
+            } catch is CancellationError {
+                self.showNotice("Slepování zrušeno.")
+            } catch {
+                Dialogs.error(error.localizedDescription)
+            }
+            self.progress = nil
+            self.progressText = ""
+            src.reload()
+            self.other.reload()
+        }
+    }
+
+    func makeSymlink() {
+        let src = active
+        guard src.connection == nil, let item = src.current, !item.isParent else {
+            Dialogs.error("Symbolický odkaz jde vytvořit jen na lokální soubor nebo složku.")
+            return
+        }
+        let dir = localDestination(src)
+        guard let name = Dialogs.prompt("Symbolický odkaz na „\(item.name)“", info: "Vytvoří se v \(dir.path)",
+                                        initial: item.name + " odkaz", ok: "Vytvořit") else { return }
+        do {
+            try FileManager.default.createSymbolicLink(at: dir.appendingPathComponent(name), withDestinationURL: item.url)
+            src.reload()
+            other.reload()
+        } catch {
+            Dialogs.error(error.localizedDescription)
+        }
+    }
+
+    // MARK: Uživatelské příkazy
+
+    func expandCommand(_ template: String) -> String {
+        func quote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        let pane = active
+        let current = pane.current.flatMap { $0.isParent ? nil : $0 }
+        var out = ""
+        var it = template.makeIterator()
+        while let c = it.next() {
+            guard c == "%" else { out.append(c); continue }
+            guard let n = it.next() else { out.append("%"); break }
+            switch n {
+            case "f": out += quote(current?.url.path ?? "")
+            case "n": out += quote(current?.name ?? "")
+            case "d": out += quote(pane.url.path)
+            case "o": out += quote((other.connection == nil ? other.url : pane.url).path)
+            case "F": out += pane.targets.map { quote($0.url.path) }.joined(separator: " ")
+            case "%": out.append("%")
+            default: out.append("%"); out.append(n)
+            }
+        }
+        return out
+    }
+
+    func runUser(_ cmd: UserCommand) {
+        let pane = active
+        guard pane.connection == nil else {
+            Dialogs.error("Uživatelské příkazy fungují jen v lokálních složkách.")
+            return
+        }
+        let text = expandCommand(cmd.command)
+        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        showCommandLine = true
+        runner.run(text, in: pane.url) { pane.reload() }
     }
 
     // MARK: Hromadné přejmenování
