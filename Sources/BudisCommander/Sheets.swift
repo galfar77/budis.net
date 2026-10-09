@@ -8,6 +8,7 @@ struct SavedServer: Codable, Identifiable, Hashable {
     var user: String
     var insecure: Bool
     var keyPath: String?
+    var passwordSaved: Bool?
 
     var id: String { title }
     var title: String { "\(proto.rawValue)  \(user.isEmpty ? "" : user + "@")\(host):\(port)" }
@@ -40,6 +41,7 @@ struct ConnectSheet: View {
     @State private var password = ""
     @State private var insecure = false
     @State private var keyPath = ""
+    @State private var remember = false
     @State private var busy = false
     @State private var saved = SavedServer.loadAll()
 
@@ -95,7 +97,9 @@ struct ConnectSheet: View {
 
             Toggle("Důvěřovat serveru bez ověření klíče/certifikátu", isOn: $insecure)
                 .font(.system(size: 12))
-            Text("Heslo se neukládá. U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.")
+            Toggle("Uložit heslo do Klíčenky", isOn: $remember)
+                .font(.system(size: 12))
+            Text("U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             HStack {
@@ -114,6 +118,8 @@ struct ConnectSheet: View {
     private func fill(_ s: SavedServer) {
         proto = s.proto; host = s.host; port = String(s.port); user = s.user
         insecure = s.insecure; keyPath = s.keyPath ?? ""
+        remember = s.passwordSaved ?? false
+        password = remember ? (Keychain.get(account: s.id) ?? "") : ""
     }
 
     private func chooseKey() {
@@ -136,8 +142,10 @@ struct ConnectSheet: View {
             let ok = await model.connect(conn)
             busy = false
             if ok {
-                SavedServer(proto: proto, host: h, port: portValue, user: user, insecure: insecure,
-                            keyPath: keyPath.isEmpty ? nil : keyPath).save()
+                let server = SavedServer(proto: proto, host: h, port: portValue, user: user, insecure: insecure,
+                                         keyPath: keyPath.isEmpty ? nil : keyPath, passwordSaved: remember)
+                server.save()
+                if remember { Keychain.set(password, account: server.id) } else { Keychain.delete(account: server.id) }
                 dismiss()
             }
         }

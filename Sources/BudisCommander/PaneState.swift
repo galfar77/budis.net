@@ -17,12 +17,20 @@ final class PaneState: ObservableObject {
     @Published private(set) var remotePath = "/"
     @Published private(set) var isLoading = false
 
+    /// Volá se po každé úspěšné změně adresáře (AppModel podle toho ukládá stav).
+    static var onLocationChange: (() -> Void)?
+
     private var searchBuffer = ""
     private var searchTime = Date.distantPast
 
     init(url: URL) {
         self.url = url
         _ = load(url)
+    }
+
+    var tabTitle: String {
+        if let c = connection { return c.host }
+        return url.path == "/" ? "/" : url.lastPathComponent
     }
 
     var title: String {
@@ -59,6 +67,7 @@ final class PaneState: ObservableObject {
         if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
         url = dir
         apply(list, previousID: previousID)
+        Self.onLocationChange?()
         return true
     }
 

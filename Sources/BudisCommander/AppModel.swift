@@ -14,8 +14,8 @@ enum ActiveSheet: String, Identifiable {
 
 @MainActor
 final class AppModel: ObservableObject {
-    let left: PaneState
-    let right: PaneState
+    let leftTabs: TabGroup
+    let rightTabs: TabGroup
     @Published var activeIsLeft = true
     @Published var progress: Double?
     @Published var progressText = ""
@@ -24,14 +24,28 @@ final class AppModel: ObservableObject {
     @Published var notice: String?
     private var editTasks: [String: Task<Void, Never>] = [:]
 
+    var left: PaneState { leftTabs.current }
+    var right: PaneState { rightTabs.current }
     var active: PaneState { activeIsLeft ? left : right }
     var other: PaneState { activeIsLeft ? right : left }
+    var activeGroup: TabGroup { activeIsLeft ? leftTabs : rightTabs }
 
     init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first ?? home
-        left = PaneState(url: home)
-        right = PaneState(url: downloads)
+        let state = SessionState.load()
+        leftTabs = TabGroup(urls: SessionState.existingDirectories(state?.left, fallback: home),
+                            selected: state?.leftSel ?? 0)
+        rightTabs = TabGroup(urls: SessionState.existingDirectories(state?.right, fallback: downloads),
+                             selected: state?.rightSel ?? 0)
+        activeIsLeft = state?.activeLeft ?? true
+
+        PaneState.onLocationChange = { [weak self] in self?.saveState() }
+        for name in [NSApplication.willTerminateNotification, NSApplication.didResignActiveNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.saveState() }
+            }
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
@@ -42,7 +56,16 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func switchPane() { activeIsLeft.toggle() }
+    func switchPane() {
+        activeIsLeft.toggle()
+        saveState()
+    }
+
+    func saveState() {
+        SessionState(left: leftTabs.tabs.map { $0.url.path }, leftSel: leftTabs.selected,
+                     right: rightTabs.tabs.map { $0.url.path }, rightSel: rightTabs.selected,
+                     activeLeft: activeIsLeft).save()
+    }
 
     private func describe(_ items: [FileItem]) -> String {
         items.count == 1 ? "„\(items[0].name)“" : "\(items.count) položek"
@@ -133,11 +156,16 @@ final class AppModel: ObservableObject {
         case (nil, nil):
             let source = item.url
             let dest = dst.url.appendingPathComponent(item.name)
+            let renameOnly = move && LocalFS.sameVolume(source, dst.url)
             try await Task.detached {
                 let fm = FileManager.default
                 if overwrite && fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
-                if move { try fm.moveItem(at: source, to: dest) } else { try fm.copyItem(at: source, to: dest) }
+                if renameOnly { try fm.moveItem(at: source, to: dest) }
             }.value
+            if !renameOnly {
+                try await LocalFS.copy(from: source, to: dest, progress: report)
+                if move { try await Task.detached { try FileManager.default.removeItem(at: source) }.value }
+            }
 
         case (nil, let d?):
             try await d.upload(local: item.url, to: RemotePath.child(dst.remotePath, item.name), progress: report)

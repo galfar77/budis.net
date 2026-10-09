@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @StateObject private var model = AppModel()
@@ -7,13 +8,14 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                PaneView(pane: model.left, isActive: model.activeIsLeft) { model.activeIsLeft = true }
+                PanelView(group: model.leftTabs, isActive: model.activeIsLeft) { model.activeIsLeft = true }
                 Divider()
-                PaneView(pane: model.right, isActive: !model.activeIsLeft) { model.activeIsLeft = false }
+                PanelView(group: model.rightTabs, isActive: !model.activeIsLeft) { model.activeIsLeft = false }
             }
             statusBar
             functionBar
         }
+        .background(WindowAccessor())
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -87,6 +89,10 @@ struct ContentView: View {
             case "r": pane.reload(); return .handled
             case "a": pane.markAll(); return .handled
             case ".", ">": pane.toggleHidden(); return .handled
+            case "t": model.activeGroup.newTab(); return .handled
+            case "w": model.activeGroup.close(model.activeGroup.selected); return .handled
+            case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+                model.activeGroup.select((Int(p.characters) ?? 1) - 1); return .handled
             case "k": model.sheet = .server; return .handled
             case "l": model.sheet = .network; return .handled
             case "u": model.activeIsLeft ? model.right.navigate(to: model.left.url) : model.left.navigate(to: model.right.url); return .handled
@@ -124,7 +130,9 @@ struct ContentView: View {
         case .return: pane.enter(); return .handled
         case .rightArrow where pane.current?.isDirectory == true: pane.enter(); return .handled
         case .leftArrow, .delete: pane.goUp(); return .handled
-        case .tab: model.switchPane(); return .handled
+        case .tab:
+            if p.modifiers.contains(.control) { model.activeGroup.cycle(shift ? -1 : 1) } else { model.switchPane() }
+            return .handled
         case .space: pane.toggleMark(); return .handled
         default: break
         }
@@ -169,4 +177,15 @@ struct ViewerSheet: View {
         }
         .frame(minWidth: 700, minHeight: 500)
     }
+}
+
+/// Zajistí, že si okno pamatuje svou polohu a velikost.
+struct WindowAccessor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { view.window?.setFrameAutosaveName("BudisCommanderMain") }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
