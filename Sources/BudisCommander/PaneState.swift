@@ -5,6 +5,7 @@ enum SortKey { case name, size, date }
 
 @MainActor
 final class PaneState: ObservableObject {
+    /// Poslední lokální adresář (zůstává nastavený i při připojení k serveru).
     @Published private(set) var url: URL
     @Published private(set) var items: [FileItem] = []
     @Published var cursor = 0
@@ -12,6 +13,9 @@ final class PaneState: ObservableObject {
     @Published var sortKey: SortKey = .name
     @Published var ascending = true
     @Published var showHidden = false
+    @Published private(set) var connection: RemoteConnection?
+    @Published private(set) var remotePath = "/"
+    @Published private(set) var isLoading = false
 
     private var searchBuffer = ""
     private var searchTime = Date.distantPast
@@ -21,34 +25,80 @@ final class PaneState: ObservableObject {
         _ = load(url)
     }
 
+    var title: String {
+        if let c = connection { return c.displayName + remotePath }
+        return url.path
+    }
+
     // MARK: Načítání
 
-    @discardableResult
-    private func load(_ dir: URL, select id: String? = nil) -> Bool {
-        let fm = FileManager.default
-        let urls: [URL]
-        do {
-            urls = try fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil,
-                                              options: showHidden ? [] : [.skipsHiddenFiles])
-        } catch {
-            Dialogs.error("Adresář nelze otevřít:\n\(dir.path)\n\n\(error.localizedDescription)")
-            return false
-        }
-        let previousID = id ?? (items.indices.contains(cursor) ? items[cursor].id : nil)
-        var list = sorted(urls.compactMap(FileItem.load))
-        if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
-        url = dir
+    private func apply(_ list: [FileItem], previousID: String?) {
         items = list
         marked = marked.filter { m in list.contains { $0.id == m } }
-        if let previousID, let idx = list.firstIndex(where: { $0.id == previousID }) {
+        if previousID == "" {
+            cursor = 0
+        } else if let previousID, let idx = list.firstIndex(where: { $0.id == previousID }) {
             cursor = idx
         } else {
             cursor = min(cursor, max(list.count - 1, 0))
         }
+    }
+
+    @discardableResult
+    private func load(_ dir: URL, select id: String? = nil) -> Bool {
+        let urls: [URL]
+        do {
+            urls = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil,
+                                                               options: showHidden ? [] : [.skipsHiddenFiles])
+        } catch {
+            Dialogs.error("Adresář nelze otevřít:\n\(dir.path)\n\n\(error.localizedDescription)")
+            return false
+        }
+        let previousID = id ?? current?.id
+        var list = sorted(urls.compactMap(FileItem.load))
+        if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
+        url = dir
+        apply(list, previousID: previousID)
         return true
     }
 
-    func reload() { load(url) }
+    /// Načte adresář na serveru. Při úspěchu přepne panel do vzdáleného režimu.
+    @discardableResult
+    func loadRemote(_ path: String, select id: String? = nil, using conn: RemoteConnection? = nil) async -> Bool {
+        guard let conn = conn ?? connection else { return false }
+        let previousID = id ?? current?.id
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            var list = try await conn.list(path)
+            if !showHidden { list = list.filter { !$0.name.hasPrefix(".") } }
+            list = sorted(list)
+            if path != "/" { list.insert(.remoteParent(of: path), at: 0) }
+            connection = conn
+            remotePath = path
+            apply(list, previousID: previousID)
+            return true
+        } catch {
+            Dialogs.error("Server: \(conn.displayName)\n\n\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func reload() {
+        if connection != nil {
+            let path = remotePath
+            Task { await loadRemote(path) }
+        } else {
+            load(url)
+        }
+    }
+
+    func disconnect() {
+        connection = nil
+        remotePath = "/"
+        marked = []
+        load(url, select: "")
+    }
 
     private func sorted(_ list: [FileItem]) -> [FileItem] {
         list.sorted { a, b in
@@ -81,23 +131,55 @@ final class PaneState: ObservableObject {
 
     var current: FileItem? { items.indices.contains(cursor) ? items[cursor] : nil }
 
+    /// Přejde do lokálního adresáře (a případně se odpojí od serveru).
     func navigate(to dir: URL) {
         marked = []
-        if load(dir, select: "") { cursor = 0 }
+        if load(dir, select: "") { connection = nil; remotePath = "/" }
     }
 
     func goUp() {
-        guard url.path != "/" else { return }
-        let old = url.path
         marked = []
-        load(url.deletingLastPathComponent(), select: old)
+        if connection != nil {
+            guard remotePath != "/" else { return }
+            let old = remotePath
+            Task { await loadRemote(RemotePath.parent(old), select: old) }
+        } else {
+            guard url.path != "/" else { return }
+            load(url.deletingLastPathComponent(), select: url.path)
+        }
     }
 
     func enter() {
         guard let item = current else { return }
-        if item.isParent { goUp() }
-        else if item.isDirectory { navigate(to: item.url) }
-        else { NSWorkspace.shared.open(item.url) }
+        if item.isParent {
+            goUp()
+        } else if let conn = connection, let path = item.remotePath {
+            if item.isDirectory {
+                marked = []
+                Task { await loadRemote(path, select: "") }
+            } else {
+                Task { await openRemoteFile(conn, item) }
+            }
+        } else if item.isDirectory {
+            navigate(to: item.url)
+        } else {
+            NSWorkspace.shared.open(item.url)
+        }
+    }
+
+    private func openRemoteFile(_ conn: RemoteConnection, _ item: FileItem) async {
+        guard let path = item.remotePath else { return }
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let file = tmp.appendingPathComponent(item.name)
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+            try await conn.download(path: path, isDirectory: false, to: file)
+            NSWorkspace.shared.open(file)
+        } catch {
+            Dialogs.error(error.localizedDescription)
+        }
     }
 
     func move(by delta: Int) {

@@ -22,6 +22,12 @@ struct ContentView: View {
         .sheet(item: $model.viewer, onDismiss: { focused = true }) { v in
             ViewerSheet(content: v)
         }
+        .sheet(item: $model.sheet, onDismiss: { focused = true }) { sheet in
+            switch sheet {
+            case .server: ConnectSheet(model: model)
+            case .network: NetworkSheet(model: model)
+            }
+        }
     }
 
     // MARK: Spodní lišty
@@ -41,13 +47,15 @@ struct ContentView: View {
 
     private var functionBar: some View {
         HStack(spacing: 2) {
-            fnButton("F2", "Přejmenovat") { model.rename() }
-            fnButton("F3", "Zobrazit") { model.view() }
+            fnButton("F2", "Přejmenovat") { Task { await model.rename() } }
+            fnButton("F3", "Zobrazit") { Task { await model.view() } }
             fnButton("F4", "Editovat") { model.edit() }
             fnButton("F5", "Kopírovat") { Task { await model.transfer(move: false); focused = true } }
             fnButton("F6", "Přesunout") { Task { await model.transfer(move: true); focused = true } }
-            fnButton("F7", "Nový adr.") { model.makeDirectory() }
+            fnButton("F7", "Nový adr.") { Task { await model.makeDirectory() } }
             fnButton("F8", "Smazat") { Task { await model.delete(); focused = true } }
+            fnButton("⌘K", "Server") { model.sheet = .server }
+            fnButton("⌘L", "Síť") { model.sheet = .network }
         }
         .padding(4)
         .background(Color.secondary.opacity(0.15))
@@ -79,6 +87,8 @@ struct ContentView: View {
             case "r": pane.reload(); return .handled
             case "a": pane.markAll(); return .handled
             case ".", ">": pane.toggleHidden(); return .handled
+            case "k": model.sheet = .server; return .handled
+            case "l": model.sheet = .network; return .handled
             case "u": model.activeIsLeft ? model.right.navigate(to: model.left.url) : model.left.navigate(to: model.right.url); return .handled
             default: return .ignored
             }
@@ -87,12 +97,12 @@ struct ContentView: View {
         // Funkční klávesy (F1 = U+F704, …)
         if let s = p.characters.unicodeScalars.first, (0xF704...0xF70F).contains(s.value) {
             switch s.value {
-            case 0xF705: model.rename()
-            case 0xF706: model.view()
+            case 0xF705: Task { await model.rename() }
+            case 0xF706: Task { await model.view() }
             case 0xF707: model.edit()
             case 0xF708: Task { await model.transfer(move: false) }
             case 0xF709: Task { await model.transfer(move: true) }
-            case 0xF70A: model.makeDirectory()
+            case 0xF70A: Task { await model.makeDirectory() }
             case 0xF70B: Task { await model.delete() }
             default: return .ignored
             }

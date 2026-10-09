@@ -22,6 +22,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleShortVersionString</key><string>0.1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSLocalNetworkUsageDescription</key><string>Budis Commander hledá počítače a sdílené disky v místní síti.</string>
+  <key>NSBonjourServices</key><array><string>_smb._tcp</string></array>
 </dict></plist>
 PLIST
 
