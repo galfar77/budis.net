@@ -7,12 +7,19 @@ struct FileItem: Identifiable, Hashable {
     let size: Int64
     let modified: Date?
     let isParent: Bool
+    /// Cesta na vzdáleném serveru (nil u lokálních souborů).
+    var remotePath: String? = nil
 
-    var id: String { isParent ? ".." : url.path }
+    var id: String { isParent ? ".." : (remotePath ?? url.path) }
 
     static func parent(of url: URL) -> FileItem {
         FileItem(url: url.deletingLastPathComponent(), name: "..", isDirectory: true,
                  size: 0, modified: nil, isParent: true)
+    }
+
+    static func remoteParent(of path: String) -> FileItem {
+        FileItem(url: URL(fileURLWithPath: "/"), name: "..", isDirectory: true,
+                 size: 0, modified: nil, isParent: true, remotePath: RemotePath.parent(path))
     }
 
     static func load(_ url: URL) -> FileItem? {

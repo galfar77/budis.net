@@ -7,14 +7,25 @@ struct PaneView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text(pane.url.path)
-                .font(.system(size: 12, weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.head)
-                .padding(.horizontal, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 24)
-                .background(isActive ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.15))
+            HStack(spacing: 6) {
+                if pane.connection != nil {
+                    Image(systemName: "network")
+                }
+                Text(pane.title)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                Spacer(minLength: 0)
+                if pane.isLoading { ProgressView().controlSize(.small) }
+                if pane.connection != nil {
+                    Button { pane.disconnect() } label: { Image(systemName: "eject.fill") }
+                        .buttonStyle(.plain)
+                        .help("Odpojit od serveru")
+                }
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(isActive ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.15))
 
             columnHeader
 
