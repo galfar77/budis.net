@@ -36,10 +36,14 @@ final class RemoteConnection: @unchecked Sendable {
     let user: String
     let password: String
     let insecure: Bool
+    /// Cesta k soukromému SSH klíči (jen SFTP); heslo je pak heslem ke klíči.
+    let keyPath: String
 
-    init(proto: RemoteProtocol, host: String, port: Int, user: String, password: String, insecure: Bool) {
+    init(proto: RemoteProtocol, host: String, port: Int, user: String, password: String,
+         insecure: Bool, keyPath: String = "") {
         self.proto = proto; self.host = host; self.port = port
         self.user = user; self.password = password; self.insecure = insecure
+        self.keyPath = keyPath
     }
 
     var displayName: String { "\(proto.scheme)://\(user.isEmpty ? "" : user + "@")\(host)" }
@@ -63,15 +67,32 @@ final class RemoteConnection: @unchecked Sendable {
             .replacingOccurrences(of: "\n", with: "\\n") + "\""
     }
 
-    private func config(url: String, extra: [String] = []) -> String {
-        var lines = ["url = \(q(url))", "silent", "show-error", "fail", "connect-timeout = 15"]
-        if !user.isEmpty || !password.isEmpty { lines.append("user = \(q("\(user):\(password)"))") }
+    private func config(url: String, extra: [String] = [], progress: Bool = false) -> String {
+        var lines = ["url = \(q(url))", "fail", "connect-timeout = 15"]
+        lines += progress ? ["progress-bar"] : ["silent", "show-error"]
+        if proto == .sftp && !keyPath.isEmpty {
+            let key = (keyPath as NSString).expandingTildeInPath
+            lines.append("key = \(q(key))")
+            if FileManager.default.fileExists(atPath: key + ".pub") { lines.append("pubkey = \(q(key + ".pub"))") }
+            if !user.isEmpty { lines.append("user = \(q(user))") }
+            if !password.isEmpty { lines.append("pass = \(q(password))") }
+        } else if !user.isEmpty || !password.isEmpty {
+            lines.append("user = \(q("\(user):\(password)"))")
+        }
         if proto == .ftpTLS { lines.append("ssl-reqd") }
         if insecure { lines.append("insecure") }
         return (lines + extra).joined(separator: "\n") + "\n"
     }
 
-    private func run(_ config: String) async throws -> Data {
+    private static let percentRegex = try! NSRegularExpression(pattern: #"(\d{1,3}(?:\.\d)?)%"#)
+
+    private static func lastPercent(in data: Data) -> Double? {
+        let s = String(decoding: data, as: UTF8.self) as NSString
+        guard let m = percentRegex.matches(in: s as String, range: NSRange(location: 0, length: s.length)).last else { return nil }
+        return Double(s.substring(with: m.range(at: 1)))
+    }
+
+    private func run(_ config: String, onProgress: (@Sendable (Double) -> Void)? = nil) async throws -> Data {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
             DispatchQueue.global().async {
                 let p = Process()
@@ -89,7 +110,17 @@ final class RemoteConnection: @unchecked Sendable {
                 let group = DispatchGroup()
                 group.enter()
                 DispatchQueue.global().async {
-                    errBox.data = errPipe.fileHandleForReading.readDataToEndOfFile()
+                    let handle = errPipe.fileHandleForReading
+                    var lastPct = -1
+                    while true {
+                        let chunk = handle.availableData
+                        if chunk.isEmpty { break }
+                        errBox.data.append(chunk)
+                        if let cb = onProgress, let pct = Self.lastPercent(in: chunk), Int(pct) > lastPct {
+                            lastPct = Int(pct)
+                            cb(min(pct, 100) / 100)
+                        }
+                    }
                     group.leave()
                 }
                 let out = outPipe.fileHandleForReading.readDataToEndOfFile()
@@ -99,7 +130,10 @@ final class RemoteConnection: @unchecked Sendable {
                 if p.terminationStatus == 0 {
                     cont.resume(returning: out)
                 } else {
-                    var msg = String(decoding: errBox.data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+                    var msg = String(decoding: errBox.data, as: UTF8.self)
+                    if let r = msg.range(of: "curl:") { msg = String(msg[r.lowerBound...]) }
+                    else if onProgress != nil { msg = "" }
+                    msg = msg.trimmingCharacters(in: .whitespacesAndNewlines)
                     if msg.isEmpty { msg = "curl skončil s kódem \(p.terminationStatus)" }
                     if p.terminationStatus == 51 || p.terminationStatus == 60 {
                         msg += "\n\nKlíč/certifikát serveru nelze ověřit. Pokud serveru věříte, zaškrtněte při připojení „Důvěřovat serveru bez ověření“."
@@ -136,30 +170,37 @@ final class RemoteConnection: @unchecked Sendable {
         return text.split(whereSeparator: \.isNewline).compactMap { parseListing(String($0), in: path) }
     }
 
-    func download(path: String, isDirectory: Bool, to local: URL, maxBytes: Int? = nil) async throws {
+    /// `progress` dostává název souboru a podíl hotového přenosu (0…1) právě přenášeného souboru.
+    func download(path: String, isDirectory: Bool, to local: URL, maxBytes: Int? = nil,
+                  progress: (@Sendable (String, Double) -> Void)? = nil) async throws {
         if isDirectory {
             try FileManager.default.createDirectory(at: local, withIntermediateDirectories: true)
             for child in try await list(path) {
                 try await download(path: child.remotePath ?? "", isDirectory: child.isDirectory,
-                                   to: local.appendingPathComponent(child.name))
+                                   to: local.appendingPathComponent(child.name), progress: progress)
             }
         } else {
             var extra = ["output = \(q(local.path))"]
             if let maxBytes { extra.append("range = \"0-\(maxBytes - 1)\"") }
-            _ = try await run(config(url: url(path), extra: extra))
+            let name = local.lastPathComponent
+            _ = try await run(config(url: url(path), extra: extra, progress: progress != nil),
+                              onProgress: progress.map { p in { @Sendable frac in p(name, frac) } })
         }
     }
 
-    func upload(local: URL, to path: String) async throws {
+    func upload(local: URL, to path: String, progress: (@Sendable (String, Double) -> Void)? = nil) async throws {
         var isDir: ObjCBool = false
         FileManager.default.fileExists(atPath: local.path, isDirectory: &isDir)
         if isDir.boolValue {
             try? await mkdir(path)
             for child in try FileManager.default.contentsOfDirectory(at: local, includingPropertiesForKeys: nil) {
-                try await upload(local: child, to: RemotePath.child(path, child.lastPathComponent))
+                try await upload(local: child, to: RemotePath.child(path, child.lastPathComponent), progress: progress)
             }
         } else {
-            _ = try await run(config(url: url(path), extra: ["upload-file = \(q(local.path))", "ftp-create-dirs"]))
+            let name = local.lastPathComponent
+            _ = try await run(config(url: url(path), extra: ["upload-file = \(q(local.path))", "ftp-create-dirs"],
+                                     progress: progress != nil),
+                              onProgress: progress.map { p in { @Sendable frac in p(name, frac) } })
         }
     }
 

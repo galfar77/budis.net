@@ -21,6 +21,8 @@ final class AppModel: ObservableObject {
     @Published var progressText = ""
     @Published var viewer: ViewerContent?
     @Published var sheet: ActiveSheet?
+    @Published var notice: String?
+    private var editTasks: [String: Task<Void, Never>] = [:]
 
     var active: PaneState { activeIsLeft ? left : right }
     var other: PaneState { activeIsLeft ? right : left }
@@ -80,6 +82,7 @@ final class AppModel: ObservableObject {
         for (i, item) in items.enumerated() {
             progress = Double(i) / Double(items.count)
             progressText = "\(verb) \(item.name) (\(i + 1)/\(items.count))"
+            let report = progressReporter(index: i, count: items.count, verb: verb)
 
             if src.connection == nil && dst.connection == nil && item.isDirectory {
                 let d = dst.url.path, s = item.url.path
@@ -104,7 +107,7 @@ final class AppModel: ObservableObject {
                 }
             }
             do {
-                try await transferOne(item, src: src, dst: dst, move: move, overwrite: overwrite)
+                try await transferOne(item, src: src, dst: dst, move: move, overwrite: overwrite, report: report)
             } catch {
                 errors.append("\(item.name): \(error.localizedDescription)")
             }
@@ -114,7 +117,18 @@ final class AppModel: ObservableObject {
         if !errors.isEmpty { Dialogs.error(errors.joined(separator: "\n")) }
     }
 
-    private func transferOne(_ item: FileItem, src: PaneState, dst: PaneState, move: Bool, overwrite: Bool) async throws {
+    private func progressReporter(index: Int, count: Int, verb: String) -> @Sendable (String, Double) -> Void {
+        return { [weak self] name, frac in
+            Task { @MainActor in
+                guard let self else { return }
+                self.progress = (Double(index) + frac) / Double(count)
+                self.progressText = "\(verb) \(name) – \(Int(frac * 100)) % (\(index + 1)/\(count))"
+            }
+        }
+    }
+
+    private func transferOne(_ item: FileItem, src: PaneState, dst: PaneState, move: Bool, overwrite: Bool,
+                             report: @escaping @Sendable (String, Double) -> Void) async throws {
         switch (src.connection, dst.connection) {
         case (nil, nil):
             let source = item.url
@@ -126,7 +140,7 @@ final class AppModel: ObservableObject {
             }.value
 
         case (nil, let d?):
-            try await d.upload(local: item.url, to: RemotePath.child(dst.remotePath, item.name))
+            try await d.upload(local: item.url, to: RemotePath.child(dst.remotePath, item.name), progress: report)
             if move { try FileManager.default.removeItem(at: item.url) }
 
         case (let s?, nil):
@@ -135,7 +149,7 @@ final class AppModel: ObservableObject {
             if overwrite && FileManager.default.fileExists(atPath: dest.path) {
                 try FileManager.default.removeItem(at: dest)
             }
-            try await s.download(path: path, isDirectory: item.isDirectory, to: dest)
+            try await s.download(path: path, isDirectory: item.isDirectory, to: dest, progress: report)
             if move { try await s.delete(path: path, isDirectory: item.isDirectory) }
 
         case (let s?, let d?):
@@ -143,8 +157,10 @@ final class AppModel: ObservableObject {
             let tmp = try newTempDir()
             defer { try? FileManager.default.removeItem(at: tmp) }
             let local = tmp.appendingPathComponent(item.name)
-            try await s.download(path: path, isDirectory: item.isDirectory, to: local)
-            try await d.upload(local: local, to: RemotePath.child(dst.remotePath, item.name))
+            try await s.download(path: path, isDirectory: item.isDirectory, to: local,
+                                 progress: { name, f in report(name, f / 2) })
+            try await d.upload(local: local, to: RemotePath.child(dst.remotePath, item.name),
+                               progress: { name, f in report(name, 0.5 + f / 2) })
             if move { try await s.delete(path: path, isDirectory: item.isDirectory) }
         }
     }
@@ -258,17 +274,71 @@ final class AppModel: ObservableObject {
         viewer = ViewerContent(title: item.name, text: String(decoding: data, as: UTF8.self))
     }
 
-    func edit() {
-        let pane = active
-        guard let item = pane.current, !item.isParent, !item.isDirectory else { return }
-        if pane.connection != nil {
-            Dialogs.error("Editace souborů na serveru zatím není podporovaná. Soubor nejdřív zkopírujte (F5) do lokálního panelu.")
-            return
-        }
+    private func openInTextEditor(_ url: URL) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        p.arguments = ["-t", item.url.path]
+        p.arguments = ["-t", url.path]
         try? p.run()
+    }
+
+    private static func modificationDate(_ url: URL) -> Date? {
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+    }
+
+    private func showNotice(_ text: String) {
+        notice = text
+        Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if notice == text { notice = nil }
+        }
+    }
+
+    /// Lokální soubor otevře v editoru; u souboru na serveru ho stáhne, otevře a po každém uložení
+    /// nahraje změny zpět.
+    func edit() async {
+        let pane = active
+        guard let item = pane.current, !item.isParent, !item.isDirectory else { return }
+        guard let conn = pane.connection, let path = item.remotePath else {
+            openInTextEditor(item.url)
+            return
+        }
+
+        let key = "\(conn.displayName)\(path)"
+        editTasks[key]?.cancel()
+        let file: URL
+        do {
+            let tmp = try newTempDir()
+            file = tmp.appendingPathComponent(item.name)
+            notice = "Stahuji \(item.name)…"
+            try await conn.download(path: path, isDirectory: false, to: file)
+        } catch {
+            notice = nil
+            Dialogs.error(error.localizedDescription)
+            return
+        }
+        showNotice("Editace „\(item.name)“: po uložení se změny nahrají na server")
+        openInTextEditor(file)
+
+        let dir = RemotePath.parent(path)
+        editTasks[key] = Task { [weak self] in
+            var last = Self.modificationDate(file)
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard Self.modificationDate(file) != last else { continue }
+                try? await Task.sleep(nanoseconds: 300_000_000)   // editor dopíše soubor
+                last = Self.modificationDate(file)
+                guard let self else { return }
+                self.notice = "Nahrávám změny „\(item.name)“ na server…"
+                do {
+                    try await conn.upload(local: file, to: path)
+                    self.showNotice("Uloženo na server: \(item.name)")
+                    if pane.connection === conn && pane.remotePath == dir { pane.reload() }
+                } catch {
+                    self.notice = nil
+                    Dialogs.error("Změny „\(item.name)“ se nepodařilo nahrát:\n\(error.localizedDescription)")
+                }
+            }
+        }
     }
 
     // MARK: Označování podle masky

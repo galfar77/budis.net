@@ -34,10 +34,10 @@ struct ContentView: View {
 
     @ViewBuilder
     private var statusBar: some View {
-        if let p = model.progress {
+        if model.progress != nil || model.notice != nil {
             HStack {
-                ProgressView(value: p).frame(width: 200)
-                Text(model.progressText).font(.system(size: 11))
+                if let p = model.progress { ProgressView(value: p).frame(width: 200) }
+                Text(model.notice ?? model.progressText).font(.system(size: 11))
                 Spacer()
             }
             .padding(.horizontal, 8)
@@ -49,7 +49,7 @@ struct ContentView: View {
         HStack(spacing: 2) {
             fnButton("F2", "Přejmenovat") { Task { await model.rename() } }
             fnButton("F3", "Zobrazit") { Task { await model.view() } }
-            fnButton("F4", "Editovat") { model.edit() }
+            fnButton("F4", "Editovat") { Task { await model.edit() } }
             fnButton("F5", "Kopírovat") { Task { await model.transfer(move: false); focused = true } }
             fnButton("F6", "Přesunout") { Task { await model.transfer(move: true); focused = true } }
             fnButton("F7", "Nový adr.") { Task { await model.makeDirectory() } }
@@ -99,7 +99,7 @@ struct ContentView: View {
             switch s.value {
             case 0xF705: Task { await model.rename() }
             case 0xF706: Task { await model.view() }
-            case 0xF707: model.edit()
+            case 0xF707: Task { await model.edit() }
             case 0xF708: Task { await model.transfer(move: false) }
             case 0xF709: Task { await model.transfer(move: true) }
             case 0xF70A: Task { await model.makeDirectory() }
