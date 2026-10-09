@@ -29,6 +29,7 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | F7 / F8 | nový adresář / do koše |
 | ⌘K | připojit k FTP / FTP+TLS / SFTP serveru |
 | ⌘L | síť a disky: SMB počítače v LAN, připojení sdílených složek (smb://, afp://, nfs://) |
+| ⌘T / ⌘W / ⌘1–9, Ctrl+Tab | nová záložka / zavřít záložku / přepnout záložku |
 | ⌘R, ⌘A, ⌘., ⌘U | obnovit, označit vše, skryté soubory, zrcadlit adresář |
 
 Na Macu je u F-kláves potřeba držet `fn` (nebo vypnout „Používat klávesy F1, F2 jako standardní funkční klávesy“); spodní lištu lze také klikat.
