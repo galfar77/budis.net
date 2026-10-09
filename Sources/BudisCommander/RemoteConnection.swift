@@ -27,6 +27,48 @@ struct RemoteError: LocalizedError {
 
 private final class DataBox: @unchecked Sendable { var data = Data() }
 
+/// Drží běžící proces curl, aby šel při zrušení úlohy ukončit.
+private final class ProcBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var proc: Process?
+    private var cancelled = false
+
+    func set(_ p: Process) {
+        lock.lock(); defer { lock.unlock() }
+        proc = p
+        if cancelled { p.terminate() }
+    }
+
+    func cancel() {
+        lock.lock(); defer { lock.unlock() }
+        cancelled = true
+        proc?.terminate()
+    }
+}
+
+/// Sečte přenesené bajty přes všechny soubory složky, aby průběh složky neskákal.
+private final class Tracker: @unchecked Sendable {
+    let total: Int64
+    let sink: @Sendable (String, Double) -> Void
+    private var done: Int64 = 0
+    private let lock = NSLock()
+
+    init(total: Int64, sink: @escaping @Sendable (String, Double) -> Void) {
+        self.total = total
+        self.sink = sink
+    }
+
+    func fileProgress(_ name: String, _ frac: Double, size: Int64) {
+        lock.lock(); let d = done; lock.unlock()
+        let overall = total > 0 ? (Double(d) + frac * Double(size)) / Double(total) : frac
+        sink(name, min(max(overall, 0), 1))
+    }
+
+    func fileDone(size: Int64) {
+        lock.lock(); done += size; lock.unlock()
+    }
+}
+
 /// Připojení k FTP/SFTP serveru. Všechny operace běží přes systémový `/usr/bin/curl`;
 /// přihlašovací údaje se předávají přes stdin (ne v argumentech procesu).
 final class RemoteConnection: @unchecked Sendable {
@@ -93,7 +135,9 @@ final class RemoteConnection: @unchecked Sendable {
     }
 
     private func run(_ config: String, onProgress: (@Sendable (Double) -> Void)? = nil) async throws -> Data {
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
+        let box = ProcBox()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
             DispatchQueue.global().async {
                 let p = Process()
                 p.executableURL = URL(fileURLWithPath: "/usr/bin/curl")
@@ -103,6 +147,7 @@ final class RemoteConnection: @unchecked Sendable {
                 p.standardOutput = outPipe
                 p.standardError = errPipe
                 do { try p.run() } catch { cont.resume(throwing: error); return }
+                box.set(p)
                 inPipe.fileHandleForWriting.write(Data(config.utf8))
                 try? inPipe.fileHandleForWriting.close()
 
@@ -141,6 +186,9 @@ final class RemoteConnection: @unchecked Sendable {
                     cont.resume(throwing: RemoteError(message: msg))
                 }
             }
+            }
+        } onCancel: {
+            box.cancel()
         }
     }
 
@@ -170,37 +218,65 @@ final class RemoteConnection: @unchecked Sendable {
         return text.split(whereSeparator: \.isNewline).compactMap { parseListing(String($0), in: path) }
     }
 
-    /// `progress` dostává název souboru a podíl hotového přenosu (0…1) právě přenášeného souboru.
-    func download(path: String, isDirectory: Bool, to local: URL, maxBytes: Int? = nil,
+    /// Součet velikostí souborů na serveru (rekurzivně u složek).
+    func totalSize(path: String, isDirectory: Bool, size: Int64) async -> Int64 {
+        guard isDirectory else { return size }
+        var sum: Int64 = 0
+        for child in (try? await list(path)) ?? [] {
+            sum += await totalSize(path: child.remotePath ?? "", isDirectory: child.isDirectory, size: child.size)
+        }
+        return sum
+    }
+
+    /// `progress` dostává název souboru a celkový podíl hotového přenosu (0…1) včetně všech souborů složky.
+    /// `size` je velikost souboru (u složek se zjistí sama).
+    func download(path: String, isDirectory: Bool, size: Int64 = 0, to local: URL, maxBytes: Int? = nil,
                   progress: (@Sendable (String, Double) -> Void)? = nil) async throws {
+        var tracker: Tracker?
+        if let progress, maxBytes == nil {
+            tracker = Tracker(total: await totalSize(path: path, isDirectory: isDirectory, size: size), sink: progress)
+        }
+        try await downloadTree(path: path, isDirectory: isDirectory, size: size, to: local, maxBytes: maxBytes, tracker: tracker)
+    }
+
+    private func downloadTree(path: String, isDirectory: Bool, size: Int64, to local: URL,
+                              maxBytes: Int?, tracker: Tracker?) async throws {
         if isDirectory {
             try FileManager.default.createDirectory(at: local, withIntermediateDirectories: true)
             for child in try await list(path) {
-                try await download(path: child.remotePath ?? "", isDirectory: child.isDirectory,
-                                   to: local.appendingPathComponent(child.name), progress: progress)
+                try await downloadTree(path: child.remotePath ?? "", isDirectory: child.isDirectory, size: child.size,
+                                       to: local.appendingPathComponent(child.name), maxBytes: nil, tracker: tracker)
             }
         } else {
             var extra = ["output = \(q(local.path))"]
             if let maxBytes { extra.append("range = \"0-\(maxBytes - 1)\"") }
             let name = local.lastPathComponent
-            _ = try await run(config(url: url(path), extra: extra, progress: progress != nil),
-                              onProgress: progress.map { p in { @Sendable frac in p(name, frac) } })
+            _ = try await run(config(url: url(path), extra: extra, progress: tracker != nil),
+                              onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
+            tracker?.fileDone(size: size)
         }
     }
 
     func upload(local: URL, to path: String, progress: (@Sendable (String, Double) -> Void)? = nil) async throws {
+        let tracker = progress.map { Tracker(total: LocalFS.totalSize(local), sink: $0) }
+        try await uploadTree(local: local, to: path, tracker: tracker)
+    }
+
+    private func uploadTree(local: URL, to path: String, tracker: Tracker?) async throws {
         var isDir: ObjCBool = false
         FileManager.default.fileExists(atPath: local.path, isDirectory: &isDir)
         if isDir.boolValue {
             try? await mkdir(path)
             for child in try FileManager.default.contentsOfDirectory(at: local, includingPropertiesForKeys: nil) {
-                try await upload(local: child, to: RemotePath.child(path, child.lastPathComponent), progress: progress)
+                try await uploadTree(local: child, to: RemotePath.child(path, child.lastPathComponent), tracker: tracker)
             }
         } else {
             let name = local.lastPathComponent
+            let size = LocalFS.totalSize(local)
             _ = try await run(config(url: url(path), extra: ["upload-file = \(q(local.path))", "ftp-create-dirs"],
-                                     progress: progress != nil),
-                              onProgress: progress.map { p in { @Sendable frac in p(name, frac) } })
+                                     progress: tracker != nil),
+                              onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
+            tracker?.fileDone(size: size)
         }
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 enum ShortcutAction: String, CaseIterable, Identifiable {
     case newTab, closeTab, refresh, markAll, hidden, mirror, connect, network
     case compare, batchRename, pack, unpack, search, settings
+    case sync, commandLine, favorites, back, forward
 
     var id: String { rawValue }
 
@@ -22,6 +23,11 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .unpack: return "Rozbalit archiv"
         case .search: return "Hledat soubory"
         case .settings: return "Nastavení"
+        case .sync: return "Zrcadlit adresář do druhého panelu"
+        case .commandLine: return "Příkazový řádek"
+        case .favorites: return "Oblíbené a poslední složky"
+        case .back: return "Zpět v historii"
+        case .forward: return "Vpřed v historii"
         }
     }
 
@@ -41,6 +47,11 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .unpack: return "e"
         case .search: return "f"
         case .settings: return ","
+        case .sync: return "y"
+        case .commandLine: return "j"
+        case .favorites: return "b"
+        case .back: return "["
+        case .forward: return "]"
         }
     }
 }

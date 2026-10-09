@@ -30,7 +30,26 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict></plist>
 PLIST
 
-codesign --force --sign - "$APP" 2>/dev/null || true
+# Podepsání: bez proměnných ad hoc (stačí pro běh na vlastním Macu).
+# S placeným účtem Apple Developer:
+#   SIGN_IDENTITY="Developer ID Application: Jméno (TEAMID)" ./scripts/make-app.sh
+# a navíc notarizace (jednou: xcrun notarytool store-credentials budis-notary ...):
+#   NOTARY_PROFILE=budis-notary SIGN_IDENTITY="..." ./scripts/make-app.sh
+if [ -n "${SIGN_IDENTITY:-}" ]; then
+  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+else
+  codesign --force --sign - "$APP" 2>/dev/null || true
+fi
+
 # ZIP pro přenos / sdílení (ditto zachová atributy)
 ditto -c -k --keepParent "$APP" build/BudisCommander.zip
+
+if [ -n "${SIGN_IDENTITY:-}" ] && [ -n "${NOTARY_PROFILE:-}" ]; then
+  echo "Notarizace (může trvat několik minut)…"
+  xcrun notarytool submit build/BudisCommander.zip --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple "$APP"
+  rm -f build/BudisCommander.zip
+  ditto -c -k --keepParent "$APP" build/BudisCommander.zip
+fi
+
 echo "Hotovo: $APP a build/BudisCommander.zip"
