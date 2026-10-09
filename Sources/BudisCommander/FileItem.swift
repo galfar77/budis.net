@@ -9,6 +9,8 @@ struct FileItem: Identifiable, Hashable {
     let isParent: Bool
     /// Cesta na vzdáleném serveru (nil u lokálních souborů).
     var remotePath: String? = nil
+    /// Relativní cesta v „plochém“ zobrazení všech podsložek (Branch view).
+    var subpath: String? = nil
 
     var id: String { isParent ? ".." : (remotePath ?? url.path) }
 

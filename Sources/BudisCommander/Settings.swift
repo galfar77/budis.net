@@ -4,6 +4,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case newTab, closeTab, refresh, markAll, hidden, mirror, connect, network
     case compare, batchRename, pack, unpack, search, settings
     case sync, commandLine, favorites, back, forward
+    case diff, compareContent, checksum, branch, dirSizes, attributes, quickView
+    case split, combine, symlink, userMenu, resumeTransfer, thumbnails
 
     var id: String { rawValue }
 
@@ -28,6 +30,19 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .favorites: return "Oblíbené a poslední složky"
         case .back: return "Zpět v historii"
         case .forward: return "Vpřed v historii"
+        case .diff: return "Porovnat dva soubory (obsah)"
+        case .compareContent: return "Porovnat adresáře podle obsahu"
+        case .checksum: return "Kontrolní součty (MD5, SHA)"
+        case .branch: return "Všechny podsložky najednou (Branch view)"
+        case .dirSizes: return "Spočítat velikosti složek"
+        case .attributes: return "Atributy a časy"
+        case .quickView: return "Panel rychlého náhledu"
+        case .split: return "Rozdělit soubor na díly"
+        case .combine: return "Slepit díly souboru"
+        case .symlink: return "Vytvořit symbolický odkaz"
+        case .userMenu: return "Uživatelské příkazy…"
+        case .resumeTransfer: return "Pokračovat v přerušeném přenosu"
+        case .thumbnails: return "Miniatury souborů"
         }
     }
 
@@ -52,6 +67,13 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .favorites: return "b"
         case .back: return "["
         case .forward: return "]"
+        case .diff: return "i"
+        case .checksum: return "h"
+        case .branch: return "g"
+        case .dirSizes: return "s"
+        case .attributes: return "o"
+        case .quickView: return "v"
+        case .compareContent, .split, .combine, .symlink, .userMenu, .resumeTransfer, .thumbnails: return ""
         }
     }
 }
@@ -67,6 +89,22 @@ final class Settings: ObservableObject {
     @Published var theme: String {
         didSet { UserDefaults.standard.set(theme, forKey: "theme") }
     }
+    @Published var showExt: Bool {
+        didSet { UserDefaults.standard.set(showExt, forKey: "showExt") }
+    }
+    @Published var showThumbs: Bool {
+        didSet { UserDefaults.standard.set(showThumbs, forKey: "showThumbs") }
+    }
+    @Published var showButtonBar: Bool {
+        didSet { UserDefaults.standard.set(showButtonBar, forKey: "showButtonBar") }
+    }
+    @Published var userCommands: [UserCommand] {
+        didSet {
+            if let data = try? JSONEncoder().encode(userCommands) {
+                UserDefaults.standard.set(data, forKey: "userCommands")
+            }
+        }
+    }
     @Published private(set) var shortcuts: [String: String] {
         didSet { UserDefaults.standard.set(shortcuts, forKey: "shortcuts") }
     }
@@ -77,6 +115,14 @@ final class Settings: ObservableObject {
         fontSize = size == 0 ? 12 : size
         theme = d.string(forKey: "theme") ?? "system"
         shortcuts = (d.dictionary(forKey: "shortcuts") as? [String: String]) ?? [:]
+        showExt = d.bool(forKey: "showExt")
+        showThumbs = d.bool(forKey: "showThumbs")
+        showButtonBar = d.object(forKey: "showButtonBar") as? Bool ?? true
+        if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
+            userCommands = list
+        } else {
+            userCommands = UserCommand.defaults
+        }
     }
 
     var colorScheme: ColorScheme? {
@@ -102,6 +148,7 @@ final class Settings: ObservableObject {
 
     func isDuplicate(_ action: ShortcutAction) -> Bool {
         let c = char(for: action)
+        if c.isEmpty { return false }
         return ShortcutAction.allCases.filter { char(for: $0) == c }.count > 1
     }
 
@@ -124,6 +171,9 @@ struct SettingsSheet: View {
             .pickerStyle(.segmented)
 
             Stepper("Velikost písma: \(Int(settings.fontSize)) pt", value: $settings.fontSize, in: 10...20, step: 1)
+            Toggle("Samostatný sloupec s příponou", isOn: $settings.showExt)
+            Toggle("Miniatury souborů místo ikon", isOn: $settings.showThumbs)
+            Toggle("Tlačítková lišta uživatelských příkazů", isOn: $settings.showButtonBar)
 
             Divider()
             Text("Klávesové zkratky (⌘ + znak)").font(.subheadline).foregroundStyle(.secondary)

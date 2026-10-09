@@ -12,6 +12,7 @@ struct PaneView: View {
                 if pane.connection != nil {
                     Image(systemName: "network")
                 }
+                if pane.branch { Image(systemName: "list.bullet.indent") }
                 Text(pane.title)
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(1)
@@ -79,6 +80,9 @@ struct PaneView: View {
     private var columnHeader: some View {
         HStack(spacing: 6) {
             headerButton("Název", .name).frame(maxWidth: .infinity, alignment: .leading)
+            if settings.showExt {
+                Text("Přípona").font(.system(size: 11, weight: .semibold)).frame(width: 64, alignment: .leading)
+            }
             headerButton("Velikost", .size).frame(width: 80, alignment: .trailing)
             headerButton("Změněno", .date).frame(width: 130, alignment: .trailing)
         }
@@ -100,16 +104,35 @@ struct PaneView: View {
     private func row(_ item: FileItem, index: Int) -> some View {
         let isCursor = index == pane.cursor
         let isMarked = pane.marked.contains(item.id)
+        let ext = item.isDirectory || item.isParent ? "" : (item.name as NSString).pathExtension
+        let shownName: String
+        if let sub = item.subpath { shownName = sub }
+        else if settings.showExt && !ext.isEmpty { shownName = (item.name as NSString).deletingPathExtension }
+        else { shownName = item.name }
+        let rowHeight = settings.showThumbs ? max(settings.fontSize + 8, 34) : settings.fontSize + 8
+        let sizeText: String
+        if item.isDirectory {
+            sizeText = pane.dirSizes[item.id].map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) } ?? "‹DIR›"
+        } else {
+            sizeText = ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file)
+        }
         return HStack(spacing: 6) {
-            Image(systemName: item.isParent ? "arrow.turn.left.up" : (item.isDirectory ? "folder.fill" : "doc"))
-                .foregroundStyle(item.isDirectory ? Color.blue : Color.secondary)
-                .frame(width: 16)
-            Text(item.name)
+            if settings.showThumbs {
+                ThumbView(item: item, side: 28)
+            } else {
+                Image(systemName: item.isParent ? "arrow.turn.left.up" : (item.isDirectory ? "folder.fill" : "doc"))
+                    .foregroundStyle(item.isDirectory ? Color.blue : Color.secondary)
+                    .frame(width: 16)
+            }
+            Text(shownName)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .fontWeight(item.isDirectory ? .semibold : .regular)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(item.isDirectory ? "‹DIR›" : ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file))
+            if settings.showExt {
+                Text(ext).foregroundStyle(.secondary).frame(width: 64, alignment: .leading)
+            }
+            Text(sizeText)
                 .frame(width: 80, alignment: .trailing)
             Text(item.modified.map { $0.formatted(date: .numeric, time: .shortened) } ?? "")
                 .frame(width: 130, alignment: .trailing)
@@ -118,7 +141,7 @@ struct PaneView: View {
         .monospacedDigit()
         .foregroundStyle(isMarked ? Color.red : Color.primary)
         .padding(.horizontal, 8)
-        .frame(height: settings.fontSize + 8)
+        .frame(height: rowHeight)
         .background(isCursor ? (isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.3)) : .clear)
     }
 }

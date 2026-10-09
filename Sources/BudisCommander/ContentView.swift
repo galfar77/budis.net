@@ -10,13 +10,22 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                PanelView(group: model.leftTabs, isActive: model.activeIsLeft) { model.activeIsLeft = true }
+                if model.quickView && !model.activeIsLeft {
+                    QuickViewPanel(group: model.rightTabs)
+                } else {
+                    PanelView(group: model.leftTabs, isActive: model.activeIsLeft) { model.activeIsLeft = true }
+                }
                 Divider()
-                PanelView(group: model.rightTabs, isActive: !model.activeIsLeft) { model.activeIsLeft = false }
+                if model.quickView && model.activeIsLeft {
+                    QuickViewPanel(group: model.leftTabs)
+                } else {
+                    PanelView(group: model.rightTabs, isActive: !model.activeIsLeft) { model.activeIsLeft = false }
+                }
             }
             statusBar
             if model.showCommandLine { CommandPanel(model: model, runner: model.runner) }
             functionBar
+            if settings.showButtonBar && !settings.userCommands.isEmpty { userBar }
         }
         .background(WindowAccessor())
         .preferredColorScheme(settings.colorScheme)
@@ -39,6 +48,10 @@ struct ContentView: View {
             case .search: SearchSheet(model: model)
             case .settings: SettingsSheet()
             case .favorites: FavoritesSheet(model: model)
+            case .diff: DiffSheet(model: model)
+            case .checksum: ChecksumSheet(model: model)
+            case .attributes: AttributesSheet(model: model)
+            case .userMenu: UserMenuSheet()
             }
         }
     }
@@ -52,13 +65,35 @@ struct ContentView: View {
                 if let p = model.progress { ProgressView(value: p).frame(width: 200) }
                 Text(model.notice ?? model.progressText).font(.system(size: 11))
                 Spacer()
+                if model.queueCount > 0 {
+                    Text("ve frontě: \(model.queueCount)").font(.system(size: 11)).foregroundStyle(.secondary)
+                }
                 if model.canCancel && model.progress != nil {
                     Button("Zrušit") { model.cancelTransfer() }.controlSize(.small)
+                    if model.queueCount > 0 {
+                        Button("Zrušit vše") { model.cancelTransfer(all: true) }.controlSize(.small)
+                    }
                 }
             }
             .padding(.horizontal, 8)
             .frame(height: 22)
         }
+    }
+
+    private var userBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(settings.userCommands) { cmd in
+                    Button(cmd.name) { model.runUser(cmd); focused = true }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .help(cmd.command)
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+        .frame(height: 28)
+        .background(Color.secondary.opacity(0.08))
     }
 
     private var functionBar: some View {
@@ -198,6 +233,9 @@ struct ViewerSheet: View {
             HStack {
                 Text(content.title).font(.headline)
                 Spacer()
+                if let url = content.openURL {
+                    Button("Otevřít v aplikaci") { NSWorkspace.shared.open(url) }
+                }
                 Button("Tisk…") { ViewerPrinter.printContent(content) }.keyboardShortcut("p", modifiers: .command)
                 Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
             }

@@ -33,6 +33,10 @@ final class PaneState: ObservableObject {
     @Published private(set) var remotePath = "/"
     @Published private(set) var isLoading = false
     @Published private(set) var archive: ArchiveInfo?
+    /// Ploché zobrazení všech souborů ze všech podsložek (Branch view).
+    @Published private(set) var branch = false
+    /// Spočítané velikosti složek (id položky → bajty).
+    @Published private(set) var dirSizes: [String: Int64] = [:]
     /// Text, kterým je seznam zúžený (prázdný = bez filtru).
     @Published private(set) var filter = ""
     /// Všechny položky adresáře bez filtru.
@@ -72,6 +76,7 @@ final class PaneState: ObservableObject {
     var title: String {
         if let a = archive { return "Archiv \(a.name)" + String(url.path.dropFirst(a.root.path.count)) + " (jen pro čtení)" }
         if let c = connection { return c.displayName + remotePath }
+        if branch { return url.path + "  (všechny podsložky)" }
         return url.path
     }
 
@@ -132,7 +137,8 @@ final class PaneState: ObservableObject {
             return false
         }
         let previousID = id ?? current?.id
-        var list = sorted(urls.compactMap(FileItem.load))
+        if dir != url { branch = false; dirSizes = [:] }
+        var list = branch ? sorted(branchItems(dir)) : sorted(urls.compactMap(FileItem.load))
         if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
         if dir != url { filter = "" }
         if dir != url && !historyMove && !Self.isTemp(url) && !Self.isTemp(dir) {
@@ -145,6 +151,42 @@ final class PaneState: ObservableObject {
         apply(list, previousID: previousID)
         Self.onLocationChange?()
         return true
+    }
+
+    /// Všechny soubory ze všech podsložek (nejvýš 20 000), s relativní cestou k zobrazení.
+    private func branchItems(_ dir: URL) -> [FileItem] {
+        let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey]
+        let options: FileManager.DirectoryEnumerationOptions = showHidden ? [] : [.skipsHiddenFiles]
+        guard let en = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: keys, options: options) else { return [] }
+        var out: [FileItem] = []
+        let prefix = dir.path.hasSuffix("/") ? dir.path : dir.path + "/"
+        for case let u as URL in en {
+            guard let v = try? u.resourceValues(forKeys: Set(keys)), v.isDirectory != true else { continue }
+            let rel = u.path.hasPrefix(prefix) ? String(u.path.dropFirst(prefix.count)) : u.lastPathComponent
+            out.append(FileItem(url: u, name: u.lastPathComponent, isDirectory: false, size: Int64(v.fileSize ?? 0),
+                                modified: v.contentModificationDate, isParent: false, subpath: rel))
+            if out.count >= 20_000 { break }
+        }
+        return out
+    }
+
+    func toggleBranch() {
+        guard connection == nil else { return }
+        branch.toggle()
+        marked = []
+        load(url, select: "")
+    }
+
+    /// Spočítá velikosti zadaných složek na pozadí a ukáže je ve sloupci Velikost.
+    func computeDirSizes(for dirs: [FileItem]) async {
+        guard connection == nil else { return }
+        isLoading = true
+        defer { isLoading = false }
+        for d in dirs where d.isDirectory && !d.isParent {
+            let url = d.url
+            let size = await Task.detached { LocalFS.totalSize(url) }.value
+            dirSizes[d.id] = size
+        }
     }
 
     /// Načte adresář na serveru. Při úspěchu přepne panel do vzdáleného režimu.
