@@ -13,13 +13,13 @@ struct ContentView: View {
                 if model.quickView && !model.activeIsLeft {
                     QuickViewPanel(group: model.rightTabs)
                 } else {
-                    PanelView(group: model.leftTabs, isActive: model.activeIsLeft) { model.activeIsLeft = true }
+                    PanelView(group: model.leftTabs, isActive: model.activeIsLeft, model: model) { model.activeIsLeft = true }
                 }
                 Divider()
                 if model.quickView && model.activeIsLeft {
                     QuickViewPanel(group: model.leftTabs)
                 } else {
-                    PanelView(group: model.rightTabs, isActive: !model.activeIsLeft) { model.activeIsLeft = false }
+                    PanelView(group: model.rightTabs, isActive: !model.activeIsLeft, model: model) { model.activeIsLeft = false }
                 }
             }
             statusBar
@@ -52,6 +52,8 @@ struct ContentView: View {
             case .checksum: ChecksumSheet(model: model)
             case .attributes: AttributesSheet(model: model)
             case .userMenu: UserMenuSheet()
+            case .duplicates: DuplicatesSheet(model: model)
+            case .tags: TagsSheet(model: model)
             }
         }
     }
@@ -142,6 +144,14 @@ struct ContentView: View {
         if p.modifiers.contains(.command) {
             var ch = p.characters.lowercased()
             if ch == ">" { ch = "." }
+            if !p.modifiers.contains(.shift) && !p.modifiers.contains(.option) {
+                switch ch {
+                case "c": model.copyFiles(cut: false); return .handled
+                case "x": model.copyFiles(cut: true); return .handled
+                case "v": model.pasteFiles(); return .handled
+                default: break
+                }
+            }
             if ch.count == 1, let n = Int(ch), n >= 1 {
                 model.activeGroup.select(n - 1)
                 return .handled
@@ -204,7 +214,9 @@ struct ContentView: View {
         case .tab:
             if p.modifiers.contains(.control) { model.activeGroup.cycle(shift ? -1 : 1) } else { model.switchPane() }
             return .handled
-        case .space: pane.toggleMark(); return .handled
+        case .space:
+            if shift { model.systemQuickLook() } else { pane.toggleMark() }
+            return .handled
         default: break
         }
 

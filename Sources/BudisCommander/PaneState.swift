@@ -53,9 +53,39 @@ final class PaneState: ObservableObject {
     private var searchBuffer = ""
     private var searchTime = Date.distantPast
 
-    init(url: URL) {
+    /// Dočasný panel (cíl nebo zdroj přetažení); neukládá se do historie, nesleduje složku.
+    let ephemeral: Bool
+    /// Zvyšuje se při každém načtení seznamu; řádky podle něj obnovují doplňkové informace.
+    @Published private(set) var generation = 0
+    private var watcher: DirWatcher?
+    private var watchedPath = ""
+    private var watchedBranch = false
+    private var reloadScheduled = false
+
+    init(url: URL, ephemeral: Bool = false) {
         self.url = url
-        _ = load(url)
+        self.ephemeral = ephemeral
+        _ = load(url, silent: ephemeral)
+    }
+
+    private func watch(_ dir: URL) {
+        guard !ephemeral else { return }
+        if Self.isTemp(dir) { watcher = nil; watchedPath = ""; return }
+        if watcher != nil && watchedPath == dir.path && watchedBranch == branch { return }
+        watchedPath = dir.path
+        watchedBranch = branch
+        watcher = DirWatcher(path: dir.path, recursive: branch) { [weak self] in self?.scheduleReload() }
+    }
+
+    private func scheduleReload() {
+        guard !reloadScheduled else { return }
+        reloadScheduled = true
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard let self else { return }
+            self.reloadScheduled = false
+            if self.connection == nil { self.load(self.url, silent: true) }
+        }
     }
 
     var isArchive: Bool { archive != nil }
@@ -92,6 +122,7 @@ final class PaneState: ObservableObject {
     private func apply(_ list: [FileItem], previousID: String?) {
         allItems = list
         items = visible(list)
+        generation += 1
         marked = marked.filter { m in list.contains { $0.id == m } }
         if previousID == "" {
             cursor = 0
@@ -127,13 +158,13 @@ final class PaneState: ObservableObject {
     }
 
     @discardableResult
-    private func load(_ dir: URL, select id: String? = nil) -> Bool {
+    private func load(_ dir: URL, select id: String? = nil, silent: Bool = false) -> Bool {
         let urls: [URL]
         do {
             urls = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil,
                                                                options: showHidden ? [] : [.skipsHiddenFiles])
         } catch {
-            Dialogs.error("Adresář nelze otevřít:\n\(dir.path)\n\n\(error.localizedDescription)")
+            if !silent { Dialogs.error("Adresář nelze otevřít:\n\(dir.path)\n\n\(error.localizedDescription)") }
             return false
         }
         let previousID = id ?? current?.id
@@ -146,11 +177,12 @@ final class PaneState: ObservableObject {
             forward.removeAll()
             if back.count > 100 { back.removeFirst() }
         }
-        if !Self.isTemp(dir) { FavoritesStore.shared.visited(dir) }
+        if !ephemeral && !Self.isTemp(dir) { FavoritesStore.shared.visited(dir) }
         url = dir
         apply(list, previousID: previousID)
-        Self.onLocationChange?()
+        if !ephemeral { Self.onLocationChange?() }
         startAutoSizes()
+        watch(dir)
         return true
     }
 
@@ -177,7 +209,7 @@ final class PaneState: ObservableObject {
     private func startAutoSizes() {
         sizeTask?.cancel()
         sizeTask = nil
-        guard Settings.shared.autoDirSizes, connection == nil, !branch else { return }
+        guard !ephemeral, Settings.shared.autoDirSizes, connection == nil, !branch else { return }
         let dirs = items.filter { $0.isDirectory && !$0.isParent && dirSizes[$0.id] == nil }
         guard !dirs.isEmpty else { return }
         sizeTask = Task { [weak self] in
@@ -224,6 +256,8 @@ final class PaneState: ObservableObject {
             list = sorted(list)
             if path != "/" { list.insert(.remoteParent(of: path), at: 0) }
             connection = conn
+            watcher = nil
+            watchedPath = ""
             remotePath = path
             apply(list, previousID: previousID)
             return true

@@ -6,6 +6,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case sync, commandLine, favorites, back, forward
     case diff, compareContent, checksum, branch, dirSizes, attributes, quickView
     case split, combine, symlink, userMenu, resumeTransfer, thumbnails
+    case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
+    case quickLook, duplicates, addToArchive, tags
 
     var id: String { rawValue }
 
@@ -43,6 +45,17 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .userMenu: return "Uživatelské příkazy…"
         case .resumeTransfer: return "Pokračovat v přerušeném přenosu"
         case .thumbnails: return "Miniatury souborů"
+        case .undo: return "Vrátit poslední operaci"
+        case .copyFiles: return "Kopírovat soubory do schránky"
+        case .cutFiles: return "Vyjmout soubory do schránky"
+        case .pasteFiles: return "Vložit soubory ze schránky"
+        case .copyPath: return "Kopírovat cestu"
+        case .copyName: return "Kopírovat název"
+        case .copyDirPath: return "Kopírovat cestu složky"
+        case .quickLook: return "Systémový Quick Look"
+        case .duplicates: return "Hledat duplicity"
+        case .addToArchive: return "Přidat do archivu v druhém panelu"
+        case .tags: return "Štítky Finderu…"
         }
     }
 
@@ -58,7 +71,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .network: return "l"
         case .compare: return "d"
         case .batchRename: return "m"
-        case .pack: return "z"
+        case .pack: return "p"
         case .unpack: return "e"
         case .search: return "f"
         case .settings: return ","
@@ -72,8 +85,11 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .branch: return "g"
         case .dirSizes: return "s"
         case .attributes: return "o"
-        case .quickView: return "v"
+        case .quickView: return "n"
+        case .undo: return "z"
         case .compareContent, .split, .combine, .symlink, .userMenu, .resumeTransfer, .thumbnails: return ""
+        case .copyFiles, .cutFiles, .pasteFiles, .copyPath, .copyName, .copyDirPath: return ""
+        case .quickLook, .duplicates, .addToArchive, .tags: return ""
         }
     }
 }
@@ -97,6 +113,18 @@ final class Settings: ObservableObject {
     }
     @Published var autoDirSizes: Bool {
         didSet { UserDefaults.standard.set(autoDirSizes, forKey: "autoDirSizes") }
+    }
+    @Published var showPerms: Bool {
+        didSet { UserDefaults.standard.set(showPerms, forKey: "showPerms") }
+    }
+    @Published var showOwner: Bool {
+        didSet { UserDefaults.standard.set(showOwner, forKey: "showOwner") }
+    }
+    @Published var showMedia: Bool {
+        didSet { UserDefaults.standard.set(showMedia, forKey: "showMedia") }
+    }
+    @Published var showTags: Bool {
+        didSet { UserDefaults.standard.set(showTags, forKey: "showTags") }
     }
     @Published var showButtonBar: Bool {
         didSet { UserDefaults.standard.set(showButtonBar, forKey: "showButtonBar") }
@@ -122,6 +150,10 @@ final class Settings: ObservableObject {
         showThumbs = d.bool(forKey: "showThumbs")
         showButtonBar = d.object(forKey: "showButtonBar") as? Bool ?? true
         autoDirSizes = d.bool(forKey: "autoDirSizes")
+        showPerms = d.bool(forKey: "showPerms")
+        showOwner = d.bool(forKey: "showOwner")
+        showMedia = d.bool(forKey: "showMedia")
+        showTags = d.object(forKey: "showTags") as? Bool ?? true
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
             // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
             userCommands = list.filter { !($0.name == "Velikost složky" && $0.command == "du -sh %F") }
@@ -177,6 +209,10 @@ struct SettingsSheet: View {
 
             Stepper("Velikost písma: \(Int(settings.fontSize)) pt", value: $settings.fontSize, in: 10...20, step: 1)
             Toggle("Samostatný sloupec s příponou", isOn: $settings.showExt)
+            Toggle("Sloupec Práva", isOn: $settings.showPerms)
+            Toggle("Sloupec Vlastník", isOn: $settings.showOwner)
+            Toggle("Sloupec Rozměry obrázku / délka zvuku a videa", isOn: $settings.showMedia)
+            Toggle("Barevné štítky Finderu u názvů", isOn: $settings.showTags)
             Toggle("Miniatury souborů místo ikon", isOn: $settings.showThumbs)
             Toggle("Automaticky počítat velikosti složek (na pozadí, jen lokální složky)", isOn: $settings.autoDirSizes)
             Toggle("Tlačítková lišta uživatelských příkazů", isOn: $settings.showButtonBar)
@@ -204,7 +240,7 @@ struct SettingsSheet: View {
                 }
                 .padding(.trailing, 8)
             }
-            .frame(height: 280)
+            .frame(height: 200)
             Text("Klávesy F2–F8, Tab, šipky a ⌘1–9 (záložky) jsou pevné. Změna zkratek se projeví hned.")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 

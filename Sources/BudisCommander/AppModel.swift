@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu
+    case diff, checksum, attributes, userMenu, duplicates, tags
     var id: String { rawValue }
 }
 
@@ -46,6 +46,13 @@ final class AppModel: ObservableObject {
     @Published var batchItems: [FileItem] = []
     @Published var canCancel = false
     @Published var quickView = false
+    @Published var undoTitle: String?
+    @Published var tagItems: [FileItem] = []
+    private var undoStack: [UndoEntry] = []
+    private var undoCopies: [URL] = []
+    private var undoMoves: [(URL, URL)] = []
+    /// Panel, ze kterého právě tažení vychází (rozlišuje tažení mezi panely od tažení z Finderu).
+    var dragSource: PaneState?
     @Published var queueCount = 0
     @Published var diffFiles: (URL, URL)?
     @Published var checksumItems: [FileItem] = []
@@ -174,6 +181,8 @@ final class AppModel: ObservableObject {
         }
         let verb = move ? "Přesunout" : "Kopírovat"
 
+        undoCopies = []
+        undoMoves = []
         var overwriteAll = false
         var cancelled = false
         var remaining: [FileItem] = []
@@ -208,6 +217,10 @@ final class AppModel: ObservableObject {
             }
             do {
                 try await transferOne(item, src: src, dst: dst, move: move, overwrite: overwrite, report: report)
+                if !overwrite && src.connection == nil && dst.connection == nil {
+                    let created = dst.url.appendingPathComponent(item.name)
+                    if move { undoMoves.append((created, item.url)) } else { undoCopies.append(created) }
+                }
             } catch {
                 if Task.isCancelled {
                     if dst.connection == nil {
@@ -222,6 +235,13 @@ final class AppModel: ObservableObject {
         }
         src.marked = []
         finish(src, dst)
+        if !undoCopies.isEmpty || !undoMoves.isEmpty {
+            let copies = undoCopies, moves = undoMoves
+            let count = copies.count + moves.count
+            pushUndo("\(move ? "přesun" : "kopírování") \(count) položek") { try self.undoTransfer(copies: copies, moves: moves) }
+            undoCopies = []
+            undoMoves = []
+        }
         interrupted = cancelled
             ? TransferPlan(move: move, src: src, dst: dst, items: remaining, srcKey: plan.srcKey, dstKey: plan.dstKey)
             : nil
@@ -306,6 +326,7 @@ final class AppModel: ObservableObject {
         guard ok else { return }
 
         var errors: [String] = []
+        var trashed: [(URL, URL)] = []
         for (i, item) in items.enumerated() {
             if Task.isCancelled { break }
             progress = Double(i) / Double(items.count)
@@ -315,12 +336,18 @@ final class AppModel: ObservableObject {
                     try await conn.delete(path: path, isDirectory: item.isDirectory)
                 } else {
                     let url = item.url
-                    try await Task.detached { try FileManager.default.trashItem(at: url, resultingItemURL: nil) }.value
+                    let result = try await Task.detached { () -> URL? in
+                        var out: NSURL?
+                        try FileManager.default.trashItem(at: url, resultingItemURL: &out)
+                        return out as URL?
+                    }.value
+                    if let result { trashed.append((result, url)) }
                 }
             } catch {
                 errors.append("\(item.name): \(error.localizedDescription)")
             }
         }
+        if !trashed.isEmpty { pushTrashUndo(trashed) }
         pane.marked = []
         progress = nil
         progressText = ""
@@ -336,11 +363,14 @@ final class AppModel: ObservableObject {
         guard let name = Dialogs.prompt("Nový adresář", info: "Vytvoří se v \(pane.title)", ok: "Vytvořit") else { return }
         do {
             if let conn = pane.connection {
-                try await conn.mkdir(RemotePath.child(pane.remotePath, name))
+                let path = RemotePath.child(pane.remotePath, name)
+                try await conn.mkdir(path)
+                pushUndo("vytvoření složky „\(name)“") { try await conn.delete(path: path, isDirectory: true) }
                 await pane.loadRemote(pane.remotePath)
             } else {
-                try FileManager.default.createDirectory(at: pane.url.appendingPathComponent(name),
-                                                        withIntermediateDirectories: true)
+                let created = pane.url.appendingPathComponent(name)
+                try FileManager.default.createDirectory(at: created, withIntermediateDirectories: true)
+                pushUndo("vytvoření složky „\(name)“") { try FileManager.default.trashItem(at: created, resultingItemURL: nil) }
                 pane.reload()
             }
             if let idx = pane.items.firstIndex(where: { $0.name == name }) { pane.cursor = idx }
@@ -357,11 +387,15 @@ final class AppModel: ObservableObject {
               name != item.name else { return }
         do {
             if let conn = pane.connection, let path = item.remotePath {
-                try await conn.rename(from: path, to: RemotePath.child(RemotePath.parent(path), name))
+                let newPath = RemotePath.child(RemotePath.parent(path), name)
+                try await conn.rename(from: path, to: newPath)
+                pushUndo("přejmenování „\(item.name)“") { try await conn.rename(from: newPath, to: path) }
                 await pane.loadRemote(pane.remotePath)
             } else {
-                let dest = item.url.deletingLastPathComponent().appendingPathComponent(name)
-                try FileManager.default.moveItem(at: item.url, to: dest)
+                let original = item.url
+                let dest = original.deletingLastPathComponent().appendingPathComponent(name)
+                try FileManager.default.moveItem(at: original, to: dest)
+                pushUndo("přejmenování „\(item.name)“") { try FileManager.default.moveItem(at: dest, to: original) }
                 pane.reload()
             }
             if let idx = pane.items.firstIndex(where: { $0.name == name }) { pane.cursor = idx }
@@ -523,6 +557,17 @@ final class AppModel: ObservableObject {
         case .userMenu: sheet = .userMenu
         case .resumeTransfer: resumeTransfer()
         case .thumbnails: Settings.shared.showThumbs.toggle()
+        case .undo: Task { await undoLast() }
+        case .copyFiles: copyFiles(cut: false)
+        case .cutFiles: copyFiles(cut: true)
+        case .pasteFiles: pasteFiles()
+        case .copyPath: copyPaths(names: false)
+        case .copyName: copyPaths(names: true)
+        case .copyDirPath: copyDirectoryPath()
+        case .quickLook: systemQuickLook()
+        case .duplicates: sheet = .duplicates
+        case .addToArchive: Task { await addToArchive() }
+        case .tags: startTags()
         case .batchRename: startBatchRename()
         case .pack: Task { await pack() }
         case .unpack: Task { await unpack() }
@@ -924,6 +969,264 @@ final class AppModel: ObservableObject {
         runner.run(text, in: pane.url) { pane.reload() }
     }
 
+    // MARK: Vrácení operací
+
+    struct UndoEntry {
+        let title: String
+        let action: @MainActor () async throws -> Void
+    }
+
+    func pushUndo(_ title: String, _ action: @escaping @MainActor () async throws -> Void) {
+        undoStack.append(UndoEntry(title: title, action: action))
+        if undoStack.count > 30 { undoStack.removeFirst() }
+        undoTitle = undoStack.last?.title
+    }
+
+    func undoLast() async {
+        guard let entry = undoStack.popLast() else {
+            showNotice("Není co vracet.")
+            return
+        }
+        undoTitle = undoStack.last?.title
+        do {
+            try await entry.action()
+            showNotice("Vráceno: \(entry.title)")
+        } catch {
+            Dialogs.error("Vrácení se nepodařilo:\n\(error.localizedDescription)")
+        }
+        left.reload()
+        right.reload()
+    }
+
+    /// Přesune soubory do koše a zaznamená je pro vrácení.
+    func trashURLs(_ urls: [URL]) async {
+        var trashed: [(URL, URL)] = []
+        var errors: [String] = []
+        for url in urls {
+            do {
+                let result = try await Task.detached { () -> URL? in
+                    var out: NSURL?
+                    try FileManager.default.trashItem(at: url, resultingItemURL: &out)
+                    return out as URL?
+                }.value
+                if let result { trashed.append((result, url)) }
+            } catch {
+                errors.append("\(url.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+        if !trashed.isEmpty { pushTrashUndo(trashed) }
+        left.reload()
+        right.reload()
+        if !errors.isEmpty { Dialogs.error(errors.prefix(10).joined(separator: "\n")) }
+    }
+
+    private func pushTrashUndo(_ pairs: [(URL, URL)]) {
+        pushUndo("smazání \(pairs.count == 1 ? "„\(pairs[0].1.lastPathComponent)“" : "\(pairs.count) položek")") {
+            let fm = FileManager.default
+            for (trashURL, original) in pairs {
+                try fm.createDirectory(at: original.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try fm.moveItem(at: trashURL, to: original)
+            }
+        }
+    }
+
+    private func undoTransfer(copies: [URL], moves: [(URL, URL)]) throws {
+        let fm = FileManager.default
+        for url in copies { try fm.trashItem(at: url, resultingItemURL: nil) }
+        for (current, original) in moves { try fm.moveItem(at: current, to: original) }
+    }
+
+    // MARK: Schránka, přetahování
+
+    private var cutURLs: Set<URL> = []
+
+    func copyFiles(cut: Bool) {
+        let pane = active
+        guard pane.connection == nil else {
+            Dialogs.error("Schránka souborů funguje jen pro lokální soubory.")
+            return
+        }
+        let urls = pane.targets.map(\.url)
+        guard !urls.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects(urls as [NSURL])
+        cutURLs = cut ? Set(urls) : []
+        showNotice(cut ? "Vyjmuto: \(urls.count) položek. Vložte klávesou ⌘V." : "Zkopírováno: \(urls.count) položek. Vložte klávesou ⌘V.")
+    }
+
+    func pasteFiles() {
+        let objects = NSPasteboard.general.readObjects(forClasses: [NSURL.self],
+                                                       options: [.urlReadingFileURLsOnly: true]) as? [URL]
+        guard let urls = objects, !urls.isEmpty else {
+            showNotice("Schránka neobsahuje soubory.")
+            return
+        }
+        let move = !cutURLs.isEmpty && Set(urls) == cutURLs
+        transferURLs(urls, to: active, folder: nil, move: move)
+        if move { cutURLs = [] }
+    }
+
+    func copyText(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        showNotice("Zkopírováno do schránky.")
+    }
+
+    func copyPaths(names: Bool) {
+        let pane = active
+        let items = pane.targets
+        guard !items.isEmpty else { return }
+        let lines = items.map { item -> String in
+            if names { return item.name }
+            if let conn = pane.connection, let path = item.remotePath { return conn.displayName + path }
+            return item.url.path
+        }
+        copyText(lines.joined(separator: "\n"))
+    }
+
+    func copyDirectoryPath() {
+        let pane = active
+        copyText(pane.connection != nil ? pane.title : pane.persistentURL.path)
+    }
+
+    /// Zařadí kopírování nebo přesun zadaných souborů; `move == nil` se zeptá uživatele.
+    func transferURLs(_ urls: [URL], to dst: PaneState, folder: URL?, move: Bool?,
+                      source: PaneState? = nil, items itemsOverride: [FileItem]? = nil) {
+        guard !dst.isArchive else {
+            Dialogs.error("Archiv je otevřený jen pro čtení.")
+            return
+        }
+        let items = itemsOverride ?? urls.compactMap(FileItem.load)
+        guard let first = items.first else { return }
+        let src = source ?? PaneState(url: first.url.deletingLastPathComponent(), ephemeral: true)
+        let target = folder.map { PaneState(url: $0, ephemeral: true) } ?? dst
+        if src.connection == nil && target.connection == nil && src.url == target.url {
+            showNotice("Zdrojová a cílová složka jsou stejné.")
+            return
+        }
+        let doMove: Bool
+        if let move {
+            doMove = move
+        } else {
+            switch Dialogs.choose("Co udělat s \(describe(items))?", info: "Cíl: \(target.title)",
+                                  buttons: ["Kopírovat", "Přesunout", "Zrušit"]) {
+            case 0: doMove = false
+            case 1: doMove = true
+            default: return
+            }
+        }
+        let plan = TransferPlan(move: doMove, src: src, dst: target, items: items,
+                                srcKey: locationKey(src), dstKey: locationKey(target))
+        runCancellable(queue: true) { await self.transfer(plan: plan) }
+    }
+
+    /// Soubory puštěné na panel nebo na složku v panelu (z druhého panelu i z Finderu).
+    func dropFiles(_ urls: [URL], onto dst: PaneState, folder: URL?) {
+        guard !urls.isEmpty else { return }
+        defer { dragSource = nil }
+        if let ds = dragSource, ds.connection == nil, ds.items.contains(where: { urls.contains($0.url) }) {
+            let dragged = ds.items.filter { urls.contains($0.url) && !$0.isParent }
+            var items = dragged
+            if dragged.contains(where: { ds.marked.contains($0.id) }) { items = ds.targets }
+            if folder == nil && ds === dst { return }
+            if let f = folder, items.contains(where: { $0.url == f }) { return }
+            transferURLs([], to: dst, folder: folder, move: nil, source: ds, items: items)
+            return
+        }
+        transferURLs(urls, to: dst, folder: folder, move: nil)
+    }
+
+    // MARK: Quick Look, štítky, archivy s heslem
+
+    private var qlProcess: Process?
+
+    func systemQuickLook() {
+        let pane = active
+        guard pane.connection == nil, let item = pane.current, !item.isParent else {
+            showNotice("Quick Look funguje jen u lokálních souborů.")
+            return
+        }
+        qlProcess?.terminate()
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/qlmanage")
+        p.arguments = ["-p", item.url.path]
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        try? p.run()
+        qlProcess = p
+    }
+
+    func startTags() {
+        guard active.connection == nil, !active.isArchive else {
+            Dialogs.error("Štítky Finderu jde nastavit jen u lokálních souborů.")
+            return
+        }
+        let items = active.targets
+        guard !items.isEmpty else { return }
+        tagItems = items
+        sheet = .tags
+    }
+
+    func applyTags(_ urls: [URL], common: Set<String>, add: [String]) async {
+        var errors: [String] = []
+        for url in urls {
+            let current = ((try? (url as NSURL).resourceValues(forKeys: [.tagNamesKey]))?[.tagNamesKey] as? [String]) ?? []
+            var updated = current.filter { !common.contains($0) }
+            for tag in add where !updated.contains(tag) { updated.append(tag) }
+            do { try (url as NSURL).setResourceValue(updated as NSArray, forKey: .tagNamesKey) }
+            catch { errors.append("\(url.lastPathComponent): \(error.localizedDescription)") }
+        }
+        RowInfoLoader.invalidate()
+        left.reload()
+        right.reload()
+        if !errors.isEmpty { Dialogs.error(errors.prefix(10).joined(separator: "\n")) }
+    }
+
+    func addToArchive() async {
+        let src = active, dst = other
+        guard src.connection == nil, !src.isArchive, dst.connection == nil, !dst.isArchive,
+              let archive = dst.current, !archive.isDirectory, !archive.isParent,
+              archive.name.lowercased().hasSuffix(".zip") else {
+            Dialogs.error("Označte soubory v aktivním panelu a v druhém panelu postavte kurzor na archiv .zip.")
+            return
+        }
+        let items = src.targets
+        guard !items.isEmpty else { return }
+        guard Dialogs.confirm("Přidat \(describe(items)) do „\(archive.name)“?", ok: "Přidat") else { return }
+        guard let password = Dialogs.promptSecure("Heslo pro přidané soubory",
+                                                  info: "Nechte prázdné pro soubory bez hesla.", ok: "Pokračovat") else { return }
+        let names = items.map { $0.name.hasPrefix("-") ? "./" + $0.name : $0.name }
+        let args = ["-r", "-q"] + (password.isEmpty ? [] : ["-P", password]) + [archive.url.path] + names
+        notice = "Přidávám do \(archive.name)…"
+        do {
+            try await Shell.run("/usr/bin/zip", args, cwd: src.url)
+            src.marked = []
+            showNotice("Přidáno do archivu: \(archive.name)")
+        } catch {
+            notice = nil
+            Dialogs.error(error.localizedDescription)
+        }
+        src.reload()
+        dst.reload()
+    }
+
+    private func extractArchive(_ file: URL, to dest: URL) async throws {
+        if file.pathExtension.lowercased() == "zip" {
+            // Zkusit bez hesla (-P x přeskočí dotaz); šifrované soubory pak vyžádají heslo.
+            do {
+                try await Shell.run("/usr/bin/unzip", ["-o", "-q", "-P", "x", file.path, "-d", dest.path])
+            } catch {
+                let message = error.localizedDescription.lowercased()
+                guard message.contains("password") || message.contains("82") else { throw error }
+                guard let password = Dialogs.promptSecure("Archiv je chráněný heslem", info: file.lastPathComponent,
+                                                          ok: "Rozbalit") else { throw CancellationError() }
+                try await Shell.run("/usr/bin/unzip", ["-o", "-q", "-P", password, file.path, "-d", dest.path])
+            }
+        } else {
+            try await Shell.run("/usr/bin/tar", ["-xf", file.path, "-C", dest.path])
+        }
+    }
+
     // MARK: Hromadné přejmenování
 
     func startBatchRename() {
@@ -1007,10 +1310,18 @@ final class AppModel: ObservableObject {
             try? FileManager.default.removeItem(at: dest)
         }
         let names = items.map { $0.name.hasPrefix("-") ? "./" + $0.name : $0.name }
+        var password = ""
+        if isZip {
+            guard let pw = Dialogs.promptSecure("Heslo archivu (volitelné)",
+                                                info: "Nechte prázdné pro archiv bez hesla. Zip používá starší šifrování (dobré proti náhodnému nahlédnutí, ne proti útočníkovi); heslo je po dobu balení vidět v seznamu procesů.",
+                                                ok: "Zabalit") else { return }
+            password = pw
+        }
         notice = "Balím \(name)…"
         do {
             if isZip {
-                try await Shell.run("/usr/bin/zip", ["-r", "-q", dest.path] + names, cwd: src.url)
+                let zipArgs = ["-r", "-q"] + (password.isEmpty ? [] : ["-P", password]) + [dest.path] + names
+                try await Shell.run("/usr/bin/zip", zipArgs, cwd: src.url)
             } else {
                 try await Shell.run("/usr/bin/tar", ["-czf", dest.path] + names, cwd: src.url)
             }
@@ -1034,8 +1345,10 @@ final class AppModel: ObservableObject {
         guard Dialogs.confirm("Rozbalit „\(item.name)“?", info: "Do: \(destDir.path)", ok: "Rozbalit") else { return }
         notice = "Rozbaluji \(item.name)…"
         do {
-            try await Shell.run("/usr/bin/tar", ["-xf", item.url.path, "-C", destDir.path])
+            try await extractArchive(item.url, to: destDir)
             showNotice("Rozbaleno do \(destDir.lastPathComponent)")
+        } catch is CancellationError {
+            notice = nil
         } catch {
             notice = nil
             Dialogs.error(error.localizedDescription)

@@ -37,6 +37,30 @@ enum Dialogs {
         return value.isEmpty ? nil : value
     }
 
+    /// Dialog s vlastními tlačítky; vrátí index stisknutého (0 = první).
+    static func choose(_ title: String, info: String = "", buttons: [String]) -> Int {
+        let a = NSAlert()
+        a.messageText = title
+        a.informativeText = info
+        for b in buttons { a.addButton(withTitle: b) }
+        let r = a.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        return max(0, min(r, buttons.count - 1))
+    }
+
+    /// Dotaz na heslo; prázdné heslo je platná odpověď, nil znamená zrušení.
+    static func promptSecure(_ title: String, info: String = "", ok: String = "OK") -> String? {
+        let a = NSAlert()
+        a.messageText = title
+        a.informativeText = info
+        a.addButton(withTitle: ok)
+        a.addButton(withTitle: "Zrušit")
+        let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
+        a.accessoryView = field
+        a.window.initialFirstResponder = field
+        guard a.runModal() == .alertFirstButtonReturn else { return nil }
+        return field.stringValue
+    }
+
     static func conflict(_ name: String) -> ConflictChoice {
         let a = NSAlert()
         a.messageText = "„\(name)“ již v cíli existuje"

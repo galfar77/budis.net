@@ -1,10 +1,28 @@
 import SwiftUI
+import UniformTypeIdentifiers
+
+/// Načte adresy souborů z přetažených položek.
+enum DropLoader {
+    static func urls(from providers: [NSItemProvider]) async -> [URL] {
+        var out: [URL] = []
+        for provider in providers {
+            let url: URL? = await withCheckedContinuation { (c: CheckedContinuation<URL?, Never>) in
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in c.resume(returning: url) }
+            }
+            if let url, url.isFileURL { out.append(url) }
+        }
+        return out
+    }
+}
 
 struct PaneView: View {
     @ObservedObject var pane: PaneState
     let isActive: Bool
+    let model: AppModel
     let onActivate: () -> Void
     @ObservedObject var settings = Settings.shared
+    @State private var paneDropTargeted = false
+    @State private var dropRow: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -52,6 +70,12 @@ struct PaneView: View {
                             row(item, index: index)
                                 .id(item.id)
                                 .contentShape(Rectangle())
+                                .onDrag {
+                                    model.dragSource = pane
+                                    guard pane.connection == nil, !item.isParent else { return NSItemProvider() }
+                                    return NSItemProvider(object: item.url as NSURL)
+                                }
+                                .modifier(FolderDrop(item: item, pane: pane, model: model, dropRow: $dropRow, onActivate: onActivate))
                                 .onTapGesture(count: 2) {
                                     onActivate(); pane.cursor = index; pane.enter()
                                 }
@@ -75,6 +99,15 @@ struct PaneView: View {
                 .background(Color.secondary.opacity(0.1))
         }
         .overlay(Rectangle().stroke(isActive ? Color.accentColor : .clear, lineWidth: 1))
+        .overlay(Rectangle().stroke(Color.green, lineWidth: paneDropTargeted ? 3 : 0))
+        .onDrop(of: [.fileURL], isTargeted: $paneDropTargeted) { providers in
+            onActivate()
+            Task {
+                let urls = await DropLoader.urls(from: providers)
+                model.dropFiles(urls, onto: pane, folder: nil)
+            }
+            return true
+        }
     }
 
     private var columnHeader: some View {
@@ -82,6 +115,15 @@ struct PaneView: View {
             headerButton("Název", .name).frame(maxWidth: .infinity, alignment: .leading)
             if settings.showExt {
                 Text("Přípona").font(.system(size: 11, weight: .semibold)).frame(width: 64, alignment: .leading)
+            }
+            if settings.showPerms {
+                Text("Práva").font(.system(size: 11, weight: .semibold)).frame(width: 78, alignment: .leading)
+            }
+            if settings.showOwner {
+                Text("Vlastník").font(.system(size: 11, weight: .semibold)).frame(width: 70, alignment: .leading)
+            }
+            if settings.showMedia {
+                Text("Rozměry/délka").font(.system(size: 11, weight: .semibold)).frame(width: 84, alignment: .trailing)
             }
             headerButton("Velikost", .size).frame(width: 80, alignment: .trailing)
             headerButton("Změněno", .date).frame(width: 130, alignment: .trailing)
@@ -130,8 +172,14 @@ struct PaneView: View {
                 .truncationMode(.middle)
                 .fontWeight(item.isDirectory ? .semibold : .regular)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            if settings.showTags && !item.isParent && item.remotePath == nil {
+                TagDots(item: item, generation: pane.generation)
+            }
             if settings.showExt {
                 Text(ext).foregroundStyle(.secondary).frame(width: 64, alignment: .leading)
+            }
+            if settings.showPerms || settings.showOwner || settings.showMedia {
+                ExtraCells(item: item, generation: pane.generation, settings: settings)
             }
             Text(sizeText)
                 .frame(width: 80, alignment: .trailing)
@@ -143,6 +191,35 @@ struct PaneView: View {
         .foregroundStyle(isMarked ? Color.red : Color.primary)
         .padding(.horizontal, 8)
         .frame(height: rowHeight)
-        .background(isCursor ? (isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.3)) : .clear)
+        .background(dropRow == item.id ? Color.green.opacity(0.35)
+                    : (isCursor ? (isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.3)) : .clear))
+    }
+}
+
+/// Přijímá soubory puštěné na řádek se složkou (jen u lokálních panelů).
+struct FolderDrop: ViewModifier {
+    let item: FileItem
+    let pane: PaneState
+    let model: AppModel
+    @Binding var dropRow: String?
+    let onActivate: () -> Void
+
+    func body(content: Content) -> some View {
+        if item.isDirectory && pane.connection == nil && !pane.isArchive {
+            content.onDrop(of: [.fileURL], isTargeted: Binding(
+                get: { dropRow == item.id },
+                set: { targeted in
+                    if targeted { dropRow = item.id } else if dropRow == item.id { dropRow = nil }
+                })) { providers in
+                onActivate()
+                Task {
+                    let urls = await DropLoader.urls(from: providers)
+                    model.dropFiles(urls, onto: pane, folder: item.url)
+                }
+                return true
+            }
+        } else {
+            content
+        }
     }
 }

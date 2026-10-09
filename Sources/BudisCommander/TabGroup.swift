@@ -43,12 +43,13 @@ final class TabGroup: ObservableObject {
 struct PanelView: View {
     @ObservedObject var group: TabGroup
     let isActive: Bool
+    let model: AppModel
     let onActivate: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             tabBar
-            PaneView(pane: group.current, isActive: isActive, onActivate: onActivate)
+            PaneView(pane: group.current, isActive: isActive, model: model, onActivate: onActivate)
                 .id(ObjectIdentifier(group.current))
         }
     }
