@@ -2,19 +2,26 @@ import SwiftUI
 
 /// Položky menu se zkratkami; kopírují nastavení z `Settings`.
 struct AppCommands: Commands {
-    let model: AppModel
+    @ObservedObject var model: AppModel
     @ObservedObject var settings = Settings.shared
+
+    private func title(_ action: ShortcutAction) -> String {
+        if action == .undo, let t = model.undoTitle { return "Vrátit: \(t)" }
+        return action.title
+    }
 
     private func item(_ action: ShortcutAction) -> some View {
         let ch = settings.char(for: action)
         return Group {
             if let c = ch.first {
-                Button(action.title) { model.perform(action) }
+                Button(title(action)) { model.perform(action) }
                     .keyboardShortcut(KeyEquivalent(c), modifiers: .command)
             } else {
-                Button(action.title) { model.perform(action) }
+                Button(title(action)) { model.perform(action) }
             }
         }
+        // Při otevřeném dialogu zkratky nic nedělají (v dialogu mají vlastní, třeba ⌘P pro tisk).
+        .disabled(model.sheet != nil || model.viewer != nil)
     }
 
     var body: some Commands {
@@ -26,7 +33,17 @@ struct AppCommands: Commands {
             item(.newTab)
         }
         CommandMenu("Nástroje") {
+            item(.undo)
+            Divider()
+            item(.copyFiles)
+            item(.cutFiles)
+            item(.pasteFiles)
+            item(.copyPath)
+            item(.copyName)
+            item(.copyDirPath)
+            Divider()
             item(.search)
+            item(.duplicates)
             item(.compare)
             item(.compareContent)
             item(.diff)
@@ -36,11 +53,14 @@ struct AppCommands: Commands {
             Divider()
             item(.pack)
             item(.unpack)
+            item(.addToArchive)
             item(.split)
             item(.combine)
             Divider()
             item(.checksum)
             item(.attributes)
+            item(.tags)
+            item(.quickLook)
             item(.dirSizes)
             item(.symlink)
             Divider()

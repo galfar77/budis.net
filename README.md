@@ -33,7 +33,7 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘T / ⌘W / ⌘1–9, Ctrl+Tab | nová / zavřít / přepnout záložku |
 | ⌘D | porovnat adresáře (označí rozdílné, novější a chybějící; pak F5) |
 | ⌘M | hromadné přejmenování (maska, hledat/nahradit, regulární výrazy, čítač) |
-| ⌘Z / ⌘E | zabalit (.zip, .tar.gz) / rozbalit archiv |
+| ⌘P / ⌘E | zabalit (.zip s volitelným heslem, .tar.gz) / rozbalit archiv (i zip s heslem) |
 | ⌘F | hledat soubory podle názvu a obsahu |
 | ⌘, | nastavení: vzhled, písmo, klávesové zkratky |
 | ⌘Y | zrcadlit adresář do druhého panelu (nové a změněné zkopíruje, přebytečné v cíli přesune do koše; s potvrzením) |
@@ -45,7 +45,7 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘G | všechny podsložky najednou (ploché zobrazení, Backspace zpět) |
 | ⌘S | spočítat velikosti složek (ve sloupci Velikost místo ‹DIR›); trvale: Nastavení → Automaticky počítat velikosti složek |
 | ⌘O | atributy: datum změny, práva, skrytý příznak (i rekurzivně) |
-| ⌘V | panel rychlého náhledu místo neaktivního panelu |
+| ⌘N | panel rychlého náhledu místo neaktivního panelu |
 | ⌘R, ⌘A, ⌘., ⌘U | obnovit, označit vše, skryté soubory, zrcadlit adresář |
 
 Na Macu je u F-kláves potřeba držet `fn` (nebo vypnout „Používat klávesy F1, F2 jako standardní funkční klávesy“); spodní lištu lze také klikat.
@@ -81,3 +81,14 @@ Skript `make-app.sh` umí podepsat aplikaci a poslat ji k notarizaci, pokud mát
 - **Hexový výpis** binárních souborů v F3.
 - **Fronta přenosů:** další F5/F6 během běžícího přenosu se zařadí do fronty; přerušený přenos jde dokončit příkazem *Pokračovat v přerušeném přenosu*.
 - **Uživatelské příkazy** (menu a tlačítková lišta dole): vlastní shellové příkazy se zástupnými znaky %f, %n, %d, %o, %F.
+
+## Pohodlí a práce se soubory (další vlna)
+
+- **Živé obnovování:** panely se samy aktualizují, když se obsah složky změní (i mimo aplikaci).
+- **Přetahování:** soubory jdou táhnout mezi panely, do složek v panelu a z/do Finderu (aplikace se zeptá, zda kopírovat nebo přesunout). Funguje i do panelu připojeného k serveru.
+- **Schránka:** ⌘C, ⌘X, ⌘V pracují se soubory (kompatibilní s Finderem). Menu Nástroje: kopírovat cestu, název, cestu složky.
+- **Vrátit (⌘Z):** přejmenování, nová složka, kopírování a přesun v lokálních složkách a smazání do koše. Maže se z koše, takže jde vrátit i vícenásobně (až 30 kroků).
+- **Systémový Quick Look:** Shift+Space.
+- **Duplicity:** menu Nástroje → Hledat duplicity (podle obsahu, volitelně i druhý panel), výběr přebytečných a do koše.
+- **Sloupce Práva, Vlastník, Rozměry/délka** a **barevné štítky Finderu** (Nastavení; štítky nastavíte z menu Nástroje → Štítky Finderu…).
+- **Zip:** zabalit s heslem, přidat soubory do existujícího zipu (kurzor v druhém panelu na archivu), rozbalit zip s heslem.
