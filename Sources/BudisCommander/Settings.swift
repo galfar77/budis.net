@@ -95,6 +95,9 @@ final class Settings: ObservableObject {
     @Published var showThumbs: Bool {
         didSet { UserDefaults.standard.set(showThumbs, forKey: "showThumbs") }
     }
+    @Published var autoDirSizes: Bool {
+        didSet { UserDefaults.standard.set(autoDirSizes, forKey: "autoDirSizes") }
+    }
     @Published var showButtonBar: Bool {
         didSet { UserDefaults.standard.set(showButtonBar, forKey: "showButtonBar") }
     }
@@ -118,8 +121,10 @@ final class Settings: ObservableObject {
         showExt = d.bool(forKey: "showExt")
         showThumbs = d.bool(forKey: "showThumbs")
         showButtonBar = d.object(forKey: "showButtonBar") as? Bool ?? true
+        autoDirSizes = d.bool(forKey: "autoDirSizes")
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
-            userCommands = list
+            // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
+            userCommands = list.filter { !($0.name == "Velikost složky" && $0.command == "du -sh %F") }
         } else {
             userCommands = UserCommand.defaults
         }
@@ -173,6 +178,7 @@ struct SettingsSheet: View {
             Stepper("Velikost písma: \(Int(settings.fontSize)) pt", value: $settings.fontSize, in: 10...20, step: 1)
             Toggle("Samostatný sloupec s příponou", isOn: $settings.showExt)
             Toggle("Miniatury souborů místo ikon", isOn: $settings.showThumbs)
+            Toggle("Automaticky počítat velikosti složek (na pozadí, jen lokální složky)", isOn: $settings.autoDirSizes)
             Toggle("Tlačítková lišta uživatelských příkazů", isOn: $settings.showButtonBar)
 
             Divider()

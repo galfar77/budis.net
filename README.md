@@ -43,7 +43,7 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘I | porovnat dva soubory (kurzor v každém panelu) řádek po řádku |
 | ⌘H | kontrolní součty MD5, SHA-1, SHA-256 (+ ověření, uložení .sha256) |
 | ⌘G | všechny podsložky najednou (ploché zobrazení, Backspace zpět) |
-| ⌘S | spočítat velikosti složek |
+| ⌘S | spočítat velikosti složek (ve sloupci Velikost místo ‹DIR›); trvale: Nastavení → Automaticky počítat velikosti složek |
 | ⌘O | atributy: datum změny, práva, skrytý příznak (i rekurzivně) |
 | ⌘V | panel rychlého náhledu místo neaktivního panelu |
 | ⌘R, ⌘A, ⌘., ⌘U | obnovit, označit vše, skryté soubory, zrcadlit adresář |

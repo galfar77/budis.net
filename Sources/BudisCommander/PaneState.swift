@@ -150,6 +150,7 @@ final class PaneState: ObservableObject {
         url = dir
         apply(list, previousID: previousID)
         Self.onLocationChange?()
+        startAutoSizes()
         return true
     }
 
@@ -168,6 +169,26 @@ final class PaneState: ObservableObject {
             if out.count >= 20_000 { break }
         }
         return out
+    }
+
+    private var sizeTask: Task<Void, Never>?
+
+    /// Po načtení složky spočítá na pozadí velikosti všech podsložek (je-li zapnuto v Nastavení).
+    private func startAutoSizes() {
+        sizeTask?.cancel()
+        sizeTask = nil
+        guard Settings.shared.autoDirSizes, connection == nil, !branch else { return }
+        let dirs = items.filter { $0.isDirectory && !$0.isParent && dirSizes[$0.id] == nil }
+        guard !dirs.isEmpty else { return }
+        sizeTask = Task { [weak self] in
+            for d in dirs {
+                if Task.isCancelled { return }
+                let url = d.url
+                let size = await Task.detached(priority: .utility) { LocalFS.totalSize(url) }.value
+                if Task.isCancelled { return }
+                self?.dirSizes[d.id] = size
+            }
+        }
     }
 
     func toggleBranch() {

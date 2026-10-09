@@ -105,6 +105,7 @@ struct ContentView: View {
             fnButton("F6", "Přesunout") { model.startTransfer(move: true) }
             fnButton("F7", "Nový adr.") { Task { await model.makeDirectory() } }
             fnButton("F8", "Smazat") { model.startDelete() }
+            fnButton("⌘S", "Velikosti") { model.calcDirSizes() }
             fnButton("⌘K", "Server") { model.sheet = .server }
             fnButton("⌘L", "Síť") { model.sheet = .network }
         }
