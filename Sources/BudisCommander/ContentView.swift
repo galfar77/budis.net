@@ -95,6 +95,11 @@ struct ContentView: View {
 
     // MARK: Klávesnice
 
+    private static func isPrintable(_ s: String) -> Bool {
+        guard let scalar = s.unicodeScalars.first else { return false }
+        return scalar.value >= 0x20 && !(0xF700...0xF8FF).contains(scalar.value) && scalar.value != 0x7F
+    }
+
     private func handle(_ p: KeyPress) -> KeyPress.Result {
         let pane = model.active
 
@@ -125,6 +130,24 @@ struct ContentView: View {
             default: return .ignored
             }
             return .handled
+        }
+
+        // Filtr panelu: Alt + znak ho zahájí, pak se pokračuje psaním; Backspace maže, Esc zruší.
+        let hasCmdCtrl = p.modifiers.contains(.command) || p.modifiers.contains(.control)
+        if p.modifiers.contains(.option) && !hasCmdCtrl {
+            let ch = String(p.key.character)
+            if Self.isPrintable(ch) {
+                pane.appendFilter(ch)
+                return .handled
+            }
+        }
+        if !pane.filter.isEmpty {
+            if p.key == .escape { pane.clearFilter(); return .handled }
+            if p.key == .delete { pane.deleteFilterChar(); return .handled }
+            if !hasCmdCtrl, Self.isPrintable(p.characters) {
+                pane.appendFilter(p.characters)
+                return .handled
+            }
         }
 
         let shift = p.modifiers.contains(.shift)

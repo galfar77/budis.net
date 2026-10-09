@@ -21,7 +21,8 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | Backspace / ← | o úroveň výš |
 | Space, Shift+↑/↓ | označit položku |
 | + / - / * | označit / odznačit podle masky / označit vše |
-| psaní písmen | rychlé hledání |
+| psaní písmen | rychlé hledání (skok na první položku začínající textem) |
+| Alt + znak | filtr panelu: ukáže jen položky obsahující text (bez ohledu na velikost písmen a diakritiku); pokračuje se psaním, Backspace maže, Esc zruší |
 | F2 | přejmenovat |
 | F3 | zobrazit |
 | F4 | editovat (na serveru se změny po uložení samy nahrají zpět) |
