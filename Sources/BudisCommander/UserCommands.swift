@@ -11,7 +11,6 @@ struct UserCommand: Codable, Identifiable, Hashable {
     static let defaults: [UserCommand] = [
         UserCommand(name: "Terminál zde", command: "open -a Terminal %d"),
         UserCommand(name: "Ukázat ve Finderu", command: "open -R %f"),
-        UserCommand(name: "Velikost složky", command: "du -sh %F"),
     ]
 }
 

@@ -112,7 +112,8 @@ struct PaneView: View {
         let rowHeight = settings.showThumbs ? max(settings.fontSize + 8, 34) : settings.fontSize + 8
         let sizeText: String
         if item.isDirectory {
-            sizeText = pane.dirSizes[item.id].map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) } ?? "‹DIR›"
+            sizeText = pane.dirSizes[item.id].map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
+                ?? (settings.autoDirSizes && pane.connection == nil && !item.isParent ? "…" : "‹DIR›")
         } else {
             sizeText = ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file)
         }
