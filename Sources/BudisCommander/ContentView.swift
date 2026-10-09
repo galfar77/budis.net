@@ -41,6 +41,7 @@ struct ContentView: View {
 
     private var functionBar: some View {
         HStack(spacing: 2) {
+            fnButton("F2", "Přejmenovat") { model.rename() }
             fnButton("F3", "Zobrazit") { model.view() }
             fnButton("F4", "Editovat") { model.edit() }
             fnButton("F5", "Kopírovat") { Task { await model.transfer(move: false); focused = true } }
@@ -86,6 +87,7 @@ struct ContentView: View {
         // Funkční klávesy (F1 = U+F704, …)
         if let s = p.characters.unicodeScalars.first, (0xF704...0xF70F).contains(s.value) {
             switch s.value {
+            case 0xF705: model.rename()
             case 0xF706: model.view()
             case 0xF707: model.edit()
             case 0xF708: Task { await model.transfer(move: false) }
