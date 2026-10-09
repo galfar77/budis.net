@@ -62,7 +62,7 @@ struct BatchRenameSheet: View {
     private var problems: Set<Int> {
         let new = names
         let oldNames = Set(items.map(\.name))
-        let others = Set(model.active.items.filter { !$0.isParent && !oldNames.contains($0.name) }.map(\.name))
+        let others = Set(model.active.allItems.filter { !$0.isParent && !oldNames.contains($0.name) }.map(\.name))
         var counts: [String: Int] = [:]
         for n in new { counts[n, default: 0] += 1 }
         return Set(new.indices.filter { new[$0].isEmpty || counts[new[$0]]! > 1 || others.contains(new[$0]) })

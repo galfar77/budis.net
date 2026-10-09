@@ -33,6 +33,10 @@ final class PaneState: ObservableObject {
     @Published private(set) var remotePath = "/"
     @Published private(set) var isLoading = false
     @Published private(set) var archive: ArchiveInfo?
+    /// Text, kterým je seznam zúžený (prázdný = bez filtru).
+    @Published private(set) var filter = ""
+    /// Všechny položky adresáře bez filtru.
+    private(set) var allItems: [FileItem] = []
 
     static let archiveBase = FileManager.default.temporaryDirectory.appendingPathComponent("BudisArchives")
     private var back: [URL] = []
@@ -73,16 +77,48 @@ final class PaneState: ObservableObject {
 
     // MARK: Načítání
 
+    private func visible(_ list: [FileItem]) -> [FileItem] {
+        guard !filter.isEmpty else { return list }
+        return list.filter {
+            $0.isParent || $0.name.range(of: filter, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        }
+    }
+
     private func apply(_ list: [FileItem], previousID: String?) {
-        items = list
+        allItems = list
+        items = visible(list)
         marked = marked.filter { m in list.contains { $0.id == m } }
         if previousID == "" {
             cursor = 0
-        } else if let previousID, let idx = list.firstIndex(where: { $0.id == previousID }) {
+        } else if let previousID, let idx = items.firstIndex(where: { $0.id == previousID }) {
             cursor = idx
         } else {
-            cursor = min(cursor, max(list.count - 1, 0))
+            cursor = min(cursor, max(items.count - 1, 0))
         }
+    }
+
+    // MARK: Filtr (Alt + text)
+
+    private func refilter() {
+        items = visible(allItems)
+        cursor = items.firstIndex { !$0.isParent } ?? 0
+    }
+
+    func appendFilter(_ text: String) {
+        filter += text
+        refilter()
+    }
+
+    func deleteFilterChar() {
+        guard !filter.isEmpty else { return }
+        filter.removeLast()
+        refilter()
+    }
+
+    func clearFilter() {
+        guard !filter.isEmpty else { return }
+        filter = ""
+        refilter()
     }
 
     @discardableResult
@@ -98,6 +134,7 @@ final class PaneState: ObservableObject {
         let previousID = id ?? current?.id
         var list = sorted(urls.compactMap(FileItem.load))
         if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
+        if dir != url { filter = "" }
         if dir != url && !historyMove && !Self.isTemp(url) && !Self.isTemp(dir) {
             back.append(url)
             forward.removeAll()
@@ -118,6 +155,7 @@ final class PaneState: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
+            if path != remotePath || conn !== connection { filter = "" }
             var list = try await conn.list(path)
             if !showHidden { list = list.filter { !$0.name.hasPrefix(".") } }
             list = sorted(list)
@@ -142,6 +180,7 @@ final class PaneState: ObservableObject {
     }
 
     func disconnect() {
+        filter = ""
         connection = nil
         remotePath = "/"
         marked = []
@@ -343,6 +382,9 @@ final class PaneState: ObservableObject {
         let files = items.filter { !$0.isParent }
         let markedItems = files.filter { marked.contains($0.id) }
         let fmt = { (n: Int64) in ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
+        if !filter.isEmpty {
+            return "Filtr „\(filter)“: \(files.count) z \(allItems.filter { !$0.isParent }.count) položek (Esc zruší)"
+        }
         if markedItems.isEmpty {
             return "\(files.count) položek, \(fmt(files.reduce(0) { $0 + $1.size }))"
         }

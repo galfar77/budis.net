@@ -97,7 +97,7 @@ final class AppModel: ObservableObject {
     }
 
     private func exists(_ name: String, in pane: PaneState) -> Bool {
-        if pane.connection != nil { return pane.items.contains { !$0.isParent && $0.name == name } }
+        if pane.connection != nil { return pane.allItems.contains { !$0.isParent && $0.name == name } }
         return FileManager.default.fileExists(atPath: pane.url.appendingPathComponent(name).path)
     }
 
@@ -576,6 +576,8 @@ final class AppModel: ObservableObject {
     /// Označené soubory pak stačí zkopírovat (F5) a adresáře jsou sesynchronizované.
     func compare() {
         let a = left, b = right
+        a.clearFilter()
+        b.clearFilter()
         func files(_ p: PaneState) -> [String: FileItem] {
             Dictionary(p.items.filter { !$0.isParent }.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         }

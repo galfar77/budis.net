@@ -28,6 +28,20 @@ struct PaneView: View {
             .frame(height: 24)
             .background(isActive ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.15))
 
+            if !pane.filter.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                    Text(pane.filter).font(.system(size: 12, weight: .semibold))
+                    Spacer()
+                    Button { pane.clearFilter() } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.plain)
+                        .help("Zrušit filtr (Esc)")
+                }
+                .padding(.horizontal, 8)
+                .frame(height: 22)
+                .background(Color.yellow.opacity(0.25))
+            }
+
             columnHeader
 
             ScrollViewReader { proxy in
