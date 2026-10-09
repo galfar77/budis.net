@@ -22,6 +22,7 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | Space, Shift+↑/↓ | označit položku |
 | + / - / * | označit / odznačit podle masky / označit vše |
 | psaní písmen | rychlé hledání |
+| F2 | přejmenovat |
 | F3 / F4 | zobrazit / editovat |
 | F5 / F6 | kopírovat / přesunout do druhého panelu |
 | F7 / F8 | nový adresář / do koše |
