@@ -33,3 +33,13 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘R, ⌘A, ⌘., ⌘U | obnovit, označit vše, skryté soubory, zrcadlit adresář |
 
 Na Macu je u F-kláves potřeba držet `fn` (nebo vypnout „Používat klávesy F1, F2 jako standardní funkční klávesy“); spodní lištu lze také klikat.
+
+## Hotová aplikace
+
+`./scripts/make-app.sh` vyrobí univerzální `build/BudisCommander.app` (Apple Silicon i Intel) včetně ikony
+a ZIP. Na GitHubu ji staví také workflow *Build macOS app* (záložka Actions → artefakt `BudisCommander-macOS`).
+
+Aplikace je podepsaná jen ad hoc, takže ji macOS u staženého souboru zablokuje. Otevřete ji pravým tlačítkem →
+Otevřít, nebo spusťte `xattr -dr com.apple.quarantine BudisCommander.app`.
+
+Ikonu lze znovu vygenerovat příkazem `python3 scripts/make-icon.py` (potřebuje Pillow).
