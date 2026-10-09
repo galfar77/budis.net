@@ -8,7 +8,7 @@ struct ViewerContent: Identifiable {
 }
 
 enum ActiveSheet: String, Identifiable {
-    case server, network
+    case server, network, batchRename, search, settings
     var id: String { rawValue }
 }
 
@@ -22,6 +22,7 @@ final class AppModel: ObservableObject {
     @Published var viewer: ViewerContent?
     @Published var sheet: ActiveSheet?
     @Published var notice: String?
+    @Published var batchItems: [FileItem] = []
     private var editTasks: [String: Task<Void, Never>] = [:]
 
     var left: PaneState { leftTabs.current }
@@ -375,6 +376,185 @@ final class AppModel: ObservableObject {
         guard let mask = Dialogs.prompt(on ? "Označit podle masky" : "Odznačit podle masky",
                                         info: "Např. *.jpg", initial: "*") else { return }
         active.mark(matching: mask, on: on)
+    }
+
+    // MARK: Akce ze zkratek a menu
+
+    func perform(_ action: ShortcutAction) {
+        switch action {
+        case .newTab: activeGroup.newTab()
+        case .closeTab: activeGroup.close(activeGroup.selected)
+        case .refresh: active.reload()
+        case .markAll: active.markAll()
+        case .hidden: active.toggleHidden()
+        case .mirror: other.navigate(to: active.url)
+        case .connect: sheet = .server
+        case .network: sheet = .network
+        case .compare: compare()
+        case .batchRename: startBatchRename()
+        case .pack: Task { await pack() }
+        case .unpack: Task { await unpack() }
+        case .search: sheet = .search
+        case .settings: sheet = .settings
+        }
+    }
+
+    // MARK: Porovnání adresářů
+
+    /// Označí v obou panelech soubory, které chybí v druhém panelu nebo jsou novější / jiné.
+    /// Označené soubory pak stačí zkopírovat (F5) a adresáře jsou sesynchronizované.
+    func compare() {
+        let a = left, b = right
+        func files(_ p: PaneState) -> [String: FileItem] {
+            Dictionary(p.items.filter { !$0.isParent }.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        }
+        let fa = files(a), fb = files(b)
+        let tolerance: TimeInterval = (a.connection != nil || b.connection != nil) ? 120 : 2
+        var markA = Set<String>(), markB = Set<String>()
+
+        for (name, x) in fa {
+            guard let y = fb[name] else { markA.insert(x.id); continue }
+            if x.isDirectory || y.isDirectory { continue }
+            if let dx = x.modified, let dy = y.modified, abs(dx.timeIntervalSince(dy)) > tolerance {
+                if dx > dy { markA.insert(x.id) } else { markB.insert(y.id) }
+            } else if x.size != y.size {
+                markA.insert(x.id)
+                markB.insert(y.id)
+            }
+        }
+        for (name, y) in fb where fa[name] == nil { markB.insert(y.id) }
+
+        a.marked = markA
+        b.marked = markB
+        showNotice("Porovnání: vlevo označeno \(markA.count), vpravo \(markB.count) (chybějící, novější nebo jiné). Zkopírujte je klávesou F5.")
+    }
+
+    // MARK: Hromadné přejmenování
+
+    func startBatchRename() {
+        let items = active.targets
+        guard !items.isEmpty else { return }
+        batchItems = items
+        sheet = .batchRename
+    }
+
+    func applyRename(_ items: [FileItem], _ names: [String]) async {
+        let pane = active
+        let pairs = Array(zip(items, names)).filter { $0.0.name != $0.1 }
+        guard !pairs.isEmpty else { return }
+
+        func rename(_ item: FileItem, from: String, to: String) async throws {
+            if let conn = pane.connection, let path = item.remotePath {
+                let dir = RemotePath.parent(path)
+                try await conn.rename(from: RemotePath.child(dir, from), to: RemotePath.child(dir, to))
+            } else {
+                let dir = item.url.deletingLastPathComponent()
+                try FileManager.default.moveItem(at: dir.appendingPathComponent(from), to: dir.appendingPathComponent(to))
+            }
+        }
+
+        let oldNames = Set(pairs.map { $0.0.name })
+        let needsTemp = pairs.contains { oldNames.contains($0.1) }
+        var errors: [String] = []
+        var staged: [(FileItem, String, String)] = []   // položka, aktuální název, cílový název
+
+        for (i, (item, new)) in pairs.enumerated() {
+            progress = Double(i) / Double(pairs.count)
+            progressText = "Přejmenovávám \(item.name)"
+            do {
+                if needsTemp {
+                    let tmp = ".__brn\(i)_\(UUID().uuidString.prefix(6))"
+                    try await rename(item, from: item.name, to: tmp)
+                    staged.append((item, tmp, new))
+                } else {
+                    try await rename(item, from: item.name, to: new)
+                }
+            } catch {
+                errors.append("\(item.name): \(error.localizedDescription)")
+            }
+        }
+        for (item, tmp, new) in staged {
+            do { try await rename(item, from: tmp, to: new) }
+            catch { errors.append("\(new): \(error.localizedDescription)") }
+        }
+        progress = nil
+        progressText = ""
+        pane.marked = []
+        pane.reload()
+        if !errors.isEmpty { Dialogs.error(errors.joined(separator: "\n")) }
+    }
+
+    // MARK: Archivy
+
+    func pack() async {
+        let src = active
+        guard src.connection == nil else {
+            Dialogs.error("Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5).")
+            return
+        }
+        let items = src.targets
+        guard !items.isEmpty else { return }
+        let destDir = other.connection == nil ? other.url : src.url
+        let base = items.count == 1 ? items[0].name
+            : (src.url.lastPathComponent.isEmpty ? "Archiv" : src.url.lastPathComponent)
+        guard let name = Dialogs.prompt("Zabalit do archivu", info: "Do: \(destDir.path)\nPodporováno: .zip, .tar.gz",
+                                        initial: base + ".zip", ok: "Zabalit") else { return }
+        let lower = name.lowercased()
+        let isZip = lower.hasSuffix(".zip")
+        guard isZip || lower.hasSuffix(".tar.gz") || lower.hasSuffix(".tgz") else {
+            Dialogs.error("Název archivu musí končit na .zip, .tar.gz nebo .tgz.")
+            return
+        }
+        let dest = destDir.appendingPathComponent(name)
+        if FileManager.default.fileExists(atPath: dest.path) {
+            guard Dialogs.confirm("Archiv „\(name)“ už existuje. Přepsat?", ok: "Přepsat") else { return }
+            try? FileManager.default.removeItem(at: dest)
+        }
+        let names = items.map { $0.name.hasPrefix("-") ? "./" + $0.name : $0.name }
+        notice = "Balím \(name)…"
+        do {
+            if isZip {
+                try await Shell.run("/usr/bin/zip", ["-r", "-q", dest.path] + names, cwd: src.url)
+            } else {
+                try await Shell.run("/usr/bin/tar", ["-czf", dest.path] + names, cwd: src.url)
+            }
+            src.marked = []
+            showNotice("Archiv vytvořen: \(name)")
+        } catch {
+            notice = nil
+            Dialogs.error(error.localizedDescription)
+        }
+        src.reload()
+        other.reload()
+    }
+
+    func unpack() async {
+        let src = active
+        guard src.connection == nil, let item = src.current, !item.isParent, !item.isDirectory else {
+            Dialogs.error("Vyberte lokální soubor s archivem (zip, tar, tar.gz, tar.bz2, 7z…).")
+            return
+        }
+        let destDir = other.connection == nil ? other.url : src.url
+        guard Dialogs.confirm("Rozbalit „\(item.name)“?", info: "Do: \(destDir.path)", ok: "Rozbalit") else { return }
+        notice = "Rozbaluji \(item.name)…"
+        do {
+            try await Shell.run("/usr/bin/tar", ["-xf", item.url.path, "-C", destDir.path])
+            showNotice("Rozbaleno do \(destDir.lastPathComponent)")
+        } catch {
+            notice = nil
+            Dialogs.error(error.localizedDescription)
+        }
+        src.reload()
+        other.reload()
+    }
+
+    // MARK: Hledání
+
+    /// Otevře složku nalezeného souboru v aktivním panelu a vybere ho.
+    func reveal(_ url: URL) {
+        let pane = active
+        pane.navigate(to: url.deletingLastPathComponent())
+        if let idx = pane.items.firstIndex(where: { $0.url.path == url.path }) { pane.cursor = idx }
     }
 
     // MARK: Servery a síť
