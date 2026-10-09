@@ -2,7 +2,8 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @StateObject private var model = AppModel()
+    @ObservedObject var model: AppModel
+    @ObservedObject var settings = Settings.shared
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -16,6 +17,7 @@ struct ContentView: View {
             functionBar
         }
         .background(WindowAccessor())
+        .preferredColorScheme(settings.colorScheme)
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -28,6 +30,9 @@ struct ContentView: View {
             switch sheet {
             case .server: ConnectSheet(model: model)
             case .network: NetworkSheet(model: model)
+            case .batchRename: BatchRenameSheet(model: model)
+            case .search: SearchSheet(model: model)
+            case .settings: SettingsSheet()
             }
         }
     }
@@ -85,19 +90,17 @@ struct ContentView: View {
         let pane = model.active
 
         if p.modifiers.contains(.command) {
-            switch p.characters.lowercased() {
-            case "r": pane.reload(); return .handled
-            case "a": pane.markAll(); return .handled
-            case ".", ">": pane.toggleHidden(); return .handled
-            case "t": model.activeGroup.newTab(); return .handled
-            case "w": model.activeGroup.close(model.activeGroup.selected); return .handled
-            case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-                model.activeGroup.select((Int(p.characters) ?? 1) - 1); return .handled
-            case "k": model.sheet = .server; return .handled
-            case "l": model.sheet = .network; return .handled
-            case "u": model.activeIsLeft ? model.right.navigate(to: model.left.url) : model.left.navigate(to: model.right.url); return .handled
-            default: return .ignored
+            var ch = p.characters.lowercased()
+            if ch == ">" { ch = "." }
+            if ch.count == 1, let n = Int(ch), n >= 1 {
+                model.activeGroup.select(n - 1)
+                return .handled
             }
+            if let action = settings.action(for: ch) {
+                model.perform(action)
+                return .handled
+            }
+            return .ignored
         }
 
         // Funkční klávesy (F1 = U+F704, …)

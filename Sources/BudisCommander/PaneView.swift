@@ -4,6 +4,7 @@ struct PaneView: View {
     @ObservedObject var pane: PaneState
     let isActive: Bool
     let onActivate: () -> Void
+    @ObservedObject var settings = Settings.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -99,11 +100,11 @@ struct PaneView: View {
             Text(item.modified.map { $0.formatted(date: .numeric, time: .shortened) } ?? "")
                 .frame(width: 130, alignment: .trailing)
         }
-        .font(.system(size: 12))
+        .font(.system(size: settings.fontSize))
         .monospacedDigit()
         .foregroundStyle(isMarked ? Color.red : Color.primary)
         .padding(.horizontal, 8)
-        .frame(height: 20)
+        .frame(height: settings.fontSize + 8)
         .background(isCursor ? (isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.3)) : .clear)
     }
 }
