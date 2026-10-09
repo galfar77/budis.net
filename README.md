@@ -58,7 +58,7 @@ Všechny ⌘ zkratky jdou změnit v Nastavení (⌘,) a jsou také v menu **Nás
 ## Další funkce
 
 - **Archivy jako složky:** Enter na zipu, tar, tgz, 7z… ho otevře v panelu (jen pro čtení, soubory z něj kopírujte F5). Backspace se vrátí.
-- **Náhled F3:** text, obrázky (png, jpg, heic…) a PDF.
+- **Náhled F3:** text, obrázky (png, jpg, heic…) a PDF; tlačítkem Tisk… (⌘P) se dají vytisknout.
 - **Zrušení přenosu:** během kopírování, mazání a zrcadlení je ve stavovém řádku tlačítko Zrušit.
 - **Hledání na serveru** (⌘F v panelu připojeném k serveru) podle názvu.
 
