@@ -35,6 +35,10 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘Z / ⌘E | zabalit (.zip, .tar.gz) / rozbalit archiv |
 | ⌘F | hledat soubory podle názvu a obsahu |
 | ⌘, | nastavení: vzhled, písmo, klávesové zkratky |
+| ⌘Y | zrcadlit adresář do druhého panelu (nové a změněné zkopíruje, přebytečné v cíli přesune do koše; s potvrzením) |
+| ⌘J | příkazový řádek ve složce aktivního panelu |
+| ⌘B | oblíbené a poslední složky |
+| ⌘[ / ⌘] | zpět / vpřed v historii panelu |
 | ⌘R, ⌘A, ⌘., ⌘U | obnovit, označit vše, skryté soubory, zrcadlit adresář |
 
 Na Macu je u F-kláves potřeba držet `fn` (nebo vypnout „Používat klávesy F1, F2 jako standardní funkční klávesy“); spodní lištu lze také klikat.
@@ -50,3 +54,15 @@ Otevřít, nebo spusťte `xattr -dr com.apple.quarantine BudisCommander.app`.
 Ikonu lze znovu vygenerovat příkazem `python3 scripts/make-icon.py` (potřebuje Pillow).
 
 Všechny ⌘ zkratky jdou změnit v Nastavení (⌘,) a jsou také v menu **Nástroje**.
+
+## Další funkce
+
+- **Archivy jako složky:** Enter na zipu, tar, tgz, 7z… ho otevře v panelu (jen pro čtení, soubory z něj kopírujte F5). Backspace se vrátí.
+- **Náhled F3:** text, obrázky (png, jpg, heic…) a PDF.
+- **Zrušení přenosu:** během kopírování, mazání a zrcadlení je ve stavovém řádku tlačítko Zrušit.
+- **Hledání na serveru** (⌘F v panelu připojeném k serveru) podle názvu.
+
+## Podepsání a notarizace
+
+Skript `make-app.sh` umí podepsat aplikaci a poslat ji k notarizaci, pokud máte placený účet Apple Developer
+(proměnné `SIGN_IDENTITY` a `NOTARY_PROFILE`, viz komentář ve skriptu). Bez nich se podepisuje jen ad hoc.

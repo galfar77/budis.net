@@ -3,6 +3,22 @@ import AppKit
 
 enum SortKey { case name, size, date }
 
+/// Archiv otevřený jako složka: rozbalený do dočasného adresáře, jen pro čtení.
+struct ArchiveInfo {
+    let name: String
+    let root: URL       // dočasná složka s obsahem
+    let origin: URL     // složka, ve které archiv leží
+    let itemID: String  // id položky archivu v původní složce
+
+    static let extensions: Set<String> = ["zip", "tar", "tgz", "tbz", "tbz2", "txz", "7z", "rar", "jar"]
+    static let compound = [".tar.gz", ".tar.bz2", ".tar.xz"]
+
+    static func isArchive(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        return extensions.contains((lower as NSString).pathExtension) || compound.contains { lower.hasSuffix($0) }
+    }
+}
+
 @MainActor
 final class PaneState: ObservableObject {
     /// Poslední lokální adresář (zůstává nastavený i při připojení k serveru).
@@ -16,6 +32,12 @@ final class PaneState: ObservableObject {
     @Published private(set) var connection: RemoteConnection?
     @Published private(set) var remotePath = "/"
     @Published private(set) var isLoading = false
+    @Published private(set) var archive: ArchiveInfo?
+
+    static let archiveBase = FileManager.default.temporaryDirectory.appendingPathComponent("BudisArchives")
+    private var back: [URL] = []
+    private var forward: [URL] = []
+    private var historyMove = false
 
     /// Volá se po každé úspěšné změně adresáře (AppModel podle toho ukládá stav).
     static var onLocationChange: (() -> Void)?
@@ -28,12 +50,23 @@ final class PaneState: ObservableObject {
         _ = load(url)
     }
 
+    var isArchive: Bool { archive != nil }
+    var canGoBack: Bool { !back.isEmpty }
+    var canGoForward: Bool { !forward.isEmpty }
+
+    /// Adresář, který se ukládá do stavu (u archivu složka s archivem).
+    var persistentURL: URL { archive?.origin ?? url }
+
+    private static func isTemp(_ url: URL) -> Bool { url.path.hasPrefix(archiveBase.path) }
+
     var tabTitle: String {
+        if let a = archive { return a.name }
         if let c = connection { return c.host }
         return url.path == "/" ? "/" : url.lastPathComponent
     }
 
     var title: String {
+        if let a = archive { return "Archiv \(a.name)" + String(url.path.dropFirst(a.root.path.count)) + " (jen pro čtení)" }
         if let c = connection { return c.displayName + remotePath }
         return url.path
     }
@@ -65,6 +98,12 @@ final class PaneState: ObservableObject {
         let previousID = id ?? current?.id
         var list = sorted(urls.compactMap(FileItem.load))
         if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
+        if dir != url && !historyMove && !Self.isTemp(url) && !Self.isTemp(dir) {
+            back.append(url)
+            forward.removeAll()
+            if back.count > 100 { back.removeFirst() }
+        }
+        if !Self.isTemp(dir) { FavoritesStore.shared.visited(dir) }
         url = dir
         apply(list, previousID: previousID)
         Self.onLocationChange?()
@@ -143,12 +182,73 @@ final class PaneState: ObservableObject {
     /// Přejde do lokálního adresáře (a případně se odpojí od serveru).
     func navigate(to dir: URL) {
         marked = []
-        if load(dir, select: "") { connection = nil; remotePath = "/" }
+        let leavingArchive = archive.map { !dir.path.hasPrefix($0.root.path) } ?? false
+        if load(dir, select: "") {
+            connection = nil
+            remotePath = "/"
+            if leavingArchive { discardArchive() }
+        }
+    }
+
+    func goBack() {
+        guard let prev = back.popLast() else { return }
+        let current = url
+        historyMove = true
+        navigate(to: prev)
+        historyMove = false
+        if url == prev { forward.append(current) } else { back.append(prev) }
+    }
+
+    func goForward() {
+        guard let next = forward.popLast() else { return }
+        let current = url
+        historyMove = true
+        navigate(to: next)
+        historyMove = false
+        if url == next { back.append(current) } else { forward.append(next) }
+    }
+
+    // MARK: Archivy jako složky
+
+    private func discardArchive() {
+        guard let a = archive else { return }
+        archive = nil
+        try? FileManager.default.removeItem(at: a.root)
+    }
+
+    private func leaveArchive() {
+        guard let a = archive else { return }
+        archive = nil
+        marked = []
+        try? FileManager.default.removeItem(at: a.root)
+        load(a.origin, select: a.itemID)
+    }
+
+    func openArchive(_ item: FileItem) async {
+        let dest = Self.archiveBase.appendingPathComponent(UUID().uuidString)
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+            try await Shell.run("/usr/bin/tar", ["-xf", item.url.path, "-C", dest.path])
+            let origin = url
+            marked = []
+            if load(dest, select: "") {
+                archive = ArchiveInfo(name: item.name, root: dest, origin: origin, itemID: item.id)
+            } else {
+                try? FileManager.default.removeItem(at: dest)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: dest)
+            Dialogs.error("Archiv „\(item.name)“ se nepodařilo otevřít:\n\(error.localizedDescription)")
+        }
     }
 
     func goUp() {
         marked = []
-        if connection != nil {
+        if let a = archive, url == a.root {
+            leaveArchive()
+        } else if connection != nil {
             guard remotePath != "/" else { return }
             let old = remotePath
             Task { await loadRemote(RemotePath.parent(old), select: old) }
@@ -171,6 +271,8 @@ final class PaneState: ObservableObject {
             }
         } else if item.isDirectory {
             navigate(to: item.url)
+        } else if archive == nil && ArchiveInfo.isArchive(item.name) {
+            Task { await openArchive(item) }
         } else {
             NSWorkspace.shared.open(item.url)
         }

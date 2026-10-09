@@ -39,6 +39,47 @@ final class FileSearch: ObservableObject {
         }
     }
 
+    /// Hledání podle názvu na serveru: prochází složky do šířky (nejvýš 3000 výpisů).
+    func startRemote(conn: RemoteConnection, root: String, mask: String, hidden: Bool) {
+        stop()
+        results = []
+        scanned = 0
+        running = true
+        let flag = CancelFlag()
+        self.flag = flag
+        var pattern = mask.trimmingCharacters(in: .whitespaces)
+        if pattern.isEmpty { pattern = "*" }
+        else if !pattern.contains("*") && !pattern.contains("?") { pattern = "*\(pattern)*" }
+        let finalPattern = pattern
+
+        Task.detached(priority: .userInitiated) { [weak self] in
+            var queue = [root]
+            var listed = 0
+            var found = 0
+            while !queue.isEmpty && !flag.isSet && listed < 3000 && found < FileSearch.limit {
+                let dir = queue.removeFirst()
+                listed += 1
+                guard let items = try? await conn.list(dir) else { continue }
+                var batch: [URL] = []
+                for item in items {
+                    if !hidden && item.name.hasPrefix(".") { continue }
+                    guard let path = item.remotePath else { continue }
+                    if item.isDirectory { queue.append(path) }
+                    if fnmatch(finalPattern, item.name, FNM_CASEFOLD) == 0 {
+                        batch.append(URL(fileURLWithPath: path))
+                        found += 1
+                    }
+                }
+                let count = listed
+                DispatchQueue.main.async {
+                    self?.results.append(contentsOf: batch)
+                    self?.scanned = count
+                }
+            }
+            DispatchQueue.main.async { self?.running = false }
+        }
+    }
+
     func stop() {
         flag.set()
         running = false
@@ -86,6 +127,7 @@ struct SearchSheet: View {
     @State private var mask = "*"
     @State private var text = ""
     @State private var hidden = false
+    @State private var conn: RemoteConnection?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -93,7 +135,11 @@ struct SearchSheet: View {
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 6) {
                 GridRow { Text("Začít v"); TextField("", text: $root) }
                 GridRow { Text("Název"); TextField("např. *.jpg nebo část názvu", text: $mask) }
-                GridRow { Text("Obsahuje"); TextField("text v souboru (volitelné)", text: $text) }
+                GridRow {
+                    Text("Obsahuje")
+                    TextField(conn == nil ? "text v souboru (volitelné)" : "na serveru jen podle názvu", text: $text)
+                        .disabled(conn != nil)
+                }
             }
             .textFieldStyle(.roundedBorder)
             Toggle("Včetně skrytých souborů", isOn: $hidden).font(.system(size: 12))
@@ -105,7 +151,7 @@ struct SearchSheet: View {
                 } else {
                     Button("Hledat") { run() }.keyboardShortcut(.defaultAction)
                 }
-                Text("Nalezeno \(search.results.count), prohledáno \(search.scanned)")
+                Text(conn == nil ? "Nalezeno \(search.results.count), prohledáno \(search.scanned)" : "Nalezeno \(search.results.count), prohledaných složek \(search.scanned)")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
             }
@@ -131,11 +177,18 @@ struct SearchSheet: View {
         }
         .padding(16)
         .frame(width: 560)
-        .onAppear { root = model.active.url.path }
+        .onAppear {
+            conn = model.active.connection
+            root = conn != nil ? model.active.remotePath : model.active.url.path
+        }
         .onDisappear { search.stop() }
     }
 
     private func run() {
+        if let conn {
+            search.startRemote(conn: conn, root: root, mask: mask, hidden: hidden)
+            return
+        }
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: root, isDirectory: &isDir), isDir.boolValue else {
             Dialogs.error("Složka „\(root)“ neexistuje.")

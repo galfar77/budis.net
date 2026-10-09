@@ -2,13 +2,29 @@ import Foundation
 import AppKit
 
 struct ViewerContent: Identifiable {
+    enum Kind {
+        case text(String)
+        case image(NSImage)
+        case pdf(URL)
+    }
+
     let id = UUID()
     let title: String
-    let text: String
+    let kind: Kind
+
+    init(title: String, text: String) {
+        self.title = title
+        kind = .text(text)
+    }
+
+    init(title: String, kind: Kind) {
+        self.title = title
+        self.kind = kind
+    }
 }
 
 enum ActiveSheet: String, Identifiable {
-    case server, network, batchRename, search, settings
+    case server, network, batchRename, search, settings, favorites
     var id: String { rawValue }
 }
 
@@ -23,6 +39,10 @@ final class AppModel: ObservableObject {
     @Published var sheet: ActiveSheet?
     @Published var notice: String?
     @Published var batchItems: [FileItem] = []
+    @Published var canCancel = false
+    @Published var showCommandLine = false
+    let runner = CommandRunner()
+    private var transferTask: Task<Void, Never>?
     private var editTasks: [String: Task<Void, Never>] = [:]
 
     var left: PaneState { leftTabs.current }
@@ -42,6 +62,10 @@ final class AppModel: ObservableObject {
         activeIsLeft = state?.activeLeft ?? true
 
         PaneState.onLocationChange = { [weak self] in self?.saveState() }
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
+                                               object: nil, queue: .main) { _ in
+            try? FileManager.default.removeItem(at: PaneState.archiveBase)
+        }
         for name in [NSApplication.willTerminateNotification, NSApplication.didResignActiveNotification] {
             NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.saveState() }
@@ -63,8 +87,8 @@ final class AppModel: ObservableObject {
     }
 
     func saveState() {
-        SessionState(left: leftTabs.tabs.map { $0.url.path }, leftSel: leftTabs.selected,
-                     right: rightTabs.tabs.map { $0.url.path }, rightSel: rightTabs.selected,
+        SessionState(left: leftTabs.tabs.map { $0.persistentURL.path }, leftSel: leftTabs.selected,
+                     right: rightTabs.tabs.map { $0.persistentURL.path }, rightSel: rightTabs.selected,
                      activeLeft: activeIsLeft).save()
     }
 
@@ -90,6 +114,14 @@ final class AppModel: ObservableObject {
         let items = src.targets
         guard !items.isEmpty else { return }
 
+        if dst.isArchive {
+            Dialogs.error("Archiv je otevřený jen pro čtení, nelze do něj kopírovat.")
+            return
+        }
+        if src.isArchive && move {
+            Dialogs.error("Z archivu lze soubory jen kopírovat (F5), ne přesouvat.")
+            return
+        }
         let sameFolder: Bool
         if src.connection == nil && dst.connection == nil { sameFolder = src.url == dst.url }
         else { sameFolder = src.connection === dst.connection && src.remotePath == dst.remotePath }
@@ -102,8 +134,10 @@ final class AppModel: ObservableObject {
         guard Dialogs.confirm("\(verb) \(describe(items))?", info: "Cíl: \(destTitle)", ok: verb) else { return }
 
         var overwriteAll = false
+        var cancelled = false
         var errors: [String] = []
         for (i, item) in items.enumerated() {
+            if Task.isCancelled { cancelled = true; break }
             progress = Double(i) / Double(items.count)
             progressText = "\(verb) \(item.name) (\(i + 1)/\(items.count))"
             let report = progressReporter(index: i, count: items.count, verb: verb)
@@ -133,11 +167,19 @@ final class AppModel: ObservableObject {
             do {
                 try await transferOne(item, src: src, dst: dst, move: move, overwrite: overwrite, report: report)
             } catch {
+                if Task.isCancelled {
+                    if dst.connection == nil {
+                        try? FileManager.default.removeItem(at: dst.url.appendingPathComponent(item.name))
+                    }
+                    cancelled = true
+                    break
+                }
                 errors.append("\(item.name): \(error.localizedDescription)")
             }
         }
         src.marked = []
         finish(src, dst)
+        if cancelled { showNotice("Přenos zrušen.") }
         if !errors.isEmpty { Dialogs.error(errors.joined(separator: "\n")) }
     }
 
@@ -178,7 +220,7 @@ final class AppModel: ObservableObject {
             if overwrite && FileManager.default.fileExists(atPath: dest.path) {
                 try FileManager.default.removeItem(at: dest)
             }
-            try await s.download(path: path, isDirectory: item.isDirectory, to: dest, progress: report)
+            try await s.download(path: path, isDirectory: item.isDirectory, size: item.size, to: dest, progress: report)
             if move { try await s.delete(path: path, isDirectory: item.isDirectory) }
 
         case (let s?, let d?):
@@ -186,7 +228,7 @@ final class AppModel: ObservableObject {
             let tmp = try newTempDir()
             defer { try? FileManager.default.removeItem(at: tmp) }
             let local = tmp.appendingPathComponent(item.name)
-            try await s.download(path: path, isDirectory: item.isDirectory, to: local,
+            try await s.download(path: path, isDirectory: item.isDirectory, size: item.size, to: local,
                                  progress: { name, f in report(name, f / 2) })
             try await d.upload(local: local, to: RemotePath.child(dst.remotePath, item.name),
                                progress: { name, f in report(name, 0.5 + f / 2) })
@@ -207,6 +249,10 @@ final class AppModel: ObservableObject {
         let pane = active
         let items = pane.targets
         guard !items.isEmpty else { return }
+        guard !pane.isArchive else {
+            Dialogs.error("Archiv je otevřený jen pro čtení.")
+            return
+        }
         let conn = pane.connection
         let ok = conn == nil
             ? Dialogs.confirm("Přesunout \(describe(items)) do koše?", ok: "Do koše")
@@ -215,6 +261,7 @@ final class AppModel: ObservableObject {
 
         var errors: [String] = []
         for (i, item) in items.enumerated() {
+            if Task.isCancelled { break }
             progress = Double(i) / Double(items.count)
             progressText = "Mažu \(item.name)"
             do {
@@ -239,6 +286,7 @@ final class AppModel: ObservableObject {
 
     func makeDirectory() async {
         let pane = active
+        guard !pane.isArchive else { Dialogs.error("Archiv je otevřený jen pro čtení."); return }
         guard let name = Dialogs.prompt("Nový adresář", info: "Vytvoří se v \(pane.title)", ok: "Vytvořit") else { return }
         do {
             if let conn = pane.connection {
@@ -257,6 +305,7 @@ final class AppModel: ObservableObject {
 
     func rename() async {
         let pane = active
+        guard !pane.isArchive else { Dialogs.error("Archiv je otevřený jen pro čtení."); return }
         guard let item = pane.current, !item.isParent,
               let name = Dialogs.prompt("Přejmenovat", initial: item.name, ok: "Přejmenovat"),
               name != item.name else { return }
@@ -282,16 +331,38 @@ final class AppModel: ObservableObject {
         guard let item = pane.current, !item.isParent else { return }
         if item.isDirectory { pane.enter(); return }
 
+        let ext = (item.name as NSString).pathExtension.lowercased()
+        let isImage = ["png", "jpg", "jpeg", "gif", "heic", "tif", "tiff", "bmp", "webp"].contains(ext)
+        let isMedia = isImage || ext == "pdf"
+
         var fileURL = item.url
         if let conn = pane.connection, let path = item.remotePath {
+            if isMedia && item.size > 100 * 1024 * 1024 {
+                Dialogs.error("Soubor je příliš velký pro náhled (nad 100 MB). Zkopírujte ho do lokálního panelu.")
+                return
+            }
             do {
                 let tmp = try newTempDir()
                 fileURL = tmp.appendingPathComponent(item.name)
-                try await conn.download(path: path, isDirectory: false, to: fileURL, maxBytes: 512 * 1024)
+                notice = "Stahuji náhled \(item.name)…"
+                try await conn.download(path: path, isDirectory: false, size: item.size, to: fileURL,
+                                        maxBytes: isMedia ? nil : 512 * 1024)
+                notice = nil
             } catch {
+                notice = nil
                 Dialogs.error(error.localizedDescription)
                 return
             }
+        }
+        if isMedia {
+            if ext == "pdf" {
+                viewer = ViewerContent(title: item.name, kind: .pdf(fileURL))
+            } else if let image = NSImage(contentsOf: fileURL) {
+                viewer = ViewerContent(title: item.name, kind: .image(image))
+            } else {
+                NSWorkspace.shared.open(fileURL)
+            }
+            return
         }
         guard let handle = try? FileHandle(forReadingFrom: fileURL) else { return }
         defer { try? handle.close() }
@@ -396,7 +467,107 @@ final class AppModel: ObservableObject {
         case .unpack: Task { await unpack() }
         case .search: sheet = .search
         case .settings: sheet = .settings
+        case .sync: startSync()
+        case .commandLine: showCommandLine.toggle()
+        case .favorites: sheet = .favorites
+        case .back: active.goBack()
+        case .forward: active.goForward()
         }
+    }
+
+    // MARK: Spuštění úloh se zrušením
+
+    private func runCancellable(_ work: @escaping @MainActor () async -> Void) {
+        guard transferTask == nil else {
+            showNotice("Právě probíhá jiná operace.")
+            return
+        }
+        canCancel = true
+        transferTask = Task {
+            await work()
+            transferTask = nil
+            canCancel = false
+        }
+    }
+
+    func startTransfer(move: Bool) { runCancellable { await self.transfer(move: move) } }
+    func startDelete() { runCancellable { await self.delete() } }
+    func startSync() { runCancellable { await self.syncMirror() } }
+    func cancelTransfer() { transferTask?.cancel() }
+
+    // MARK: Zrcadlení adresářů
+
+    /// Udělá z cílového (neaktivního) panelu přesnou kopii aktivního: nové a změněné soubory zkopíruje,
+    /// soubory navíc v cíli přesune do koše.
+    func syncMirror() async {
+        let src = active, dst = other
+        guard src.connection == nil, dst.connection == nil else {
+            Dialogs.error("Zrcadlení funguje jen mezi lokálními složkami.")
+            return
+        }
+        guard !dst.isArchive else {
+            Dialogs.error("Archiv je otevřený jen pro čtení.")
+            return
+        }
+        let s = src.url, d = dst.url
+        guard s != d, !d.path.hasPrefix(s.path + "/"), !s.path.hasPrefix(d.path + "/") else {
+            Dialogs.error("Zdrojová a cílová složka se nesmí překrývat.")
+            return
+        }
+        notice = "Počítám rozdíly…"
+        let plan = await Task.detached { SyncPlan.make(src: s, dst: d) }.value
+        notice = nil
+        guard !plan.isEmpty else {
+            showNotice("Složky jsou shodné, není co zrcadlit.")
+            return
+        }
+        let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
+        var info = "Kopírovat nebo přepsat: \(plan.copies.count) souborů (\(size))\nVytvořit složek: \(plan.mkdirs.count)\n"
+        info += "Přesunout do koše (jen v cíli): \(plan.deletes.count)"
+        let preview = plan.deletes.prefix(6).map { "  • " + $0.lastPathComponent }
+        if !preview.isEmpty { info += "\n" + preview.joined(separator: "\n") + (plan.deletes.count > 6 ? "\n  …" : "") }
+        info += "\n\nCíl bude přesně odpovídat zdroji, i když je v něm některý soubor novější."
+        guard Dialogs.confirm("Zrcadlit „\(s.lastPathComponent)“ do „\(d.lastPathComponent)“?", info: info, ok: "Zrcadlit") else { return }
+
+        var errors: [String] = []
+        let total = plan.deletes.count + plan.mkdirs.count + plan.copies.count
+        var step = 0
+        func tick(_ text: String) {
+            progress = Double(step) / Double(max(total, 1))
+            progressText = text
+            step += 1
+        }
+        for url in plan.deletes {
+            if Task.isCancelled { break }
+            tick("Do koše: \(url.lastPathComponent)")
+            do { try await Task.detached { try FileManager.default.trashItem(at: url, resultingItemURL: nil) }.value }
+            catch { errors.append("\(url.lastPathComponent): \(error.localizedDescription)") }
+        }
+        for url in plan.mkdirs {
+            if Task.isCancelled { break }
+            tick("Složka: \(url.lastPathComponent)")
+            do { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true) }
+            catch { errors.append("\(url.lastPathComponent): \(error.localizedDescription)") }
+        }
+        for (from, to) in plan.copies {
+            if Task.isCancelled { break }
+            tick("Kopíruji: \(from.lastPathComponent)")
+            do {
+                try await Task.detached {
+                    let fm = FileManager.default
+                    if fm.fileExists(atPath: to.path) { try fm.removeItem(at: to) }
+                    try fm.copyItem(at: from, to: to)
+                }.value
+            } catch {
+                errors.append("\(from.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+        progress = nil
+        progressText = ""
+        src.reload()
+        dst.reload()
+        showNotice(Task.isCancelled ? "Zrcadlení zrušeno." : "Zrcadlení hotovo.")
+        if !errors.isEmpty { Dialogs.error(errors.prefix(12).joined(separator: "\n")) }
     }
 
     // MARK: Porovnání adresářů
@@ -434,6 +605,7 @@ final class AppModel: ObservableObject {
     func startBatchRename() {
         let items = active.targets
         guard !items.isEmpty else { return }
+        guard !active.isArchive else { Dialogs.error("Archiv je otevřený jen pro čtení."); return }
         batchItems = items
         sheet = .batchRename
     }
@@ -553,6 +725,10 @@ final class AppModel: ObservableObject {
     /// Otevře složku nalezeného souboru v aktivním panelu a vybere ho.
     func reveal(_ url: URL) {
         let pane = active
+        if pane.connection != nil {
+            Task { await pane.loadRemote(RemotePath.parent(url.path), select: url.path) }
+            return
+        }
         pane.navigate(to: url.deletingLastPathComponent())
         if let idx = pane.items.firstIndex(where: { $0.url.path == url.path }) { pane.cursor = idx }
     }

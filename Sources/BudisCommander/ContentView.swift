@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import PDFKit
 
 struct ContentView: View {
     @ObservedObject var model: AppModel
@@ -14,6 +15,7 @@ struct ContentView: View {
                 PanelView(group: model.rightTabs, isActive: !model.activeIsLeft) { model.activeIsLeft = false }
             }
             statusBar
+            if model.showCommandLine { CommandPanel(model: model, runner: model.runner) }
             functionBar
         }
         .background(WindowAccessor())
@@ -22,6 +24,9 @@ struct ContentView: View {
         .focusEffectDisabled()
         .focused($focused)
         .onAppear { focused = true }
+        .onChange(of: model.showCommandLine) { _, shown in
+            if !shown { focused = true }
+        }
         .onKeyPress(phases: [.down, .repeat]) { handle($0) }
         .sheet(item: $model.viewer, onDismiss: { focused = true }) { v in
             ViewerSheet(content: v)
@@ -33,6 +38,7 @@ struct ContentView: View {
             case .batchRename: BatchRenameSheet(model: model)
             case .search: SearchSheet(model: model)
             case .settings: SettingsSheet()
+            case .favorites: FavoritesSheet(model: model)
             }
         }
     }
@@ -46,6 +52,9 @@ struct ContentView: View {
                 if let p = model.progress { ProgressView(value: p).frame(width: 200) }
                 Text(model.notice ?? model.progressText).font(.system(size: 11))
                 Spacer()
+                if model.canCancel && model.progress != nil {
+                    Button("Zrušit") { model.cancelTransfer() }.controlSize(.small)
+                }
             }
             .padding(.horizontal, 8)
             .frame(height: 22)
@@ -57,10 +66,10 @@ struct ContentView: View {
             fnButton("F2", "Přejmenovat") { Task { await model.rename() } }
             fnButton("F3", "Zobrazit") { Task { await model.view() } }
             fnButton("F4", "Editovat") { Task { await model.edit() } }
-            fnButton("F5", "Kopírovat") { Task { await model.transfer(move: false); focused = true } }
-            fnButton("F6", "Přesunout") { Task { await model.transfer(move: true); focused = true } }
+            fnButton("F5", "Kopírovat") { model.startTransfer(move: false) }
+            fnButton("F6", "Přesunout") { model.startTransfer(move: true) }
             fnButton("F7", "Nový adr.") { Task { await model.makeDirectory() } }
-            fnButton("F8", "Smazat") { Task { await model.delete(); focused = true } }
+            fnButton("F8", "Smazat") { model.startDelete() }
             fnButton("⌘K", "Server") { model.sheet = .server }
             fnButton("⌘L", "Síť") { model.sheet = .network }
         }
@@ -109,10 +118,10 @@ struct ContentView: View {
             case 0xF705: Task { await model.rename() }
             case 0xF706: Task { await model.view() }
             case 0xF707: Task { await model.edit() }
-            case 0xF708: Task { await model.transfer(move: false) }
-            case 0xF709: Task { await model.transfer(move: true) }
+            case 0xF708: model.startTransfer(move: false)
+            case 0xF709: model.startTransfer(move: true)
             case 0xF70A: Task { await model.makeDirectory() }
-            case 0xF70B: Task { await model.delete() }
+            case 0xF70B: model.startDelete()
             default: return .ignored
             }
             return .handled
@@ -170,16 +179,42 @@ struct ViewerSheet: View {
             }
             .padding(10)
             Divider()
-            ScrollView([.vertical, .horizontal]) {
-                Text(content.text)
-                    .font(.system(size: 12, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            switch content.kind {
+            case .text(let text):
+                ScrollView([.vertical, .horizontal]) {
+                    Text(text)
+                        .font(.system(size: 12, design: .monospaced))
+                        .textSelection(.enabled)
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            case .image(let image):
+                ScrollView([.vertical, .horizontal]) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(10)
+                }
+            case .pdf(let url):
+                PDFViewer(url: url)
             }
         }
-        .frame(minWidth: 700, minHeight: 500)
+        .frame(minWidth: 800, minHeight: 600)
     }
+}
+
+struct PDFViewer: NSViewRepresentable {
+    let url: URL
+
+    func makeNSView(context: Context) -> PDFView {
+        let view = PDFView()
+        view.autoScales = true
+        view.document = PDFDocument(url: url)
+        return view
+    }
+
+    func updateNSView(_ nsView: PDFView, context: Context) {}
 }
 
 /// Zajistí, že si okno pamatuje svou polohu a velikost.
