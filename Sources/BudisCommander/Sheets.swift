@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SavedServer: Codable, Identifiable, Hashable {
     var proto: RemoteProtocol
@@ -6,6 +7,7 @@ struct SavedServer: Codable, Identifiable, Hashable {
     var port: Int
     var user: String
     var insecure: Bool
+    var keyPath: String?
 
     var id: String { title }
     var title: String { "\(proto.rawValue)  \(user.isEmpty ? "" : user + "@")\(host):\(port)" }
@@ -37,6 +39,7 @@ struct ConnectSheet: View {
     @State private var user = ""
     @State private var password = ""
     @State private var insecure = false
+    @State private var keyPath = ""
     @State private var busy = false
     @State private var saved = SavedServer.loadAll()
 
@@ -74,8 +77,17 @@ struct ConnectSheet: View {
                     Text("Uživatel")
                     TextField(proto == .sftp ? "povinné" : "prázdné = anonymní", text: $user)
                 }
+                if proto == .sftp {
+                    GridRow {
+                        Text("Klíč")
+                        HStack {
+                            TextField("volitelné, např. ~/.ssh/id_rsa", text: $keyPath)
+                            Button("Vybrat…") { chooseKey() }
+                        }
+                    }
+                }
                 GridRow {
-                    Text("Heslo")
+                    Text(proto == .sftp && !keyPath.isEmpty ? "Heslo klíče" : "Heslo")
                     SecureField("", text: $password)
                 }
             }
@@ -83,7 +95,7 @@ struct ConnectSheet: View {
 
             Toggle("Důvěřovat serveru bez ověření klíče/certifikátu", isOn: $insecure)
                 .font(.system(size: 12))
-            Text("Heslo se neukládá. Pro SFTP je podporované přihlášení heslem.")
+            Text("Heslo se neukládá. U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             HStack {
@@ -100,19 +112,32 @@ struct ConnectSheet: View {
     }
 
     private func fill(_ s: SavedServer) {
-        proto = s.proto; host = s.host; port = String(s.port); user = s.user; insecure = s.insecure
+        proto = s.proto; host = s.host; port = String(s.port); user = s.user
+        insecure = s.insecure; keyPath = s.keyPath ?? ""
+    }
+
+    private func chooseKey() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.showsHiddenFiles = true
+        panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".ssh")
+        panel.message = "Vyberte soukromý SSH klíč"
+        if panel.runModal() == .OK, let url = panel.url { keyPath = url.path }
     }
 
     private func connect() {
         let h = host.trimmingCharacters(in: .whitespaces)
         let conn = RemoteConnection(proto: proto, host: h, port: portValue, user: user,
-                                    password: password, insecure: insecure)
+                                    password: password, insecure: insecure,
+                                    keyPath: proto == .sftp ? keyPath.trimmingCharacters(in: .whitespaces) : "")
         busy = true
         Task {
             let ok = await model.connect(conn)
             busy = false
             if ok {
-                SavedServer(proto: proto, host: h, port: portValue, user: user, insecure: insecure).save()
+                SavedServer(proto: proto, host: h, port: portValue, user: user, insecure: insecure,
+                            keyPath: keyPath.isEmpty ? nil : keyPath).save()
                 dismiss()
             }
         }

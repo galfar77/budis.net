@@ -23,7 +23,8 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | + / - / * | označit / odznačit podle masky / označit vše |
 | psaní písmen | rychlé hledání |
 | F2 | přejmenovat |
-| F3 / F4 | zobrazit / editovat |
+| F3 | zobrazit |
+| F4 | editovat (na serveru se změny po uložení samy nahrají zpět) |
 | F5 / F6 | kopírovat / přesunout do druhého panelu |
 | F7 / F8 | nový adresář / do koše |
 | ⌘K | připojit k FTP / FTP+TLS / SFTP serveru |
