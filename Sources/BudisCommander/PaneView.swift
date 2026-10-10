@@ -134,20 +134,22 @@ struct PaneView: View {
             if settings.showMedia {
                 Text(L("Rozměry/délka")).font(.system(size: 11, weight: .semibold)).frame(width: 84, alignment: .trailing)
             }
-            headerButton(L("Velikost"), .size).frame(width: 80, alignment: .trailing)
-            headerButton(L("Změněno"), .date).frame(width: 130, alignment: .trailing)
+            headerButton(L("Velikost"), .size, alignment: .trailing).frame(width: 80, alignment: .trailing)
+            headerButton(L("Změněno"), .date, alignment: .trailing).frame(width: 130, alignment: .trailing)
         }
         .padding(.horizontal, 8)
         .frame(height: 22)
         .background(Color.secondary.opacity(0.1))
     }
 
-    private func headerButton(_ title: String, _ key: SortKey) -> some View {
+    private func headerButton(_ title: String, _ key: SortKey, alignment: Alignment = .leading) -> some View {
         Button {
             pane.setSort(key)
         } label: {
             Text(title + (pane.sortKey == key ? (pane.ascending ? " ▲" : " ▼") : ""))
                 .font(.system(size: 11, weight: .semibold))
+                .frame(maxWidth: .infinity, alignment: alignment)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
