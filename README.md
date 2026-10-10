@@ -92,3 +92,8 @@ Skript `make-app.sh` umí podepsat aplikaci a poslat ji k notarizaci, pokud mát
 - **Duplicity:** menu Nástroje → Hledat duplicity (podle obsahu, volitelně i druhý panel), výběr přebytečných a do koše.
 - **Sloupce Práva, Vlastník, Rozměry/délka** a **barevné štítky Finderu** (Nastavení; štítky nastavíte z menu Nástroje → Štítky Finderu…).
 - **Zip:** zabalit s heslem, přidat soubory do existujícího zipu (kurzor v druhém panelu na archivu), rozbalit zip s heslem.
+
+## Windows
+
+Verze pro Windows (C#, Avalonia) je ve složce [`windows`](windows/README.md). Hotové `.exe` staví GitHub Actions
+(*Build Windows app*), návod je v `windows/README.md`.
