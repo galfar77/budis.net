@@ -4,8 +4,8 @@ Dvoupanelový správce souborů pro Windows 10 a 11 (C#, .NET 8, Avalonia). Funk
 
 ## Jak ho získat
 
-**A) Z GitHubu (nic neinstalujete):** záložka *Actions* → poslední běh *Build Windows app* → artefakt `BudisCommander-Windows`.
-V něm jsou dva ZIPy: `BudisCommander-win-x64.zip` (běžné počítače) a `BudisCommander-win-arm64.zip` (Windows na ARM,
+**A) Z GitHubu (nic neinstalujete):** otevřete stránku [Releases](../../releases/tag/windows-latest) a stáhněte ZIP.
+Jsou tam dva: `BudisCommander-win-x64.zip` (běžné počítače) a `BudisCommander-win-arm64.zip` (Windows na ARM,
 např. Parallels Desktop na Macu s Apple Silicon). Rozbalte a spusťte `BudisCommander.exe`.
 
 **B) Vlastní sestavení** (potřebujete .NET 8 SDK: `winget install Microsoft.DotNet.SDK.8`):
