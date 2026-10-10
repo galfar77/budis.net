@@ -4,3 +4,10 @@ build/
 xcuserdata/
 .DS_Store
 *.xcodeproj
+
+# Windows (.NET)
+bin/
+obj/
+out/
+test-results/
+*.user

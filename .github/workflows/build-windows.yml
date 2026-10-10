@@ -1,0 +1,44 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["windows/**", ".github/workflows/build-windows.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Testy
+        run: dotnet test windows/BudisCommander.Tests/BudisCommander.Tests.csproj -c Release --logger "trx;LogFileName=test-results.trx" --results-directory test-results
+
+      - name: Sestavení x64
+        run: dotnet publish windows/BudisCommander.Win/BudisCommander.Win.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o out/win-x64
+
+      - name: Sestavení ARM64
+        run: dotnet publish windows/BudisCommander.Win/BudisCommander.Win.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o out/win-arm64
+
+      - name: Zabalení
+        shell: pwsh
+        run: |
+          Compress-Archive -Path out/win-x64/BudisCommander.exe -DestinationPath BudisCommander-win-x64.zip
+          Compress-Archive -Path out/win-arm64/BudisCommander.exe -DestinationPath BudisCommander-win-arm64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BudisCommander-Windows
+          path: |
+            BudisCommander-win-x64.zip
+            BudisCommander-win-arm64.zip
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results
