@@ -58,6 +58,20 @@ struct PaneView: View {
                     .truncationMode(.head)
                 Spacer(minLength: 0)
                 if pane.isLoading { ProgressView().controlSize(.small) }
+                Menu {
+                    Button(L("Všechny soubory")) { pane.setTypeFilter(nil) }
+                    Divider()
+                    ForEach(TypeFilter.allCases) { t in
+                        Button(t.label) { pane.setTypeFilter(t) }
+                    }
+                } label: {
+                    Image(systemName: pane.typeFilter == nil ? "line.3.horizontal.decrease.circle"
+                                                             : "line.3.horizontal.decrease.circle.fill")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(L("Filtr podle typu souboru"))
                 if pane.connection != nil {
                     Button { pane.disconnect() } label: { Image(systemName: "eject.fill") }
                         .buttonStyle(.plain)

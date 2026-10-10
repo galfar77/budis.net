@@ -168,6 +168,7 @@ Dělím {}…	Splitting {}…
 Důvěřovat serveru bez ověření klíče/certifikátu	Trust the server without verifying its key/certificate
 Editace „{}“: po uložení se změny nahrají na server	Editing "{}": changes are uploaded to the server after saving
 Editovat	Edit
+Filtr podle typu souboru	File type filter
 Filtr „{}“: {} z {} položek (Esc zruší)	Filter "{}": {} of {} items (Esc cancels)
 GitHub vrátil kód {}.	GitHub returned code {}.
 Heslo	Password
@@ -187,7 +188,12 @@ Hromadné přejmenování ({} položek)	Batch rename ({} items)
 Jazyk (po restartu)	Language (after restart)
 Je dostupná nová verze	A new version is available
 Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from the Tools menu → Update application.
+Jen archivy	Archives only
+Jen dokumenty	Documents only
+Jen hudba	Music only
+Jen obrázky	Images only
 Jen rozdíly	Differences only
+Jen video	Video only
 Klepnutím sadu otevřete. Sada pamatuje záložky obou panelů.	Click a set to open it. A set remembers the tabs of both panels.
 Kliknutím se v aktivním panelu otevře složka souboru.	Clicking opens the file's folder in the active panel.
 Klávesové zkratky (⌘ + znak)	Keyboard shortcuts (⌘ + character)
@@ -438,6 +444,7 @@ Včetně obsahu složek	Including folder contents
 Včetně skrytých	Including hidden
 Včetně skrytých souborů	Including hidden files
 Všechny podsložky najednou (Branch view)	All subfolders at once (Branch view)
+Všechny soubory	All files
 Z archivu lze soubory jen kopírovat (F5), ne přesouvat.	Files can only be copied (F5) from an archive, not moved.
 Zabalit	Pack
 Zabalit do archivu	Pack into archive
@@ -500,6 +507,7 @@ vytvoření složky „{}“	creating folder "{}"
 {} položek, {}	{} items, {}
 {} {} položek	{} {} items
 {}: nelze {} adresář do sebe sama	{}: cannot {} a directory into itself
+{}: {} z {} položek	{}: {} of {} items
 Úložiště	Storage
 Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.	Storage is set up with the rclone program (the "rclone config" command). Here you just pick one and connect it to the active panel.
 Červeně označené názvy jsou prázdné, duplicitní nebo už existují.	Names marked in red are empty, duplicate or already exist.

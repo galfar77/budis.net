@@ -32,7 +32,12 @@ public sealed class PanelControl : UserControl
     private readonly TextBox _filterBox = new() { Watermark = "Filtr názvů (Esc zruší)" };
     private readonly Grid _header = new();
     private readonly ListBox _list = new() { SelectionMode = SelectionMode.Single };
-    private readonly TextBlock _summary = new() { Margin = new Thickness(8, 2) };
+    private readonly TextBlock _summary = new() { Margin = new Thickness(8, 2), VerticalAlignment = VerticalAlignment.Center };
+    private readonly ComboBox _typeBox = new()
+    {
+        ItemsSource = new[] { "Všechny soubory", "Jen obrázky", "Jen dokumenty", "Jen hudba", "Jen video", "Jen archivy" },
+        SelectedIndex = 0, MinHeight = 22, Padding = new Thickness(6, 0), Focusable = false, FontSize = 11,
+    };
     private readonly ProgressBar _loading = new() { IsIndeterminate = true, Height = 3, IsVisible = false };
 
     private PaneState? _pane;
@@ -82,7 +87,10 @@ public sealed class PanelControl : UserControl
         DragDrop.SetAllowDrop(_list, true);
 
         var dock = new DockPanel();
-        var summaryBar = new Border { Child = _summary, Background = new SolidColorBrush(Color.FromArgb(30, 128, 128, 128)) };
+        var summaryGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        Grid.SetColumn(_typeBox, 1);
+        summaryGrid.Children.Add(_summary); summaryGrid.Children.Add(_typeBox);
+        var summaryBar = new Border { Child = summaryGrid, Background = new SolidColorBrush(Color.FromArgb(30, 128, 128, 128)) };
         DockPanel.SetDock(top, Dock.Top); DockPanel.SetDock(tabScroll, Dock.Top); DockPanel.SetDock(_filterBar, Dock.Top);
         DockPanel.SetDock(_loading, Dock.Top); DockPanel.SetDock(_header, Dock.Top); DockPanel.SetDock(summaryBar, Dock.Bottom);
         dock.Children.Add(top); dock.Children.Add(tabScroll); dock.Children.Add(_filterBar); dock.Children.Add(_loading);
@@ -91,6 +99,14 @@ public sealed class PanelControl : UserControl
         Content = _frame;
 
         // události
+        _typeBox.SelectionChanged += (_, _) =>
+        {
+            if (_updating || _pane == null) return;
+            int i = _typeBox.SelectedIndex;
+            _pane.SetTypeFilter(i <= 0 ? null : PaneState.TypeFilters[i - 1].Id);
+            Activated?.Invoke();
+            FocusList();
+        };
         _parent.Click += async (_, _) => { Activated?.Invoke(); await Pane.GoUpAsync(); };
         _disconnect.Click += async (_, _) => { Activated?.Invoke(); await Pane.DisconnectAsync(); };
         _path.KeyDown += async (_, e) =>
@@ -191,7 +207,12 @@ public sealed class PanelControl : UserControl
         RebuildTabsTitles();
     }
 
-    private void UpdateSummary() => _summary.Text = _pane?.Summary ?? "";
+    private void UpdateSummary()
+    {
+        _summary.Text = _pane?.Summary ?? "";
+        int index = _pane?.TypeFilter == null ? 0 : Math.Max(0, Array.FindIndex(PaneState.TypeFilters, t => t.Id == _pane.TypeFilter) + 1);
+        if (_typeBox.SelectedIndex != index) { _updating = true; _typeBox.SelectedIndex = index; _updating = false; }
+    }
 
     // --- jednotky ---------------------------------------------------------------------------
 

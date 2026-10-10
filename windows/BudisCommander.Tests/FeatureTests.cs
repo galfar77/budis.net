@@ -271,3 +271,72 @@ public class SortByTypeTests
         Assert.Equal(new[] { "slozka", "d.avi", "b.txt", "c.txt", "a.zip" }, names);
     }
 }
+
+public class FolderViewAndTypeFilterTests
+{
+    [Fact]
+    public async Task SortIsRememberedPerFolder()
+    {
+        using var t = new TempDir();
+        var a = t.Dir("a"); var b = t.Dir("b");
+        t.File("a/x.txt"); t.File("a/y.avi"); t.File("b/p.txt");
+        var core = Helpers.NewCore(a, b);
+        var pane = core.Active;
+        await pane.SetSortAsync(SortKey.Ext);                 // složka a: podle typu
+        Assert.Equal(SortKey.Ext, pane.SortKey);
+        await pane.NavigateAsync(b);                          // složka b nemá nic uloženo: výchozí
+        Assert.Equal(SortKey.Name, pane.SortKey);
+        await pane.SetSortAsync(SortKey.Size);
+        await pane.SetSortAsync(SortKey.Size);                // sestupně
+        await pane.NavigateAsync(a);
+        Assert.Equal(SortKey.Ext, pane.SortKey);              // složka a si své řazení pamatuje
+        Assert.True(pane.Ascending);
+        await pane.NavigateAsync(b);
+        Assert.Equal(SortKey.Size, pane.SortKey);
+        Assert.False(pane.Ascending);
+        // návrat na výchozí řazení záznam odstraní
+        await pane.SetSortAsync(SortKey.Name);
+        Assert.DoesNotContain(core.Settings.FolderViews, kv => kv.Key.EndsWith("b"));
+    }
+
+    [Fact]
+    public async Task FolderViewsSurviveSaveAndLoad()
+    {
+        using var t = new TempDir();
+        var s = new AppSettings();
+        s.FolderViews["c:\\foto"] = new FolderView { Sort = SortKey.Date, Ascending = false };
+        var path = t.Combine("s.json");
+        s.Save(path);
+        var loaded = AppSettings.Load(path);
+        Assert.Equal(SortKey.Date, loaded.FolderViews["c:\\foto"].Sort);
+        Assert.False(loaded.FolderViews["c:\\foto"].Ascending);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task TypeFilterKeepsFoldersAndMatchingFiles()
+    {
+        using var t = new TempDir();
+        var a = t.Dir("a");
+        t.File("a/foto.JPG"); t.File("a/text.txt"); t.File("a/song.mp3"); t.File("a/film.mkv"); t.File("a/balik.zip"); t.Dir("a/slozka");
+        var core = Helpers.NewCore(a, t.Dir("other"));
+        var pane = core.Active;
+        pane.SetTypeFilter("images");
+        Assert.Equal(new[] { "slozka", "foto.JPG" }, pane.Items.Where(i => !i.IsParent).Select(i => i.Name));
+        pane.SetTypeFilter("audio");
+        Assert.Equal(new[] { "slozka", "song.mp3" }, pane.Items.Where(i => !i.IsParent).Select(i => i.Name));
+        pane.SetTypeFilter("docs");
+        Assert.Contains(pane.Items, i => i.Name == "text.txt");
+        pane.SetTypeFilter("archives");
+        Assert.Contains(pane.Items, i => i.Name == "balik.zip");
+        pane.SetTypeFilter("video");
+        Assert.Contains(pane.Items, i => i.Name == "film.mkv");
+        Assert.Contains("položek", pane.Summary);
+        pane.SetTypeFilter(null);
+        Assert.Equal(5, pane.Items.Count(i => !i.IsDirectory && !i.IsParent));
+        // spolupráce s textovým filtrem
+        pane.SetTypeFilter("images");
+        pane.SetFilter("zzz");
+        Assert.Empty(pane.Items.Where(i => !i.IsParent));
+    }
+}

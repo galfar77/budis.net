@@ -37,6 +37,13 @@ public sealed class UserCommand
     };
 }
 
+/// <summary>Řazení zapamatované pro jednu složku.</summary>
+public sealed class FolderView
+{
+    public SortKey Sort { get; set; } = SortKey.Name;
+    public bool Ascending { get; set; } = true;
+}
+
 /// <summary>Pojmenovaná sada záložek obou panelů.</summary>
 public sealed class TabSet
 {
@@ -80,6 +87,8 @@ public sealed class AppSettings
     public SessionState Session { get; set; } = new();
     /// <summary>Volitelná cesta k programu rclone (jinak se hledá v PATH).</summary>
     public string RclonePath { get; set; } = "";
+    /// <summary>Řazení pamatované zvlášť pro každou místní složku (jen složky, kde se liší od výchozího).</summary>
+    public Dictionary<string, FolderView> FolderViews { get; set; } = new();
     public List<TabSet> TabSets { get; set; } = new();
     public double WindowWidth { get; set; } = 1280;
     public double WindowHeight { get; set; } = 760;

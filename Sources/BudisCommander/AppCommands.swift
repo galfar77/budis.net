@@ -65,6 +65,13 @@ struct AppCommands: Commands {
             item(.symlink)
             Divider()
             item(.sortByType)
+            Menu(L("Filtr podle typu souboru")) {
+                Button(L("Všechny soubory")) { model.active.setTypeFilter(nil) }
+                Divider()
+                ForEach(TypeFilter.allCases) { t in
+                    Button(t.label) { model.active.setTypeFilter(t) }
+                }
+            }
             item(.branch)
             item(.quickView)
             item(.thumbnails)

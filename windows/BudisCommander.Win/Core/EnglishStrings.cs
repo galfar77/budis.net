@@ -419,5 +419,13 @@ Velikost ▼	Size ▼
 Změněno ▲	Modified ▲
 Změněno ▼	Modified ▼
 Třídit podle typu souboru	Sort by file type
+Všechny soubory	All files
+Zobrazit všechny soubory	Show all files
+Jen obrázky	Images only
+Jen dokumenty	Documents only
+Jen hudba	Music only
+Jen video	Video only
+Jen archivy	Archives only
+{}: {} z {} položek	{}: {} of {} items
 """;
 }

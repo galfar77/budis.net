@@ -76,6 +76,12 @@ public static class Actions
         new("prevTab", "Předchozí záložka", "Ctrl+Shift+Tab", View),
         new("tabSets", "Sady záložek…", "Ctrl+Shift+B", View),
         new("toggleTheme", "Přepnout vzhled (systém, světlý, tmavý)", null, View),
+        new("typeAll", "Zobrazit všechny soubory", null, View),
+        new("typeImages", "Jen obrázky", null, View),
+        new("typeDocs", "Jen dokumenty", null, View),
+        new("typeAudio", "Jen hudba", null, View),
+        new("typeVideo", "Jen video", null, View),
+        new("typeArchives", "Jen archivy", null, View),
         new("sortType", "Třídit podle typu souboru", null, View),
         new("focusPath", "Přejít do pole s cestou", "Alt+D", View),
 

@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-enum SortKey { case name, size, date, type }
+enum SortKey: String { case name, size, date, type }
 
 /// Archiv otevřený jako složka: rozbalený do dočasného adresáře, jen pro čtení.
 struct ArchiveInfo {
@@ -39,6 +39,9 @@ final class PaneState: ObservableObject {
     @Published private(set) var dirSizes: [String: Int64] = [:]
     /// Text, kterým je seznam zúžený (prázdný = bez filtru).
     @Published private(set) var filter = ""
+    /// Rychlý filtr podle druhu souboru (nil = všechny soubory).
+    @Published private(set) var typeFilter: TypeFilter?
+    private var viewApplied = false
     /// Všechny položky adresáře bez filtru.
     private(set) var allItems: [FileItem] = []
 
@@ -113,10 +116,24 @@ final class PaneState: ObservableObject {
     // MARK: Načítání
 
     private func visible(_ list: [FileItem]) -> [FileItem] {
-        guard !filter.isEmpty else { return list }
-        return list.filter {
-            $0.isParent || $0.name.range(of: filter, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        guard !filter.isEmpty || typeFilter != nil else { return list }
+        let exts = typeFilter?.extensions
+        return list.filter { item in
+            if item.isParent { return true }
+            if !filter.isEmpty && item.name.range(of: filter, options: [.caseInsensitive, .diacriticInsensitive]) == nil {
+                return false
+            }
+            if let exts, !item.isDirectory {
+                return exts.contains((item.name as NSString).pathExtension.lowercased())
+            }
+            return true
         }
+    }
+
+    /// Nastaví rychlý filtr podle druhu souboru (nil = všechny soubory).
+    func setTypeFilter(_ t: TypeFilter?) {
+        typeFilter = t
+        refilter()
     }
 
     private func apply(_ list: [FileItem], previousID: String?) {
@@ -169,6 +186,12 @@ final class PaneState: ObservableObject {
         }
         let previousID = id ?? current?.id
         if dir != url { branch = false; dirSizes = [:] }
+        if (dir != url || !viewApplied) && !ephemeral && !Self.isTemp(dir) {
+            let view = FolderViewStore.shared.view(for: dir.path)
+            sortKey = view.flatMap { SortKey(rawValue: $0.sort) } ?? .name
+            ascending = view?.ascending ?? true
+            viewApplied = true
+        }
         var list = branch ? sorted(branchItems(dir)) : sorted(urls.compactMap(FileItem.load))
         if dir.path != "/" { list.insert(.parent(of: dir), at: 0) }
         if dir != url { filter = "" }
@@ -306,6 +329,9 @@ final class PaneState: ObservableObject {
 
     func setSort(_ key: SortKey) {
         if sortKey == key { ascending.toggle() } else { sortKey = key; ascending = true }
+        if connection == nil && !ephemeral && !Self.isTemp(url) {
+            FolderViewStore.shared.save(sort: sortKey, ascending: ascending, for: url.path)
+        }
         reload()
     }
 
@@ -484,6 +510,9 @@ final class PaneState: ObservableObject {
         let fmt = { (n: Int64) in ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
         if !filter.isEmpty {
             return L("Filtr „\(filter)“: \(files.count) z \(allItems.filter { !$0.isParent }.count) položek (Esc zruší)")
+        }
+        if let t = typeFilter {
+            return L("\(t.label): \(files.count) z \(allItems.filter { !$0.isParent }.count) položek")
         }
         if markedItems.isEmpty {
             return L("\(files.count) položek, \(fmt(files.reduce(0) { $0 + $1.size }))")

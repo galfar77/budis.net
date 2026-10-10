@@ -50,6 +50,23 @@ public sealed class PaneState : IDisposable
     public string Filter { get; private set; } = "";
     public SortKey SortKey { get; private set; } = SortKey.Name;
     public bool Ascending { get; private set; } = true;
+    /// <summary>Rychlý filtr podle druhu souboru (id z <see cref="TypeFilters"/>) nebo null.</summary>
+    public string? TypeFilter { get; private set; }
+    private bool _viewApplied;
+
+    public static readonly (string Id, string Label, HashSet<string> Exts)[] TypeFilters =
+    {
+        ("images", "Jen obrázky", Ext("jpg jpeg png gif bmp tif tiff webp heic heif svg ico raw cr2 nef arw dng")),
+        ("docs", "Jen dokumenty", Ext("pdf doc docx odt rtf txt md pages xls xlsx ods csv numbers ppt pptx odp key epub")),
+        ("audio", "Jen hudba", Ext("mp3 flac wav aac m4a ogg opus wma aiff aif")),
+        ("video", "Jen video", Ext("mp4 mkv avi mov wmv webm m4v mpg mpeg flv")),
+        ("archives", "Jen archivy", Ext("zip rar 7z tar gz tgz bz2 xz iso dmg")),
+    };
+
+    private static HashSet<string> Ext(string list) => new(list.Split(' '), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Název aktivního filtru podle druhu (česky) nebo null.</summary>
+    public string? TypeFilterLabel => TypeFilters.FirstOrDefault(t => t.Id == TypeFilter).Label;
     public bool ShowHidden { get; private set; }
     public bool Branch { get; private set; }
     public bool IsLoading { get; private set; }
@@ -135,6 +152,8 @@ public sealed class PaneState : IDisposable
             var marked = files.Where(i => i.IsMarked).ToList();
             if (Filter.Length > 0)
                 return $"Filtr „{Filter}“: {files.Count} z {AllItems.Count(i => !i.IsParent)} položek (Esc zruší)";
+            if (TypeFilter != null)
+                return $"{Tr.T(TypeFilterLabel ?? "")}: {files.Count} z {AllItems.Count(i => !i.IsParent)} položek";
             if (marked.Count == 0)
                 return $"{files.Count} položek, {Formatting.Size(files.Where(f => !f.IsDirectory).Sum(f => f.Size))}";
             return $"Označeno {marked.Count} z {files.Count}, {Formatting.Size(marked.Where(f => !f.IsDirectory).Sum(f => f.Size))}";
@@ -175,6 +194,7 @@ public sealed class PaneState : IDisposable
         var previousId = selectId ?? Current?.Id;
         bool changed = !string.Equals(dir, Path, StringComparison.OrdinalIgnoreCase);
         if (changed) { Branch = false; Filter = ""; CancelSizes(); }
+        if ((changed || !_viewApplied) && !Ephemeral && !IsTemp(dir)) { ApplyFolderView(dir); _viewApplied = true; }
         if (changed && !_historyMove && !IsTemp(Path) && !IsTemp(dir) && Connection == null)
         {
             _back.Add(Path); _forward.Clear();
@@ -243,9 +263,31 @@ public sealed class PaneState : IDisposable
 
     private List<FileEntry> Visible(List<FileEntry> list)
     {
-        if (Filter.Length == 0) return list;
+        if (Filter.Length == 0 && TypeFilter == null) return list;
         var f = Formatting.Fold(Filter);
-        return list.Where(i => i.IsParent || Formatting.Fold(i.Name).Contains(f)).ToList();
+        var exts = TypeFilters.FirstOrDefault(t => t.Id == TypeFilter).Exts;
+        return list.Where(i => i.IsParent
+            || ((Filter.Length == 0 || Formatting.Fold(i.Name).Contains(f))
+                && (exts == null || i.IsDirectory || exts.Contains(i.Ext)))).ToList();
+    }
+
+    // --- řazení pamatované pro složku -------------------------------------------------
+
+    private static string ViewKey(string dir) => dir.TrimEnd('\\', '/').ToLowerInvariant();
+
+    private void ApplyFolderView(string dir)
+    {
+        if (Settings.FolderViews.TryGetValue(ViewKey(dir), out var v)) { SortKey = v.Sort; Ascending = v.Ascending; }
+        else { SortKey = SortKey.Name; Ascending = true; }
+    }
+
+    private void SaveFolderView()
+    {
+        if (Connection != null || Ephemeral || IsTemp(Path)) return;
+        var key = ViewKey(Path);
+        if (SortKey == SortKey.Name && Ascending) Settings.FolderViews.Remove(key);
+        else Settings.FolderViews[key] = new FolderView { Sort = SortKey, Ascending = Ascending };
+        LocationChanged?.Invoke();      // uloží nastavení
     }
 
     public Task ReloadAsync(bool silent = false)
@@ -290,6 +332,7 @@ public sealed class PaneState : IDisposable
     public Task SetSortAsync(SortKey key)
     {
         if (SortKey == key) Ascending = !Ascending; else { SortKey = key; Ascending = true; }
+        SaveFolderView();
         return ReloadAsync(true);
     }
 
@@ -486,6 +529,13 @@ public sealed class PaneState : IDisposable
     {
         foreach (var i in Items.Where(i => !i.IsParent && Formatting.MatchesMask(i.Name, mask))) i.IsMarked = on;
         StateChanged?.Invoke();
+    }
+
+    /// <summary>Nastaví rychlý filtr podle druhu souboru (null = všechny soubory).</summary>
+    public void SetTypeFilter(string? id)
+    {
+        TypeFilter = string.IsNullOrEmpty(id) ? null : id;
+        SetFilter(Filter);
     }
 
     public void SetFilter(string text)

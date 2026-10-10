@@ -124,6 +124,12 @@ public sealed partial class MainWindow
             _core.ShowNotice("Vzhled: " + _settings.Theme switch { "light" => "světlý", "dark" => "tmavý", _ => "podle systému" });
             await Task.CompletedTask;
         });
+        S("typeAll", () => Pane.SetTypeFilter(null));
+        S("typeImages", () => Pane.SetTypeFilter("images"));
+        S("typeDocs", () => Pane.SetTypeFilter("docs"));
+        S("typeAudio", () => Pane.SetTypeFilter("audio"));
+        S("typeVideo", () => Pane.SetTypeFilter("video"));
+        S("typeArchives", () => Pane.SetTypeFilter("archives"));
         H("sortType", () => Pane.SetSortAsync(SortKey.Ext));
         S("focusPath", () => ActivePanel.FocusPathBox());
 
