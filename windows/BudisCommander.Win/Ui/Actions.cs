@@ -72,6 +72,8 @@ public static class Actions
         new("closeTab", "Zavřít záložku", "Ctrl+W", View),
         new("nextTab", "Další záložka", "Ctrl+Tab", View),
         new("prevTab", "Předchozí záložka", "Ctrl+Shift+Tab", View),
+        new("tabSets", "Sady záložek…", "Ctrl+Shift+B", View),
+        new("toggleTheme", "Přepnout vzhled (systém, světlý, tmavý)", null, View),
         new("focusPath", "Přejít do pole s cestou", "Alt+D", View),
 
         new("connect", "Připojit k serveru FTP/SFTP…", "Ctrl+N", Servers),

@@ -412,3 +412,67 @@ public sealed class NetworkWindow : Window
         catch (Exception e) { return e.Message; }
     }
 }
+
+/// <summary>Pojmenované sady záložek: uložit aktuální rozložení a otevřít ho jedním klikem.</summary>
+public sealed class TabSetsWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly ListBox _list = new() { Height = 300 };
+
+    public TabSetsWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Sady záložek";
+        Width = 520; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Fill();
+        _list.DoubleTapped += async (_, _) => await OpenSelected();
+        _list.KeyDown += async (_, e) =>
+        {
+            if (e.Key == Key.Enter) { e.Handled = true; await OpenSelected(); }
+            else if (e.Key == Key.Delete) { e.Handled = true; DeleteSelected(); }
+        };
+        var open = UiKit.Button("Otevřít", async () => await OpenSelected(), true);
+        var save = UiKit.Button("Uložit aktuální…", async () =>
+        {
+            var name = await _core.Ui.PromptAsync("Uložit sadu záložek", "Zapíše záložky obou panelů (vzdálené se vynechají).", "", "Uložit");
+            if (string.IsNullOrWhiteSpace(name)) return;
+            _core.SaveTabSet(name);
+            Fill();
+        });
+        var delete = UiKit.Button("Smazat", DeleteSelected);
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Sady záložek", 15, true), UiKit.Frame(_list),
+                UiKit.HStack(8, open, save, delete, UiKit.Button("Zavřít", Close)),
+                UiKit.Label("Enter otevře vybranou sadu, Delete ji smaže. Sada pamatuje záložky obou panelů.", dim: true)),
+        };
+        this.CloseOnEscape();
+        Opened += (_, _) => _list.Focus();
+    }
+
+    private void Fill()
+    {
+        _list.ItemsSource = _core.Settings.TabSets
+            .Select(s => $"{s.Name}   ({s.Left.Count} vlevo, {s.Right.Count} vpravo)").ToList();
+        if (_core.Settings.TabSets.Count > 0) _list.SelectedIndex = 0;
+    }
+
+    private async Task OpenSelected()
+    {
+        var i = _list.SelectedIndex;
+        if (i < 0 || i >= _core.Settings.TabSets.Count) return;
+        var set = _core.Settings.TabSets[i];
+        Close();
+        await _core.LoadTabSetAsync(set);
+    }
+
+    private void DeleteSelected()
+    {
+        var i = _list.SelectedIndex;
+        if (i < 0 || i >= _core.Settings.TabSets.Count) return;
+        _core.DeleteTabSet(_core.Settings.TabSets[i].Name);
+        Fill();
+    }
+}

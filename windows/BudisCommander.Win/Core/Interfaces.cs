@@ -33,6 +33,18 @@ public sealed class TabGroup
 
     public PaneState Current => Tabs[Selected];
 
+    /// <summary>Nahradí všechny záložky novými (načtení sady záložek).</summary>
+    public void Replace(IEnumerable<string> paths, int selected)
+    {
+        var fresh = paths.Select(p => new PaneState(_settings, p)).ToList();
+        if (fresh.Count == 0) return;
+        foreach (var t in Tabs) t.Dispose();
+        Tabs.Clear();
+        Tabs.AddRange(fresh);
+        Selected = Math.Clamp(selected, 0, Tabs.Count - 1);
+        Changed?.Invoke();
+    }
+
     public PaneState NewTab()
     {
         var t = new PaneState(_settings, Current.Path);

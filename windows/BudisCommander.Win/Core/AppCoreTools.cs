@@ -59,7 +59,8 @@ public sealed partial class AppCore
     public async Task StartSyncAsync()
     {
         var src = Active; var dst = Other;
-        if (src.IsRemote || dst.IsRemote) { await Ui.ShowErrorAsync("Zrcadlení funguje jen mezi lokálními složkami."); return; }
+        if (src.IsRemote && dst.IsRemote) { await Ui.ShowErrorAsync("Zrcadlení mezi dvěma servery není podporováno. Jeden z panelů musí být místní složka."); return; }
+        if (src.IsRemote || dst.IsRemote) { await StartServerSyncAsync(src, dst); return; }
         if (dst.IsArchive) { await Ui.ShowErrorAsync("Archiv je otevřený jen pro čtení."); return; }
         var s = src.Path.TrimEnd('\\', '/'); var d = dst.Path.TrimEnd('\\', '/');
         if (string.Equals(s, d, StringComparison.OrdinalIgnoreCase) ||

@@ -98,6 +98,16 @@ public sealed partial class MainWindow
         S("closeTab", () => _core.ActiveGroup.Close(_core.ActiveGroup.Selected));
         S("nextTab", () => _core.ActiveGroup.Cycle(1));
         S("prevTab", () => _core.ActiveGroup.Cycle(-1));
+        H("tabSets", () => ShowToolAsync(new TabSetsWindow(_core)));
+        H("toggleTheme", async () =>
+        {
+            _settings.Theme = _settings.Theme switch { "system" => "light", "light" => "dark", _ => "system" };
+            _settings.Save();
+            ApplyTheme();
+            foreach (var t in _core.Left.Tabs.Concat(_core.Right.Tabs)) t.RaiseStateChangedForUi();
+            _core.ShowNotice("Vzhled: " + _settings.Theme switch { "light" => "světlý", "dark" => "tmavý", _ => "podle systému" });
+            await Task.CompletedTask;
+        });
         S("focusPath", () => ActivePanel.FocusPathBox());
 
         H("connect", () => ShowToolAsync(new ConnectWindow(_core)));

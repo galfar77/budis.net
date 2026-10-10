@@ -37,6 +37,16 @@ public sealed class UserCommand
     };
 }
 
+/// <summary>Pojmenovaná sada záložek obou panelů.</summary>
+public sealed class TabSet
+{
+    public string Name { get; set; } = "";
+    public List<string> Left { get; set; } = new();
+    public int LeftSelected { get; set; }
+    public List<string> Right { get; set; } = new();
+    public int RightSelected { get; set; }
+}
+
 public sealed class SessionState
 {
     public List<string> Left { get; set; } = new();
@@ -63,6 +73,7 @@ public sealed class AppSettings
     public Dictionary<string, string> Gestures { get; set; } = new();
     public Dictionary<string, string> KnownHosts { get; set; } = new();
     public SessionState Session { get; set; } = new();
+    public List<TabSet> TabSets { get; set; } = new();
     public double WindowWidth { get; set; } = 1280;
     public double WindowHeight { get; set; } = 760;
     public bool WindowMaximized { get; set; }
