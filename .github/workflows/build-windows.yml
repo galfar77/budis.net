@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -34,6 +36,21 @@ jobs:
         with:
           name: BudisCommander-Windows
           path: |
+            BudisCommander-win-x64.zip
+            BudisCommander-win-arm64.zip
+
+      - name: Vydání ke stažení (jen z větve main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-latest
+          name: Budis Commander pro Windows (poslední sestavení)
+          body: |
+            Samostatná aplikace, .NET není potřeba instalovat.
+            - **BudisCommander-win-arm64.zip**: Windows na ARM (např. Parallels Desktop na Macu s Apple Silicon)
+            - **BudisCommander-win-x64.zip**: běžné počítače s Windows
+            Rozbalte ZIP a spusťte BudisCommander.exe.
+          files: |
             BudisCommander-win-x64.zip
             BudisCommander-win-arm64.zip
 
