@@ -24,6 +24,27 @@ struct PaneView: View {
     @State private var paneDropTargeted = false
     @State private var dropRow: String?
 
+    @ViewBuilder
+    private var rows: some View {
+        ForEach(Array(pane.items.enumerated()), id: \.element.id) { index, item in
+                            row(item, index: index)
+                                .id(item.id)
+                                .contentShape(Rectangle())
+                                .onDrag {
+                                    model.dragSource = pane
+                                    guard pane.connection == nil, !item.isParent else { return NSItemProvider() }
+                                    return NSItemProvider(object: item.url as NSURL)
+                                }
+                                .modifier(FolderDrop(item: item, pane: pane, model: model, dropRow: $dropRow, onActivate: onActivate))
+                                .onTapGesture(count: 2) {
+                                    onActivate(); pane.cursor = index; pane.enter()
+                                }
+                                .onTapGesture {
+                                    onActivate(); pane.cursor = index
+                                }
+                        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
@@ -65,24 +86,12 @@ struct PaneView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(pane.items.enumerated()), id: \.element.id) { index, item in
-                            row(item, index: index)
-                                .id(item.id)
-                                .contentShape(Rectangle())
-                                .onDrag {
-                                    model.dragSource = pane
-                                    guard pane.connection == nil, !item.isParent else { return NSItemProvider() }
-                                    return NSItemProvider(object: item.url as NSURL)
-                                }
-                                .modifier(FolderDrop(item: item, pane: pane, model: model, dropRow: $dropRow, onActivate: onActivate))
-                                .onTapGesture(count: 2) {
-                                    onActivate(); pane.cursor = index; pane.enter()
-                                }
-                                .onTapGesture {
-                                    onActivate(); pane.cursor = index
-                                }
-                        }
+                    // LazyVStack se při skocích scrollTo občas „vyprázdní“ (řádky zmizí), proto se pro běžně
+                    // velké složky použije obyčejný VStack; líný jen pro opravdu velké.
+                    if pane.items.count <= 3000 {
+                        VStack(spacing: 0) { rows }
+                    } else {
+                        LazyVStack(spacing: 0) { rows }
                     }
                 }
                 .onChange(of: pane.cursor) { _, new in
