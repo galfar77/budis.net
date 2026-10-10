@@ -81,22 +81,24 @@ final class AppModel: ObservableObject {
         activeIsLeft = state?.activeLeft ?? true
 
         PaneState.onLocationChange = { [weak self] in self?.saveState() }
-        Task { @MainActor [weak self] in await self?.autoCheckForUpdate() }
+        Task { @MainActor in await self.autoCheckForUpdate() }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { _ in
             try? FileManager.default.removeItem(at: PaneState.archiveBase)
         }
         for name in [NSApplication.willTerminateNotification, NSApplication.didResignActiveNotification] {
             NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.saveState() }
+                guard let self else { return }
+                Task { @MainActor in self.saveState() }
             }
         }
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification,
                                                object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
             Task { @MainActor in
                 // Vzdálené panely se při návratu do aplikace neobnovují (zbytečný provoz).
-                if self?.left.connection == nil { self?.left.reload() }
-                if self?.right.connection == nil { self?.right.reload() }
+                if self.left.connection == nil { self.left.reload() }
+                if self.right.connection == nil { self.right.reload() }
             }
         }
     }
@@ -252,8 +254,8 @@ final class AppModel: ObservableObject {
 
     private func progressReporter(index: Int, count: Int, verb: String) -> @Sendable (String, Double) -> Void {
         return { [weak self] name, frac in
+            guard let self else { return }
             Task { @MainActor in
-                guard let self else { return }
                 self.progress = (Double(index) + frac) / Double(count)
                 self.progressText = "\(verb) \(name) – \(Int(frac * 100)) % (\(index + 1)/\(count))"
             }
@@ -858,7 +860,8 @@ final class AppModel: ObservableObject {
             self.progress = 0
             self.progressText = "Dělím \(name)…"
             let report: @Sendable (Double) -> Void = { [weak self] f in
-                Task { @MainActor in self?.progress = f }
+                guard let self else { return }
+                Task { @MainActor in self.progress = f }
             }
             do {
                 let count = try await withTaskCancellationHandler {
@@ -900,7 +903,8 @@ final class AppModel: ObservableObject {
             self.progress = 0
             self.progressText = "Slepuji \(target)…"
             let report: @Sendable (Double) -> Void = { [weak self] f in
-                Task { @MainActor in self?.progress = f }
+                guard let self else { return }
+                Task { @MainActor in self.progress = f }
             }
             do {
                 try await withTaskCancellationHandler {

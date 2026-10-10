@@ -177,8 +177,8 @@ extension AppModel {
             tick(verb + name)
             let base = done
             let report: @Sendable (String, Double) -> Void = { [weak self] fileName, fraction in
+                guard let self else { return }
                 Task { @MainActor in
-                    guard let self else { return }
                     self.progress = totalBytes > 0 ? (Double(base) + fraction * Double(fileSize)) / Double(totalBytes) : nil
                     self.progressText = verb + fileName
                 }
