@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: macos-14
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Build BudisCommander.app
@@ -16,3 +18,16 @@ jobs:
         with:
           name: BudisCommander-macOS
           path: build/BudisCommander.zip
+
+      - name: Vydání ke stažení (jen z větve main)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: macos-latest
+          name: Budis Commander pro macOS (poslední sestavení)
+          body: |
+            Aplikace pro Mac (Apple Silicon i Intel). Rozbalte ZIP a přetáhněte BudisCommander.app do složky Aplikace.
+            Při prvním spuštění: pravé tlačítko na aplikaci → Otevřít.
+
+            Sestavení z commitu: `${{ github.sha }}`
+          files: build/BudisCommander.zip

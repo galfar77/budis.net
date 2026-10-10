@@ -13,6 +13,14 @@ final class TabGroup: ObservableObject {
         self.selected = min(max(selected, 0), urls.count - 1)
     }
 
+    /// Nahradí všechny záložky novými (otevření sady záložek).
+    func replace(urls: [URL], selected: Int) {
+        guard !urls.isEmpty else { return }
+        tabs = urls.map { PaneState(url: $0) }
+        self.selected = min(max(selected, 0), urls.count - 1)
+        PaneState.onLocationChange?()
+    }
+
     func newTab() {
         let t = PaneState(url: current.url)
         t.showHidden = current.showHidden

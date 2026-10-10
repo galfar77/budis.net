@@ -14,10 +14,18 @@ enum RemoteProtocol: String, CaseIterable, Identifiable, Codable {
     case ftp = "FTP"
     case ftpTLS = "FTP + TLS"
     case sftp = "SFTP"
+    /// Cloudová úložiště přes program rclone (nezobrazuje se v dialogu pro FTP/SFTP).
+    case rclone = "Cloud (rclone)"
 
     var id: String { rawValue }
-    var scheme: String { self == .sftp ? "sftp" : "ftp" }
-    var defaultPort: Int { self == .sftp ? 22 : 21 }
+    var scheme: String {
+        switch self {
+        case .sftp: return "sftp"
+        case .rclone: return "rclone"
+        default: return "ftp"
+        }
+    }
+    var defaultPort: Int { self == .sftp ? 22 : (self == .rclone ? 0 : 21) }
 }
 
 struct RemoteError: LocalizedError {
@@ -80,15 +88,20 @@ final class RemoteConnection: @unchecked Sendable {
     let insecure: Bool
     /// Cesta k soukromému SSH klíči (jen SFTP); heslo je pak heslem ke klíči.
     let keyPath: String
+    /// Cesta k programu rclone (jen pro protokol `.rclone`); `host` je pak název úložiště.
+    let rcloneExe: String
 
     init(proto: RemoteProtocol, host: String, port: Int, user: String, password: String,
-         insecure: Bool, keyPath: String = "") {
+         insecure: Bool, keyPath: String = "", rcloneExe: String = "") {
         self.proto = proto; self.host = host; self.port = port
         self.user = user; self.password = password; self.insecure = insecure
         self.keyPath = keyPath
+        self.rcloneExe = rcloneExe
     }
 
-    var displayName: String { "\(proto.scheme)://\(user.isEmpty ? "" : user + "@")\(host)" }
+    var displayName: String {
+        proto == .rclone ? "cloud \(host):" : "\(proto.scheme)://\(user.isEmpty ? "" : user + "@")\(host)"
+    }
     /// FTP: domovský adresář = "/", SFTP: "/~" (kořen serveru je "/").
     var startPath: String { proto == .sftp ? "/~" : "/" }
 
@@ -213,6 +226,7 @@ final class RemoteConnection: @unchecked Sendable {
     // MARK: Operace
 
     func list(_ path: String) async throws -> [FileItem] {
+        if proto == .rclone { return try await rcloneList(path) }
         let out = try await run(config(url: url(path, directory: true)))
         let text = String(decoding: out, as: UTF8.self)
         return text.split(whereSeparator: \.isNewline).compactMap { parseListing(String($0), in: path) }
@@ -248,6 +262,13 @@ final class RemoteConnection: @unchecked Sendable {
                                        to: local.appendingPathComponent(child.name), maxBytes: nil, tracker: tracker)
             }
         } else {
+            if proto == .rclone {
+                let name = local.lastPathComponent
+                try await rcloneDownloadFile(remote: path, to: local, maxBytes: maxBytes,
+                                             onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
+                tracker?.fileDone(size: size)
+                return
+            }
             var extra = ["output = \(q(local.path))"]
             if let maxBytes { extra.append("range = \"0-\(maxBytes - 1)\"") }
             let name = local.lastPathComponent
@@ -273,6 +294,12 @@ final class RemoteConnection: @unchecked Sendable {
         } else {
             let name = local.lastPathComponent
             let size = LocalFS.totalSize(local)
+            if proto == .rclone {
+                try await rcloneUploadFile(local: local, to: path,
+                                           onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
+                tracker?.fileDone(size: size)
+                return
+            }
             _ = try await run(config(url: url(path), extra: ["upload-file = \(q(local.path))", "ftp-create-dirs"],
                                      progress: tracker != nil),
                               onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
@@ -281,11 +308,13 @@ final class RemoteConnection: @unchecked Sendable {
     }
 
     func mkdir(_ path: String) async throws {
+        if proto == .rclone { return try await rcloneMkdir(path) }
         let r = relPath(path)
         try await command([proto == .sftp ? "mkdir \(quoted(r))" : "MKD \(r)"])
     }
 
     func delete(path: String, isDirectory: Bool) async throws {
+        if proto == .rclone { return try await rcloneDelete(path, isDirectory: isDirectory) }
         if isDirectory {
             for child in try await list(path) {
                 try await delete(path: child.remotePath ?? "", isDirectory: child.isDirectory)
@@ -299,6 +328,7 @@ final class RemoteConnection: @unchecked Sendable {
     }
 
     func rename(from: String, to: String) async throws {
+        if proto == .rclone { return try await rcloneRename(from: from, to: to) }
         let a = relPath(from), b = relPath(to)
         if proto == .sftp {
             try await command(["rename \(quoted(a)) \(quoted(b))"])

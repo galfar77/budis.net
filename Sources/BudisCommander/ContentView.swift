@@ -54,6 +54,8 @@ struct ContentView: View {
             case .userMenu: UserMenuSheet()
             case .duplicates: DuplicatesSheet(model: model)
             case .tags: TagsSheet(model: model)
+            case .tabSets: TabSetsSheet(model: model)
+            case .cloud: CloudSheet(model: model)
             }
         }
     }

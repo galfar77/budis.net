@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu, duplicates, tags
+    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud
     var id: String { rawValue }
 }
 
@@ -81,6 +81,7 @@ final class AppModel: ObservableObject {
         activeIsLeft = state?.activeLeft ?? true
 
         PaneState.onLocationChange = { [weak self] in self?.saveState() }
+        Task { @MainActor [weak self] in await self?.autoCheckForUpdate() }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { _ in
             try? FileManager.default.removeItem(at: PaneState.archiveBase)
@@ -467,7 +468,7 @@ final class AppModel: ObservableObject {
         (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
 
-    private func showNotice(_ text: String) {
+    func showNotice(_ text: String) {
         notice = text
         Task {
             try? await Task.sleep(nanoseconds: 4_000_000_000)
@@ -556,6 +557,9 @@ final class AppModel: ObservableObject {
         case .symlink: makeSymlink()
         case .userMenu: sheet = .userMenu
         case .resumeTransfer: resumeTransfer()
+        case .tabSets: sheet = .tabSets
+        case .cloud: sheet = .cloud
+        case .checkUpdate: Task { await checkForUpdate() }
         case .thumbnails: Settings.shared.showThumbs.toggle()
         case .undo: Task { await undoLast() }
         case .copyFiles: copyFiles(cut: false)
@@ -641,8 +645,12 @@ final class AppModel: ObservableObject {
     /// soubory navíc v cíli přesune do koše.
     func syncMirror() async {
         let src = active, dst = other
-        guard src.connection == nil, dst.connection == nil else {
-            Dialogs.error("Zrcadlení funguje jen mezi lokálními složkami.")
+        if src.connection != nil && dst.connection != nil {
+            Dialogs.error("Zrcadlení mezi dvěma servery není podporováno. Jeden z panelů musí být místní složka.")
+            return
+        }
+        if src.connection != nil || dst.connection != nil {
+            await syncWithServer(src: src, dst: dst)
             return
         }
         guard !dst.isArchive else {

@@ -69,9 +69,11 @@ struct AppCommands: Commands {
             item(.thumbnails)
             Divider()
             item(.connect)
+            item(.cloud)
             item(.network)
             Divider()
             item(.favorites)
+            item(.tabSets)
             item(.back)
             item(.forward)
             Divider()
@@ -90,6 +92,7 @@ struct AppCommands: Commands {
             item(.hidden)
             item(.mirror)
             Divider()
+            item(.checkUpdate)
             item(.settings)
         }
     }

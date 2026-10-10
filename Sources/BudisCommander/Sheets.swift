@@ -63,7 +63,7 @@ struct ConnectSheet: View {
             }
 
             Picker("Protokol", selection: $proto) {
-                ForEach(RemoteProtocol.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(RemoteProtocol.allCases.filter { $0 != .rclone }) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
 

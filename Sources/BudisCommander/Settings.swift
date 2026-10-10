@@ -8,6 +8,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case split, combine, symlink, userMenu, resumeTransfer, thumbnails
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
+    case tabSets, cloud, checkUpdate
 
     var id: String { rawValue }
 
@@ -56,6 +57,9 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .duplicates: return "Hledat duplicity"
         case .addToArchive: return "Přidat do archivu v druhém panelu"
         case .tags: return "Štítky Finderu…"
+        case .tabSets: return "Sady záložek…"
+        case .cloud: return "Cloudová úložiště (rclone)…"
+        case .checkUpdate: return "Aktualizovat aplikaci…"
         }
     }
 
@@ -90,6 +94,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .compareContent, .split, .combine, .symlink, .userMenu, .resumeTransfer, .thumbnails: return ""
         case .copyFiles, .cutFiles, .pasteFiles, .copyPath, .copyName, .copyDirPath: return ""
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
+        case .tabSets, .cloud, .checkUpdate: return ""
         }
     }
 }
@@ -129,6 +134,18 @@ final class Settings: ObservableObject {
     @Published var showButtonBar: Bool {
         didSet { UserDefaults.standard.set(showButtonBar, forKey: "showButtonBar") }
     }
+    /// Při startu se zeptat GitHubu na novou verzi (nejvýš jednou za 20 hodin).
+    @Published var autoCheckUpdates: Bool {
+        didSet { UserDefaults.standard.set(autoCheckUpdates, forKey: "autoCheckUpdates") }
+    }
+    var lastUpdateCheck: Double {
+        get { UserDefaults.standard.double(forKey: "lastUpdateCheck") }
+        set { UserDefaults.standard.set(newValue, forKey: "lastUpdateCheck") }
+    }
+    /// Volitelná cesta k programu rclone.
+    @Published var rclonePath: String {
+        didSet { UserDefaults.standard.set(rclonePath, forKey: "rclonePath") }
+    }
     @Published var userCommands: [UserCommand] {
         didSet {
             if let data = try? JSONEncoder().encode(userCommands) {
@@ -154,6 +171,8 @@ final class Settings: ObservableObject {
         showOwner = d.bool(forKey: "showOwner")
         showMedia = d.bool(forKey: "showMedia")
         showTags = d.object(forKey: "showTags") as? Bool ?? true
+        rclonePath = d.string(forKey: "rclonePath") ?? ""
+        autoCheckUpdates = d.object(forKey: "autoCheckUpdates") as? Bool ?? true
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
             // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
             userCommands = list.filter { !($0.name == "Velikost složky" && $0.command == "du -sh %F") }
@@ -216,6 +235,7 @@ struct SettingsSheet: View {
             Toggle("Miniatury souborů místo ikon", isOn: $settings.showThumbs)
             Toggle("Automaticky počítat velikosti složek (na pozadí, jen lokální složky)", isOn: $settings.autoDirSizes)
             Toggle("Tlačítková lišta uživatelských příkazů", isOn: $settings.showButtonBar)
+            Toggle("Při startu zkontrolovat, jestli je dostupná nová verze", isOn: $settings.autoCheckUpdates)
 
             Divider()
             Text("Klávesové zkratky (⌘ + znak)").font(.subheadline).foregroundStyle(.secondary)
