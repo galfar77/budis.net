@@ -21,7 +21,7 @@ public sealed class WindowUi : IUserInterface
         panel.Children.Add(UiKit.Label(message, 14, true));
         if (!string.IsNullOrEmpty(info))
         {
-            var infoBox = new TextBox { Text = info, IsReadOnly = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, BorderThickness = new Thickness(0), Background = Avalonia.Media.Brushes.Transparent, MaxHeight = 280 };
+            var infoBox = new TextBox { Text = Tr.T(info), IsReadOnly = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, BorderThickness = new Thickness(0), Background = Avalonia.Media.Brushes.Transparent, MaxHeight = 280 };
             panel.Children.Add(infoBox);
         }
         Window? w = null;

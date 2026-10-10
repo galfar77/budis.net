@@ -64,6 +64,8 @@ public sealed class AppSettings
     public bool ShowExtColumn { get; set; }
     public bool ShowAttrColumn { get; set; }
     public bool AutoDirSizes { get; set; }
+    /// <summary>Jazyk rozhraní: cs nebo en (změna se projeví po restartu).</summary>
+    public string Language { get; set; } = "cs";
     public bool ShowHidden { get; set; }
     /// <summary>Při startu se zeptat GitHubu na novou verzi (nejvýš jednou denně).</summary>
     public bool AutoCheckUpdates { get; set; } = true;

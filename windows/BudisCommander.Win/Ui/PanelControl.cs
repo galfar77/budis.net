@@ -248,7 +248,7 @@ public sealed class PanelControl : UserControl
         {
             int index = i;
             var tab = _group.Tabs[i];
-            var title = new TextBlock { Text = tab.TabTitle, MaxWidth = 140, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+            var title = new TextBlock { Text = tab.TabTitle, MaxWidth = 140, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center }.Raw();
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             row.Children.Add(title);
             if (_group.Tabs.Count > 1)
@@ -314,7 +314,7 @@ public sealed class PanelControl : UserControl
         int c = 0;
         void Add(string prop, bool right = false, bool trim = false)
         {
-            var tb = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 1) };
+            var tb = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 1) }.Raw();
             tb.Bind(TextBlock.TextProperty, new Binding(prop));
             tb.Bind(TextBlock.ForegroundProperty, new Binding(nameof(FileEntry.Foreground)));
             if (right) { tb.HorizontalAlignment = HorizontalAlignment.Right; tb.Margin = new Thickness(0, 1, 6, 1); }

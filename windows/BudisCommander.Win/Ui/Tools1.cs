@@ -126,8 +126,8 @@ public sealed class ChecksumWindow : Window
     private static Control Row(string label, string value)
     {
         var g = new Grid { ColumnDefinitions = new ColumnDefinitions("70,*") };
-        var l = new TextBlock { Text = label, Opacity = 0.7, FontFamily = new FontFamily("Consolas, monospace") };
-        var v = new SelectableTextBlock { Text = value, FontFamily = new FontFamily("Consolas, monospace"), TextWrapping = TextWrapping.Wrap };
+        var l = new TextBlock { Text = label, Opacity = 0.7, FontFamily = new FontFamily("Consolas, monospace") }.Raw();
+        var v = new SelectableTextBlock { Text = value, FontFamily = new FontFamily("Consolas, monospace"), TextWrapping = TextWrapping.Wrap }.Raw();
         Grid.SetColumn(v, 1);
         g.Children.Add(l); g.Children.Add(v);
         return g;
@@ -203,8 +203,8 @@ public sealed class DiffWindow : Window
         Control Half(int? no, string? text, bool tint, Color color)
         {
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("46,*") };
-            var n = new TextBlock { Text = no?.ToString() ?? "", Opacity = 0.5, TextAlignment = TextAlignment.Right, Margin = new Thickness(0, 0, 6, 0), FontFamily = new FontFamily("Consolas, monospace"), FontSize = 12 };
-            var t = new TextBlock { Text = text ?? "", FontFamily = new FontFamily("Consolas, monospace"), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+            var n = new TextBlock { Text = no?.ToString() ?? "", Opacity = 0.5, TextAlignment = TextAlignment.Right, Margin = new Thickness(0, 0, 6, 0), FontFamily = new FontFamily("Consolas, monospace"), FontSize = 12 }.Raw();
+            var t = new TextBlock { Text = text ?? "", FontFamily = new FontFamily("Consolas, monospace"), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis }.Raw();
             Grid.SetColumn(t, 1);
             row.Children.Add(n); row.Children.Add(t);
             return new Border { Child = row, Background = tint ? new SolidColorBrush(color) : Brushes.Transparent };
@@ -306,9 +306,9 @@ public sealed class BatchRenameWindow : Window
             for (int i = 0; i < items.Count; i++)
             {
                 var g = new Grid { ColumnDefinitions = new ColumnDefinitions("*,24,*") };
-                var a = new TextBlock { Text = items[i].Name, TextTrimming = TextTrimming.CharacterEllipsis };
+                var a = new TextBlock { Text = items[i].Name, TextTrimming = TextTrimming.CharacterEllipsis }.Raw();
                 var arrow = new TextBlock { Text = "→", Opacity = 0.6, HorizontalAlignment = HorizontalAlignment.Center };
-                var b = new TextBlock { Text = names[i], TextTrimming = TextTrimming.CharacterEllipsis };
+                var b = new TextBlock { Text = names[i], TextTrimming = TextTrimming.CharacterEllipsis }.Raw();
                 if (bad.Contains(i)) b.Foreground = Brushes.Red;
                 if (!bad.Contains(i) && names[i] == items[i].Name) b.Opacity = 0.5;
                 Grid.SetColumn(arrow, 1); Grid.SetColumn(b, 2);

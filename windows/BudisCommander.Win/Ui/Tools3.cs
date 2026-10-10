@@ -123,6 +123,8 @@ public sealed class SettingsWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         var theme = new ComboBox { ItemsSource = new[] { "Podle systému", "Světlý", "Tmavý" }, SelectedIndex = s.Theme switch { "light" => 1, "dark" => 2, _ => 0 } };
+        var language = new ComboBox { ItemsSource = new[] { "Čeština", "English" }, SelectedIndex = s.Language == "en" ? 1 : 0 };
+        var updates = new CheckBox { Content = "Při startu zkontrolovat, jestli je dostupná nová verze", IsChecked = s.AutoCheckUpdates };
         var font = new NumericUpDown { Value = (decimal)s.FontSize, Minimum = 9, Maximum = 24, Increment = 1, FormatString = "0" };
         var ext = new CheckBox { Content = "Samostatný sloupec s příponou", IsChecked = s.ShowExtColumn };
         var attr = new CheckBox { Content = "Sloupec Atributy (R H S A)", IsChecked = s.ShowAttrColumn };
@@ -160,17 +162,19 @@ public sealed class SettingsWindow : Window
             s.Gestures = gestures;
             s.Theme = theme.SelectedIndex switch { 1 => "light", 2 => "dark", _ => "system" };
             s.FontSize = (double)(font.Value ?? 13);
+            s.Language = language.SelectedIndex == 1 ? "en" : "cs";
+            s.AutoCheckUpdates = updates.IsChecked == true;
             s.ShowExtColumn = ext.IsChecked == true; s.ShowAttrColumn = attr.IsChecked == true;
             s.AutoDirSizes = auto.IsChecked == true; s.ShowButtonBar = bar.IsChecked == true;
             Close();
         }, true);
 
-        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("140,*"), RowDefinitions = new RowDefinitions("Auto,Auto"), RowSpacing = 6 };
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("140,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), RowSpacing = 6 };
         void Row(int r, string label, Control c) { var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center }; Grid.SetRow(l, r); Grid.SetRow(c, r); Grid.SetColumn(c, 1); form.Children.Add(l); form.Children.Add(c); }
-        Row(0, "Vzhled", theme); Row(1, "Velikost písma", font);
+        Row(0, "Vzhled", theme); Row(1, "Velikost písma", font); Row(2, "Jazyk (po restartu)", language);
 
         var dock = new DockPanel { Margin = new Thickness(16) };
-        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, ext, attr, auto, bar,
+        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, ext, attr, auto, bar, updates,
             UiKit.Label("Klávesové zkratky (např. Ctrl+Shift+K; prázdné = žádná)", dim: true));
         var bottom = UiKit.VStack(6, error, UiKit.HStack(8, reset, new Border { Width = 30 }, UiKit.Button("Zrušit", Close), save));
         DockPanel.SetDock(top, Dock.Top); DockPanel.SetDock(bottom, Dock.Bottom);

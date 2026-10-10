@@ -46,3 +46,13 @@ public static class Helpers
         return core;
     }
 }
+
+public static class EnglishStringsAccessor
+{
+    public static IEnumerable<string> Lines()
+    {
+        var type = typeof(AppSettings).Assembly.GetType("BudisCommander.Core.EnglishStrings")!;
+        var data = (string)type.GetField("Data")!.GetValue(null)!;
+        return data.Split('\n').Where(l => l.Length > 0).Select(l => l.TrimEnd('\r'));
+    }
+}

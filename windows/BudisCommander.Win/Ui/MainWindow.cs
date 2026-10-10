@@ -44,6 +44,8 @@ public sealed partial class MainWindow : Window
     public MainWindow(AppSettings settings, string? settingsPath = null, IUserInterface? ui = null)
     {
         _settings = settings;
+        Tr.SetLanguage(settings.Language);
+        UiTranslator.Install();
         Title = "Budis Commander";
         Width = settings.WindowWidth; Height = settings.WindowHeight;
         MinWidth = 800; MinHeight = 480;

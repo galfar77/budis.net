@@ -25,7 +25,8 @@ public sealed partial class AppCore : IDisposable
     public PaneState Other => OtherGroup.Current;
 
     // --- stav pro stavový řádek ------------------------------------------------
-    public string? Notice { get; private set; }
+    private string? _notice;
+    public string? Notice { get => _notice; private set => _notice = value == null ? null : Tr.T(value); }
     public double? Progress { get; private set; }
     public string ProgressText { get; private set; } = "";
     public bool CanCancel { get; private set; }
@@ -104,7 +105,7 @@ public sealed partial class AppCore : IDisposable
 
     public void ShowNotice(string text)
     {
-        Notice = text;
+        Notice = Tr.T(text);
         int id = ++_noticeId;
         StatusChanged?.Invoke();
         _ = Task.Run(async () =>
@@ -117,7 +118,7 @@ public sealed partial class AppCore : IDisposable
     private void SetProgress(double? fraction, string text)
     {
         Progress = fraction;
-        ProgressText = text;
+        ProgressText = Tr.T(text);
         StatusChanged?.Invoke();
     }
 
