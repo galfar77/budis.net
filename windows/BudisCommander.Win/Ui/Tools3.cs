@@ -5,6 +5,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using BudisCommander.Core;
+using BudisCommander.Remote;
 
 namespace BudisCommander.Ui;
 
@@ -224,5 +225,66 @@ public sealed class UserMenuWindow : Window
             row.Children.Add(name); row.Children.Add(command); row.Children.Add(del);
             _rows.Children.Add(row);
         }
+    }
+}
+
+/// <summary>Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.</summary>
+public sealed class CloudWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly ComboBox _remotes = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+    private readonly TextBox _path = new() { Watermark = "cesta k rclone (volitelné, jinak se hledá v PATH)" };
+    private string? _exe;
+
+    public CloudWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Cloudová úložiště (rclone)";
+        Width = 540; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        _path.Text = core.Settings.RclonePath;
+        var connect = UiKit.Button("Připojit", async () =>
+        {
+            if (_remotes.SelectedItem is not string remote) return;
+            Close();
+            await _core.ConnectCloudAsync(remote);
+        }, true);
+        var configure = UiKit.Button("Nastavit úložiště…", () =>
+        {
+            if (_exe == null) return;
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_exe, "config") { UseShellExecute = true }); }
+            catch (Exception e) { _status.Text = e.Message; }
+        });
+        var refresh = UiKit.Button("Obnovit", async () => { _core.Settings.RclonePath = (_path.Text ?? "").Trim(); await Fill(); });
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Cloudová úložiště", 15, true),
+                UiKit.Label("Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.", dim: true),
+                _remotes, _status, _path,
+                UiKit.HStack(8, connect, configure, refresh, UiKit.Button("Zavřít", Close))),
+        };
+        this.CloseOnEscape();
+        Opened += async (_, _) => await Fill();
+    }
+
+    private async Task Fill()
+    {
+        _exe = Rclone.FindExe(_core.Settings.RclonePath);
+        if (_exe == null)
+        {
+            _remotes.ItemsSource = new List<string>();
+            _status.Text = "Program rclone nebyl nalezen. Nainstalujte ho příkazem „winget install Rclone.Rclone“ (nebo z rclone.org), pak klikněte na Obnovit.";
+            return;
+        }
+        try
+        {
+            var list = await Rclone.ListRemotesAsync(_exe);
+            _remotes.ItemsSource = list;
+            if (list.Count > 0) _remotes.SelectedIndex = 0;
+            _status.Text = list.Count == 0 ? "Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“." : $"rclone: {_exe}";
+        }
+        catch (Exception e) { _status.Text = e.Message; }
     }
 }

@@ -126,3 +126,59 @@ public class ServerSyncTests
         Assert.Empty(plan.Deletes);
     }
 }
+
+public class RcloneTests
+{
+    /// <summary>Běží jen když je v BUDIS_TEST_RCLONE název úložiště (a rclone je nainstalovaný).</summary>
+    [Fact]
+    public async Task ListUploadDownloadRenameDelete()
+    {
+        var remote = Environment.GetEnvironmentVariable("BUDIS_TEST_RCLONE");
+        var exe = Rclone.FindExe(null);
+        if (string.IsNullOrEmpty(remote) || exe == null) return;
+        using var t = new TempDir();
+        using var s = new RcloneSession(exe, remote);
+        await s.ConnectAsync(CancellationToken.None);
+        Assert.Contains(remote, await Rclone.ListRemotesAsync(exe));
+
+        var root = "/it-" + Guid.NewGuid().ToString("N")[..8];
+        await s.MkdirAsync(root, CancellationToken.None);
+        try
+        {
+            t.File("up/a.txt", "Obsah A"); t.File("up/sub/b.txt", "Obsah B");
+            var fractions = new List<double>();
+            await s.UploadAsync(t.Combine("up"), RemotePath.Child(root, "up"), new Progress<(string Text, double Fraction)>(p => fractions.Add(p.Fraction)), CancellationToken.None);
+            var list = await s.ListAsync(RemotePath.Child(root, "up"), CancellationToken.None);
+            Assert.Contains(list, e => e.Name == "a.txt" && !e.IsDirectory && e.Size == 7 && e.Modified != null);
+            Assert.Contains(list, e => e.Name == "sub" && e.IsDirectory);
+
+            await s.DownloadAsync(RemotePath.Child(root, "up"), true, 0, t.Combine("down"), null, CancellationToken.None);
+            Assert.Equal("Obsah A", File.ReadAllText(t.Combine("down", "a.txt")));
+            Assert.Equal("Obsah B", File.ReadAllText(t.Combine("down", "sub", "b.txt")));
+
+            var head = await s.ReadHeadAsync(RemotePath.Child(root, "up/a.txt"), 4, CancellationToken.None);
+            Assert.Equal("Obsa", System.Text.Encoding.UTF8.GetString(head));
+
+            await s.RenameAsync(RemotePath.Child(root, "up/a.txt"), RemotePath.Child(root, "up/c.txt"), CancellationToken.None);
+            list = await s.ListAsync(RemotePath.Child(root, "up"), CancellationToken.None);
+            Assert.Contains(list, e => e.Name == "c.txt");
+            Assert.DoesNotContain(list, e => e.Name == "a.txt");
+
+            await s.DeleteAsync(RemotePath.Child(root, "up"), true, CancellationToken.None);
+            Assert.Empty(await s.ListAsync(root, CancellationToken.None));
+        }
+        finally
+        {
+            try { await s.DeleteAsync(root, true, CancellationToken.None); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task ErrorOnMissingRemote()
+    {
+        var exe = Rclone.FindExe(null);
+        if (exe == null || Environment.GetEnvironmentVariable("BUDIS_TEST_RCLONE") == null) return;
+        using var s = new RcloneSession(exe, "neexistujici-uloziste");
+        await Assert.ThrowsAnyAsync<Exception>(() => s.ConnectAsync(CancellationToken.None));
+    }
+}

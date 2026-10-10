@@ -73,6 +73,8 @@ public sealed class AppSettings
     public Dictionary<string, string> Gestures { get; set; } = new();
     public Dictionary<string, string> KnownHosts { get; set; } = new();
     public SessionState Session { get; set; } = new();
+    /// <summary>Volitelná cesta k programu rclone (jinak se hledá v PATH).</summary>
+    public string RclonePath { get; set; } = "";
     public List<TabSet> TabSets { get; set; } = new();
     public double WindowWidth { get; set; } = 1280;
     public double WindowHeight { get; set; } = 760;

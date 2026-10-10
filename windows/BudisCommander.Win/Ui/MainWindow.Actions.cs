@@ -111,6 +111,7 @@ public sealed partial class MainWindow
         S("focusPath", () => ActivePanel.FocusPathBox());
 
         H("connect", () => ShowToolAsync(new ConnectWindow(_core)));
+        H("cloud", () => ShowToolAsync(new CloudWindow(_core)));
         H("network", () => ShowToolAsync(new NetworkWindow(_core)));
     }
 
