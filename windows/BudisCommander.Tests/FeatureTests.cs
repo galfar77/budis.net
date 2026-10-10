@@ -182,3 +182,77 @@ public class RcloneTests
         await Assert.ThrowsAnyAsync<Exception>(() => s.ConnectAsync(CancellationToken.None));
     }
 }
+
+public class UpdaterTests
+{
+    private sealed class FakeHandler : HttpMessageHandler
+    {
+        public byte[] Zip = Array.Empty<byte>();
+        public string Commit = "";
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var url = request.RequestUri!.ToString();
+            if (url.Contains("/releases/tags/"))
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    body = $"Samostatná aplikace.\n\nSestavení z commitu: `{Commit}`",
+                    assets = new[] { new { name = Updater.AssetNameForThisMachine, size = Zip.Length, browser_download_url = "https://example.test/asset.zip" } },
+                });
+                return Task.FromResult(new HttpResponseMessage { Content = new StringContent(json) });
+            }
+            return Task.FromResult(new HttpResponseMessage { Content = new ByteArrayContent(Zip) });
+        }
+    }
+
+    private static byte[] MakeZip(string exeText)
+    {
+        using var ms = new MemoryStream();
+        using (var z = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            var e = z.CreateEntry("BudisCommander.exe");
+            using var w = new StreamWriter(e.Open()); w.Write(exeText);
+        }
+        return ms.ToArray();
+    }
+
+    [Fact]
+    public async Task CheckDetectsNewAndSameCommit()
+    {
+        var h = new FakeHandler { Commit = "abcdef1234567890", Zip = MakeZip("NOVA") };
+        using var http = new HttpClient(h);
+        Assert.Null(await Updater.CheckAsync(http, "abcdef1234567890", Updater.AssetNameForThisMachine));
+        Assert.Null(await Updater.CheckAsync(http, "abcdef1", Updater.AssetNameForThisMachine));     // zkrácený commit
+        var info = await Updater.CheckAsync(http, "1111111222222", Updater.AssetNameForThisMachine);
+        Assert.NotNull(info);
+        Assert.Equal("abcdef1234567890", info!.Commit);
+    }
+
+    [Fact]
+    public async Task UpdateReplacesExeAndKeepsOld()
+    {
+        using var t = new TempDir();
+        var exe = t.File("BudisCommander.exe", "STARA");
+        var h = new FakeHandler { Commit = "abcdef1234567890", Zip = MakeZip("NOVA") };
+        using var http = new HttpClient(h);
+        var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
+        Assert.True(await core.UpdateAsync(http, "1111111222222", exe, t.Combine("work")));
+        Assert.Equal("NOVA", File.ReadAllText(exe));
+        Assert.Equal("STARA", File.ReadAllText(exe + ".old"));
+        Updater.CleanupOld(exe);
+        Assert.False(File.Exists(exe + ".old"));
+    }
+
+    [Fact]
+    public async Task UpToDateDoesNothing()
+    {
+        using var t = new TempDir();
+        var exe = t.File("BudisCommander.exe", "STARA");
+        var h = new FakeHandler { Commit = "abcdef1234567890", Zip = MakeZip("NOVA") };
+        using var http = new HttpClient(h);
+        var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
+        Assert.False(await core.UpdateAsync(http, "abcdef1234567890", exe, t.Combine("work")));
+        Assert.Equal("STARA", File.ReadAllText(exe));
+        Assert.Contains("nejnovější", core.Notice ?? "");
+    }
+}

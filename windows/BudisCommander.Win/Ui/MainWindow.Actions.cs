@@ -73,6 +73,22 @@ public sealed partial class MainWindow
         H("dirSizes", () => _core.CalcDirSizesAsync());
         H("userMenu", async () => { await ShowToolAsync(new UserMenuWindow(_settings)); RebuildUserBar(); });
         S("resumeTransfer", () => _core.ResumeTransfer());
+        H("shortcuts", async () =>
+        {
+            var exe = Updater.SelfExePath() ?? Environment.ProcessPath;
+            if (exe == null || !OperatingSystem.IsWindows()) { await _ui.ShowErrorAsync("Zástupce lze vytvořit jen ve Windows ze spuštěného BudisCommander.exe."); return; }
+            if (!await _ui.ConfirmAsync("Vytvořit zástupce?", $"Zástupce na ploše a v nabídce Start bude mířit na:\n{exe}\n\nUmístěte aplikaci nejdřív na trvalé místo (např. C:\\Programy\\BudisCommander).", "Vytvořit")) return;
+            Shortcuts.CreateAll(exe);
+            _core.ShowNotice("Zástupci vytvořeni na ploše a v nabídce Start.");
+        });
+        H("update", async () =>
+        {
+            if (!await _core.UpdateAsync()) return;
+            if (!await _ui.ConfirmAsync("Aktualizace nainstalována", "Aplikace se teď restartuje.", "Restartovat")) return;
+            var exe = Updater.SelfExePath();
+            if (exe != null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
+            Close();
+        });
         H("settings", async () => { await ShowToolAsync(new SettingsWindow(_settings)); ApplySettings(); _settings.Save(); });
 
         H("refresh", () => Pane.ReloadAsync());

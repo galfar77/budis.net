@@ -25,6 +25,22 @@ public class WindowsOnlyTests
     }
 
     [Fact]
+    public void ShortcutIsCreatedWithTarget()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var t = new TempDir();
+        var exe = t.File("BudisCommander.exe", "x");
+        var lnk = t.Combine("Budis Commander.lnk");
+        Shortcuts.Create(lnk, exe, "Test");
+        Assert.True(File.Exists(lnk));
+        var type = Type.GetTypeFromProgID("WScript.Shell")!;
+        var shell = Activator.CreateInstance(type)!;
+        var link = type.InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { lnk })!;
+        var target = link.GetType().InvokeMember("TargetPath", System.Reflection.BindingFlags.GetProperty, null, link, null) as string;
+        Assert.Equal(exe, target, ignoreCase: true);
+    }
+
+    [Fact]
     public void RecycleBinRemovesFile()
     {
         if (!OperatingSystem.IsWindows()) return;

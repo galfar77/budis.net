@@ -56,6 +56,8 @@ public static class Actions
         new("dirSizes", "Spočítat velikosti složek", "Alt+Shift+Enter", Tools),
         new("userMenu", "Uživatelské příkazy…", null, Tools),
         new("resumeTransfer", "Pokračovat v přerušeném přenosu", null, Tools),
+        new("shortcuts", "Vytvořit zástupce na ploše a v nabídce Start", null, Tools),
+        new("update", "Aktualizovat aplikaci…", null, Tools),
         new("settings", "Nastavení…", "Ctrl+OemComma", Tools),
 
         new("refresh", "Obnovit", "Ctrl+R", View),

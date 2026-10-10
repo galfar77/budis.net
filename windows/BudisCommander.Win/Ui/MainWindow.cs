@@ -72,6 +72,8 @@ public sealed partial class MainWindow : Window
             await _core.LoadAllAsync();
             SetActive(_core.ActiveIsLeft);
             RebuildUserBar();
+            if (Updater.SelfExePath() is { } self) Updater.CleanupOld(self);
+            _ = _core.AutoCheckUpdateAsync();
         };
         Closing += (_, _) => OnClosing();
         Activated += (_, _) => FocusActiveList();

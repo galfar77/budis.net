@@ -65,6 +65,9 @@ public sealed class AppSettings
     public bool ShowAttrColumn { get; set; }
     public bool AutoDirSizes { get; set; }
     public bool ShowHidden { get; set; }
+    /// <summary>Při startu se zeptat GitHubu na novou verzi (nejvýš jednou denně).</summary>
+    public bool AutoCheckUpdates { get; set; } = true;
+    public DateTime LastUpdateCheck { get; set; }
     public bool ShowButtonBar { get; set; } = true;
     public List<string> Favorites { get; set; } = new();
     public List<string> Recents { get; set; } = new();
