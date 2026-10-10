@@ -16,7 +16,7 @@ struct BudisCommanderApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("Budis Commander") {
+        WindowGroup(L("Budis Commander")) {
             ContentView(model: model)
                 .frame(minWidth: 900, minHeight: 480)
                 .onAppear { NSApp.activate(ignoringOtherApps: true) }

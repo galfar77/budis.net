@@ -82,7 +82,7 @@ struct CommandPanel: View {
                 Text(cwdLabel).font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
                     .lineLimit(1).truncationMode(.head).frame(maxWidth: 220, alignment: .leading)
                 Text("$").font(.system(size: 12, design: .monospaced))
-                TextField("příkaz (Enter spustí, Esc zavře)", text: $command)
+                TextField(L("příkaz (Enter spustí, Esc zavře)"), text: $command)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12, design: .monospaced))
                     .focused($fieldFocused)
@@ -91,7 +91,7 @@ struct CommandPanel: View {
                         model.showCommandLine = false
                         return .handled
                     }
-                if runner.running { Button("Zastavit") { runner.cancel() }.controlSize(.small) }
+                if runner.running { Button(L("Zastavit")) { runner.cancel() }.controlSize(.small) }
                 Button { model.showCommandLine = false } label: { Image(systemName: "xmark") }
                     .buttonStyle(.plain)
             }
@@ -103,14 +103,14 @@ struct CommandPanel: View {
     }
 
     private var cwdLabel: String {
-        model.active.connection == nil ? model.active.url.path : "(jen lokální složky)"
+        model.active.connection == nil ? model.active.url.path : L("(jen lokální složky)")
     }
 
     private func execute() {
         let cmd = command.trimmingCharacters(in: .whitespaces)
         guard !cmd.isEmpty else { return }
         guard model.active.connection == nil else {
-            runner.output = "Příkazy fungují jen v lokální složce.\n"
+            runner.output = L("Příkazy fungují jen v lokální složce.\n")
             return
         }
         command = ""

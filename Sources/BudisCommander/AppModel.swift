@@ -115,7 +115,7 @@ final class AppModel: ObservableObject {
     }
 
     private func describe(_ items: [FileItem]) -> String {
-        items.count == 1 ? "„\(items[0].name)“" : "\(items.count) položek"
+        items.count == 1 ? "„\(items[0].name)“" : L("\(items.count) položek")
     }
 
     private func exists(_ name: String, in pane: PaneState) -> Bool {
@@ -155,22 +155,22 @@ final class AppModel: ObservableObject {
         guard !items.isEmpty else { return nil }
 
         if dst.isArchive {
-            Dialogs.error("Archiv je otevřený jen pro čtení, nelze do něj kopírovat.")
+            Dialogs.error(L("Archiv je otevřený jen pro čtení, nelze do něj kopírovat."))
             return nil
         }
         if src.isArchive && move {
-            Dialogs.error("Z archivu lze soubory jen kopírovat (F5), ne přesouvat.")
+            Dialogs.error(L("Z archivu lze soubory jen kopírovat (F5), ne přesouvat."))
             return nil
         }
         let sameFolder: Bool
         if src.connection == nil && dst.connection == nil { sameFolder = src.url == dst.url }
         else { sameFolder = src.connection === dst.connection && src.remotePath == dst.remotePath }
         if sameFolder && !src.branch {
-            Dialogs.error("Zdrojový a cílový adresář jsou stejné.")
+            Dialogs.error(L("Zdrojový a cílový adresář jsou stejné."))
             return nil
         }
-        let verb = move ? "Přesunout" : "Kopírovat"
-        guard Dialogs.confirm("\(verb) \(describe(items))?", info: "Cíl: \(dst.title)", ok: verb) else { return nil }
+        let verb = move ? L("Přesunout") : L("Kopírovat")
+        guard Dialogs.confirm("\(verb) \(describe(items))?", info: L("Cíl: \(dst.title)"), ok: verb) else { return nil }
         return TransferPlan(move: move, src: src, dst: dst, items: items, srcKey: locationKey(src), dstKey: locationKey(dst))
     }
 
@@ -178,11 +178,11 @@ final class AppModel: ObservableObject {
         let src = plan.src, dst = plan.dst, move = plan.move
         let items = plan.items
         guard locationKey(src) == plan.srcKey, locationKey(dst) == plan.dstKey else {
-            Dialogs.error("Panely mezitím přešly do jiných složek. Vraťte je do původních a pokračujte z menu Nástroje.")
+            Dialogs.error(L("Panely mezitím přešly do jiných složek. Vraťte je do původních a pokračujte z menu Nástroje."))
             interrupted = plan
             return
         }
-        let verb = move ? "Přesunout" : "Kopírovat"
+        let verb = move ? L("Přesunout") : L("Kopírovat")
 
         undoCopies = []
         undoMoves = []
@@ -199,7 +199,7 @@ final class AppModel: ObservableObject {
             if src.connection == nil && dst.connection == nil && item.isDirectory {
                 let d = dst.url.path, s = item.url.path
                 if d == s || d.hasPrefix(s + "/") {
-                    errors.append("\(item.name): nelze \(move ? "přesunout" : "kopírovat") adresář do sebe sama")
+                    errors.append(L("\(item.name): nelze \(move ? "přesunout" : "kopírovat") adresář do sebe sama"))
                     continue
                 }
             }
@@ -241,14 +241,14 @@ final class AppModel: ObservableObject {
         if !undoCopies.isEmpty || !undoMoves.isEmpty {
             let copies = undoCopies, moves = undoMoves
             let count = copies.count + moves.count
-            pushUndo("\(move ? "přesun" : "kopírování") \(count) položek") { try self.undoTransfer(copies: copies, moves: moves) }
+            pushUndo(L("\(move ? "přesun" : "kopírování") \(count) položek")) { try self.undoTransfer(copies: copies, moves: moves) }
             undoCopies = []
             undoMoves = []
         }
         interrupted = cancelled
             ? TransferPlan(move: move, src: src, dst: dst, items: remaining, srcKey: plan.srcKey, dstKey: plan.dstKey)
             : nil
-        if cancelled { showNotice("Přenos zrušen. Zbylé položky (\(remaining.count)) jde dokončit z menu Nástroje.") }
+        if cancelled { showNotice(L("Přenos zrušen. Zbylé položky (\(remaining.count)) jde dokončit z menu Nástroje.")) }
         if !errors.isEmpty { Dialogs.error(errors.joined(separator: "\n")) }
     }
 
@@ -319,13 +319,13 @@ final class AppModel: ObservableObject {
         let items = pane.targets
         guard !items.isEmpty else { return }
         guard !pane.isArchive else {
-            Dialogs.error("Archiv je otevřený jen pro čtení.")
+            Dialogs.error(L("Archiv je otevřený jen pro čtení."))
             return
         }
         let conn = pane.connection
         let ok = conn == nil
-            ? Dialogs.confirm("Přesunout \(describe(items)) do koše?", ok: "Do koše")
-            : Dialogs.confirm("Trvale smazat \(describe(items)) ze serveru?", info: "Tuto akci nelze vrátit zpět.", ok: "Smazat")
+            ? Dialogs.confirm(L("Přesunout \(describe(items)) do koše?"), ok: L("Do koše"))
+            : Dialogs.confirm(L("Trvale smazat \(describe(items)) ze serveru?"), info: L("Tuto akci nelze vrátit zpět."), ok: L("Smazat"))
         guard ok else { return }
 
         var errors: [String] = []
@@ -333,7 +333,7 @@ final class AppModel: ObservableObject {
         for (i, item) in items.enumerated() {
             if Task.isCancelled { break }
             progress = Double(i) / Double(items.count)
-            progressText = "Mažu \(item.name)"
+            progressText = L("Mažu \(item.name)")
             do {
                 if let conn, let path = item.remotePath {
                     try await conn.delete(path: path, isDirectory: item.isDirectory)
@@ -362,18 +362,18 @@ final class AppModel: ObservableObject {
 
     func makeDirectory() async {
         let pane = active
-        guard !pane.isArchive else { Dialogs.error("Archiv je otevřený jen pro čtení."); return }
-        guard let name = Dialogs.prompt("Nový adresář", info: "Vytvoří se v \(pane.title)", ok: "Vytvořit") else { return }
+        guard !pane.isArchive else { Dialogs.error(L("Archiv je otevřený jen pro čtení.")); return }
+        guard let name = Dialogs.prompt(L("Nový adresář"), info: L("Vytvoří se v \(pane.title)"), ok: L("Vytvořit")) else { return }
         do {
             if let conn = pane.connection {
                 let path = RemotePath.child(pane.remotePath, name)
                 try await conn.mkdir(path)
-                pushUndo("vytvoření složky „\(name)“") { try await conn.delete(path: path, isDirectory: true) }
+                pushUndo(L("vytvoření složky „\(name)“")) { try await conn.delete(path: path, isDirectory: true) }
                 await pane.loadRemote(pane.remotePath)
             } else {
                 let created = pane.url.appendingPathComponent(name)
                 try FileManager.default.createDirectory(at: created, withIntermediateDirectories: true)
-                pushUndo("vytvoření složky „\(name)“") { try FileManager.default.trashItem(at: created, resultingItemURL: nil) }
+                pushUndo(L("vytvoření složky „\(name)“")) { try FileManager.default.trashItem(at: created, resultingItemURL: nil) }
                 pane.reload()
             }
             if let idx = pane.items.firstIndex(where: { $0.name == name }) { pane.cursor = idx }
@@ -384,21 +384,21 @@ final class AppModel: ObservableObject {
 
     func rename() async {
         let pane = active
-        guard !pane.isArchive else { Dialogs.error("Archiv je otevřený jen pro čtení."); return }
+        guard !pane.isArchive else { Dialogs.error(L("Archiv je otevřený jen pro čtení.")); return }
         guard let item = pane.current, !item.isParent,
-              let name = Dialogs.prompt("Přejmenovat", initial: item.name, ok: "Přejmenovat"),
+              let name = Dialogs.prompt(L("Přejmenovat"), initial: item.name, ok: L("Přejmenovat")),
               name != item.name else { return }
         do {
             if let conn = pane.connection, let path = item.remotePath {
                 let newPath = RemotePath.child(RemotePath.parent(path), name)
                 try await conn.rename(from: path, to: newPath)
-                pushUndo("přejmenování „\(item.name)“") { try await conn.rename(from: newPath, to: path) }
+                pushUndo(L("přejmenování „\(item.name)“")) { try await conn.rename(from: newPath, to: path) }
                 await pane.loadRemote(pane.remotePath)
             } else {
                 let original = item.url
                 let dest = original.deletingLastPathComponent().appendingPathComponent(name)
                 try FileManager.default.moveItem(at: original, to: dest)
-                pushUndo("přejmenování „\(item.name)“") { try FileManager.default.moveItem(at: dest, to: original) }
+                pushUndo(L("přejmenování „\(item.name)“")) { try FileManager.default.moveItem(at: dest, to: original) }
                 pane.reload()
             }
             if let idx = pane.items.firstIndex(where: { $0.name == name }) { pane.cursor = idx }
@@ -421,13 +421,13 @@ final class AppModel: ObservableObject {
         var fileURL = item.url
         if let conn = pane.connection, let path = item.remotePath {
             if isMedia && item.size > 100 * 1024 * 1024 {
-                Dialogs.error("Soubor je příliš velký pro náhled (nad 100 MB). Zkopírujte ho do lokálního panelu.")
+                Dialogs.error(L("Soubor je příliš velký pro náhled (nad 100 MB). Zkopírujte ho do lokálního panelu."))
                 return
             }
             do {
                 let tmp = try newTempDir()
                 fileURL = tmp.appendingPathComponent(item.name)
-                notice = "Stahuji náhled \(item.name)…"
+                notice = L("Stahuji náhled \(item.name)…")
                 try await conn.download(path: path, isDirectory: false, size: item.size, to: fileURL,
                                         maxBytes: isMedia ? nil : 512 * 1024)
                 notice = nil
@@ -494,14 +494,14 @@ final class AppModel: ObservableObject {
         do {
             let tmp = try newTempDir()
             file = tmp.appendingPathComponent(item.name)
-            notice = "Stahuji \(item.name)…"
+            notice = L("Stahuji \(item.name)…")
             try await conn.download(path: path, isDirectory: false, to: file)
         } catch {
             notice = nil
             Dialogs.error(error.localizedDescription)
             return
         }
-        showNotice("Editace „\(item.name)“: po uložení se změny nahrají na server")
+        showNotice(L("Editace „\(item.name)“: po uložení se změny nahrají na server"))
         openInTextEditor(file)
 
         let dir = RemotePath.parent(path)
@@ -513,14 +513,14 @@ final class AppModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: 300_000_000)   // editor dopíše soubor
                 last = Self.modificationDate(file)
                 guard let self else { return }
-                self.notice = "Nahrávám změny „\(item.name)“ na server…"
+                self.notice = L("Nahrávám změny „\(item.name)“ na server…")
                 do {
                     try await conn.upload(local: file, to: path)
-                    self.showNotice("Uloženo na server: \(item.name)")
+                    self.showNotice(L("Uloženo na server: \(item.name)"))
                     if pane.connection === conn && pane.remotePath == dir { pane.reload() }
                 } catch {
                     self.notice = nil
-                    Dialogs.error("Změny „\(item.name)“ se nepodařilo nahrát:\n\(error.localizedDescription)")
+                    Dialogs.error(L("Změny „\(item.name)“ se nepodařilo nahrát:\n\(error.localizedDescription)"))
                 }
             }
         }
@@ -529,8 +529,8 @@ final class AppModel: ObservableObject {
     // MARK: Označování podle masky
 
     func markByMask(on: Bool) {
-        guard let mask = Dialogs.prompt(on ? "Označit podle masky" : "Odznačit podle masky",
-                                        info: "Např. *.jpg", initial: "*") else { return }
+        guard let mask = Dialogs.prompt(on ? L("Označit podle masky") : L("Odznačit podle masky"),
+                                        info: L("Např. *.jpg"), initial: "*") else { return }
         active.mark(matching: mask, on: on)
     }
 
@@ -595,9 +595,9 @@ final class AppModel: ObservableObject {
             if allowQueue {
                 queue.append(QueuedJob(run: work))
                 queueCount = queue.count
-                showNotice("Přidáno do fronty (ve frontě: \(queue.count))")
+                showNotice(L("Přidáno do fronty (ve frontě: \(queue.count))"))
             } else {
-                showNotice("Právě probíhá jiná operace.")
+                showNotice(L("Právě probíhá jiná operace."))
             }
             return
         }
@@ -625,7 +625,7 @@ final class AppModel: ObservableObject {
 
     func resumeTransfer() {
         guard let plan = interrupted else {
-            showNotice("Není žádný přerušený přenos.")
+            showNotice(L("Není žádný přerušený přenos."))
             return
         }
         interrupted = nil
@@ -648,7 +648,7 @@ final class AppModel: ObservableObject {
     func syncMirror() async {
         let src = active, dst = other
         if src.connection != nil && dst.connection != nil {
-            Dialogs.error("Zrcadlení mezi dvěma servery není podporováno. Jeden z panelů musí být místní složka.")
+            Dialogs.error(L("Zrcadlení mezi dvěma servery není podporováno. Jeden z panelů musí být místní složka."))
             return
         }
         if src.connection != nil || dst.connection != nil {
@@ -656,28 +656,28 @@ final class AppModel: ObservableObject {
             return
         }
         guard !dst.isArchive else {
-            Dialogs.error("Archiv je otevřený jen pro čtení.")
+            Dialogs.error(L("Archiv je otevřený jen pro čtení."))
             return
         }
         let s = src.url, d = dst.url
         guard s != d, !d.path.hasPrefix(s.path + "/"), !s.path.hasPrefix(d.path + "/") else {
-            Dialogs.error("Zdrojová a cílová složka se nesmí překrývat.")
+            Dialogs.error(L("Zdrojová a cílová složka se nesmí překrývat."))
             return
         }
-        notice = "Počítám rozdíly…"
+        notice = L("Počítám rozdíly…")
         let plan = await Task.detached { SyncPlan.make(src: s, dst: d) }.value
         notice = nil
         guard !plan.isEmpty else {
-            showNotice("Složky jsou shodné, není co zrcadlit.")
+            showNotice(L("Složky jsou shodné, není co zrcadlit."))
             return
         }
         let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
-        var info = "Kopírovat nebo přepsat: \(plan.copies.count) souborů (\(size))\nVytvořit složek: \(plan.mkdirs.count)\n"
-        info += "Přesunout do koše (jen v cíli): \(plan.deletes.count)"
+        var info = L("Kopírovat nebo přepsat: \(plan.copies.count) souborů (\(size))\nVytvořit složek: \(plan.mkdirs.count)\n")
+        info += L("Přesunout do koše (jen v cíli): \(plan.deletes.count)")
         let preview = plan.deletes.prefix(6).map { "  • " + $0.lastPathComponent }
         if !preview.isEmpty { info += "\n" + preview.joined(separator: "\n") + (plan.deletes.count > 6 ? "\n  …" : "") }
-        info += "\n\nCíl bude přesně odpovídat zdroji, i když je v něm některý soubor novější."
-        guard Dialogs.confirm("Zrcadlit „\(s.lastPathComponent)“ do „\(d.lastPathComponent)“?", info: info, ok: "Zrcadlit") else { return }
+        info += L("\n\nCíl bude přesně odpovídat zdroji, i když je v něm některý soubor novější.")
+        guard Dialogs.confirm(L("Zrcadlit „\(s.lastPathComponent)“ do „\(d.lastPathComponent)“?"), info: info, ok: L("Zrcadlit")) else { return }
 
         var errors: [String] = []
         let total = plan.deletes.count + plan.mkdirs.count + plan.copies.count
@@ -689,19 +689,19 @@ final class AppModel: ObservableObject {
         }
         for url in plan.deletes {
             if Task.isCancelled { break }
-            tick("Do koše: \(url.lastPathComponent)")
+            tick(L("Do koše: \(url.lastPathComponent)"))
             do { try await Task.detached { try FileManager.default.trashItem(at: url, resultingItemURL: nil) }.value }
             catch { errors.append("\(url.lastPathComponent): \(error.localizedDescription)") }
         }
         for url in plan.mkdirs {
             if Task.isCancelled { break }
-            tick("Složka: \(url.lastPathComponent)")
+            tick(L("Složka: \(url.lastPathComponent)"))
             do { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true) }
             catch { errors.append("\(url.lastPathComponent): \(error.localizedDescription)") }
         }
         for (from, to) in plan.copies {
             if Task.isCancelled { break }
-            tick("Kopíruji: \(from.lastPathComponent)")
+            tick(L("Kopíruji: \(from.lastPathComponent)"))
             do {
                 try await Task.detached {
                     let fm = FileManager.default
@@ -716,7 +716,7 @@ final class AppModel: ObservableObject {
         progressText = ""
         src.reload()
         dst.reload()
-        showNotice(Task.isCancelled ? "Zrcadlení zrušeno." : "Zrcadlení hotovo.")
+        showNotice(Task.isCancelled ? L("Zrcadlení zrušeno.") : L("Zrcadlení hotovo."))
         if !errors.isEmpty { Dialogs.error(errors.prefix(12).joined(separator: "\n")) }
     }
 
@@ -755,7 +755,7 @@ final class AppModel: ObservableObject {
         for (name, y) in fb where fa[name] == nil { markB.insert(y.id) }
 
         if !toCheck.isEmpty {
-            notice = "Porovnávám obsah \(toCheck.count) souborů…"
+            notice = L("Porovnávám obsah \(toCheck.count) souborů…")
             let pairs = toCheck.map { ($0.x.url, $0.y.url) }
             let differs: [Bool] = await Task.detached { pairs.map { !LocalFS.sameContent($0.0, $0.1) } }.value
             notice = nil
@@ -771,18 +771,18 @@ final class AppModel: ObservableObject {
 
         a.marked = markA
         b.marked = markB
-        showNotice("Porovnání: vlevo označeno \(markA.count), vpravo \(markB.count) (chybějící, novější nebo jiné). Zkopírujte je klávesou F5.")
+        showNotice(L("Porovnání: vlevo označeno \(markA.count), vpravo \(markB.count) (chybějící, novější nebo jiné). Zkopírujte je klávesou F5."))
     }
 
     // MARK: Porovnání souborů, součty, atributy
 
     func startDiff() {
         guard left.connection == nil, right.connection == nil else {
-            Dialogs.error("Porovnání souborů funguje jen mezi lokálními soubory.")
+            Dialogs.error(L("Porovnání souborů funguje jen mezi lokálními soubory."))
             return
         }
         guard let a = left.current, let b = right.current, !a.isDirectory, !b.isDirectory, !a.isParent, !b.isParent else {
-            Dialogs.error("Postavte kurzor v obou panelech na soubor, který chcete porovnat.")
+            Dialogs.error(L("Postavte kurzor v obou panelech na soubor, který chcete porovnat."))
             return
         }
         diffFiles = (a.url, b.url)
@@ -791,12 +791,12 @@ final class AppModel: ObservableObject {
 
     func startChecksum() {
         guard active.connection == nil else {
-            Dialogs.error("Kontrolní součty se počítají jen z lokálních souborů.")
+            Dialogs.error(L("Kontrolní součty se počítají jen z lokálních souborů."))
             return
         }
         let files = active.targets.filter { !$0.isDirectory }
         guard !files.isEmpty else {
-            Dialogs.error("Vyberte aspoň jeden soubor.")
+            Dialogs.error(L("Vyberte aspoň jeden soubor."))
             return
         }
         checksumItems = files
@@ -805,7 +805,7 @@ final class AppModel: ObservableObject {
 
     func startAttributes() {
         guard active.connection == nil, !active.isArchive else {
-            Dialogs.error("Atributy lze měnit jen u souborů na lokálním disku.")
+            Dialogs.error(L("Atributy lze měnit jen u souborů na lokálním disku."))
             return
         }
         let items = active.targets
@@ -815,12 +815,12 @@ final class AppModel: ObservableObject {
     }
 
     func applyAttributes(_ change: LocalFS.AttributeChange, to urls: [URL]) async {
-        notice = "Nastavuji atributy…"
+        notice = L("Nastavuji atributy…")
         let errors = await Task.detached { LocalFS.apply(change, to: urls) }.value
         notice = nil
         active.reload()
         other.reload()
-        if errors.isEmpty { showNotice("Atributy nastaveny.") } else { Dialogs.error(errors.prefix(10).joined(separator: "\n")) }
+        if errors.isEmpty { showNotice(L("Atributy nastaveny.")) } else { Dialogs.error(errors.prefix(10).joined(separator: "\n")) }
     }
 
     func calcDirSizes() {
@@ -841,15 +841,15 @@ final class AppModel: ObservableObject {
     func startSplit() {
         let src = active
         guard src.connection == nil, let item = src.current, !item.isDirectory, !item.isParent else {
-            Dialogs.error("Vyberte lokální soubor, který chcete rozdělit.")
+            Dialogs.error(L("Vyberte lokální soubor, který chcete rozdělit."))
             return
         }
         let dir = localDestination(src)
-        guard let text = Dialogs.prompt("Rozdělit „\(item.name)“",
-                                        info: "Velikost jednoho dílu v MB (např. 100, 700, 4000).\nDíly se uloží do \(dir.path)",
-                                        initial: "100", ok: "Rozdělit") else { return }
+        guard let text = Dialogs.prompt(L("Rozdělit „\(item.name)“"),
+                                        info: L("Velikost jednoho dílu v MB (např. 100, 700, 4000).\nDíly se uloží do \(dir.path)"),
+                                        initial: "100", ok: L("Rozdělit")) else { return }
         guard let mb = Double(text.replacingOccurrences(of: ",", with: ".")), mb >= 0.001 else {
-            Dialogs.error("Zadejte velikost dílu jako číslo v MB.")
+            Dialogs.error(L("Zadejte velikost dílu jako číslo v MB."))
             return
         }
         let partSize = Int64(mb * 1_048_576)
@@ -858,7 +858,7 @@ final class AppModel: ObservableObject {
         runCancellable {
             let flag = CancelFlag()
             self.progress = 0
-            self.progressText = "Dělím \(name)…"
+            self.progressText = L("Dělím \(name)…")
             let report: @Sendable (Double) -> Void = { [weak self] f in
                 guard let self else { return }
                 Task { @MainActor in self.progress = f }
@@ -871,9 +871,9 @@ final class AppModel: ObservableObject {
                 } onCancel: {
                     flag.set()
                 }
-                self.showNotice("Soubor rozdělen na \(count) dílů.")
+                self.showNotice(L("Soubor rozdělen na \(count) dílů."))
             } catch is CancellationError {
-                self.showNotice("Dělení zrušeno.")
+                self.showNotice(L("Dělení zrušeno."))
             } catch {
                 Dialogs.error(error.localizedDescription)
             }
@@ -888,20 +888,20 @@ final class AppModel: ObservableObject {
         let src = active
         guard src.connection == nil, let item = src.current, !item.isDirectory, !item.isParent,
               item.name.lowercased().hasSuffix(".001") else {
-            Dialogs.error("Postavte kurzor na první díl souboru (název končí na .001).")
+            Dialogs.error(L("Postavte kurzor na první díl souboru (název končí na .001)."))
             return
         }
         let dir = localDestination(src)
         let target = String(item.name.dropLast(4))
         let dest = dir.appendingPathComponent(target)
         if FileManager.default.fileExists(atPath: dest.path) {
-            guard Dialogs.confirm("„\(target)“ už existuje. Přepsat?", ok: "Přepsat") else { return }
+            guard Dialogs.confirm(L("„\(target)“ už existuje. Přepsat?"), ok: L("Přepsat")) else { return }
         }
         let first = item.url
         runCancellable {
             let flag = CancelFlag()
             self.progress = 0
-            self.progressText = "Slepuji \(target)…"
+            self.progressText = L("Slepuji \(target)…")
             let report: @Sendable (Double) -> Void = { [weak self] f in
                 guard let self else { return }
                 Task { @MainActor in self.progress = f }
@@ -914,9 +914,9 @@ final class AppModel: ObservableObject {
                 } onCancel: {
                     flag.set()
                 }
-                self.showNotice("Soubor slepen: \(target)")
+                self.showNotice(L("Soubor slepen: \(target)"))
             } catch is CancellationError {
-                self.showNotice("Slepování zrušeno.")
+                self.showNotice(L("Slepování zrušeno."))
             } catch {
                 Dialogs.error(error.localizedDescription)
             }
@@ -930,12 +930,12 @@ final class AppModel: ObservableObject {
     func makeSymlink() {
         let src = active
         guard src.connection == nil, let item = src.current, !item.isParent else {
-            Dialogs.error("Symbolický odkaz jde vytvořit jen na lokální soubor nebo složku.")
+            Dialogs.error(L("Symbolický odkaz jde vytvořit jen na lokální soubor nebo složku."))
             return
         }
         let dir = localDestination(src)
-        guard let name = Dialogs.prompt("Symbolický odkaz na „\(item.name)“", info: "Vytvoří se v \(dir.path)",
-                                        initial: item.name + " odkaz", ok: "Vytvořit") else { return }
+        guard let name = Dialogs.prompt(L("Symbolický odkaz na „\(item.name)“"), info: L("Vytvoří se v \(dir.path)"),
+                                        initial: item.name + " odkaz", ok: L("Vytvořit")) else { return }
         do {
             try FileManager.default.createSymbolicLink(at: dir.appendingPathComponent(name), withDestinationURL: item.url)
             src.reload()
@@ -972,7 +972,7 @@ final class AppModel: ObservableObject {
     func runUser(_ cmd: UserCommand) {
         let pane = active
         guard pane.connection == nil else {
-            Dialogs.error("Uživatelské příkazy fungují jen v lokálních složkách.")
+            Dialogs.error(L("Uživatelské příkazy fungují jen v lokálních složkách."))
             return
         }
         let text = expandCommand(cmd.command)
@@ -996,15 +996,15 @@ final class AppModel: ObservableObject {
 
     func undoLast() async {
         guard let entry = undoStack.popLast() else {
-            showNotice("Není co vracet.")
+            showNotice(L("Není co vracet."))
             return
         }
         undoTitle = undoStack.last?.title
         do {
             try await entry.action()
-            showNotice("Vráceno: \(entry.title)")
+            showNotice(L("Vráceno: \(entry.title)"))
         } catch {
-            Dialogs.error("Vrácení se nepodařilo:\n\(error.localizedDescription)")
+            Dialogs.error(L("Vrácení se nepodařilo:\n\(error.localizedDescription)"))
         }
         left.reload()
         right.reload()
@@ -1033,7 +1033,7 @@ final class AppModel: ObservableObject {
     }
 
     private func pushTrashUndo(_ pairs: [(URL, URL)]) {
-        pushUndo("smazání \(pairs.count == 1 ? "„\(pairs[0].1.lastPathComponent)“" : "\(pairs.count) položek")") {
+        pushUndo(L("smazání \(pairs.count == 1 ? "„\(pairs[0].1.lastPathComponent)“" : "\(pairs.count) položek")")) {
             let fm = FileManager.default
             for (trashURL, original) in pairs {
                 try fm.createDirectory(at: original.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -1055,7 +1055,7 @@ final class AppModel: ObservableObject {
     func copyFiles(cut: Bool) {
         let pane = active
         guard pane.connection == nil else {
-            Dialogs.error("Schránka souborů funguje jen pro lokální soubory.")
+            Dialogs.error(L("Schránka souborů funguje jen pro lokální soubory."))
             return
         }
         let urls = pane.targets.map(\.url)
@@ -1063,14 +1063,14 @@ final class AppModel: ObservableObject {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.writeObjects(urls as [NSURL])
         cutURLs = cut ? Set(urls) : []
-        showNotice(cut ? "Vyjmuto: \(urls.count) položek. Vložte klávesou ⌘V." : "Zkopírováno: \(urls.count) položek. Vložte klávesou ⌘V.")
+        showNotice(cut ? L("Vyjmuto: \(urls.count) položek. Vložte klávesou ⌘V.") : L("Zkopírováno: \(urls.count) položek. Vložte klávesou ⌘V."))
     }
 
     func pasteFiles() {
         let objects = NSPasteboard.general.readObjects(forClasses: [NSURL.self],
                                                        options: [.urlReadingFileURLsOnly: true]) as? [URL]
         guard let urls = objects, !urls.isEmpty else {
-            showNotice("Schránka neobsahuje soubory.")
+            showNotice(L("Schránka neobsahuje soubory."))
             return
         }
         let move = !cutURLs.isEmpty && Set(urls) == cutURLs
@@ -1081,7 +1081,7 @@ final class AppModel: ObservableObject {
     func copyText(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
-        showNotice("Zkopírováno do schránky.")
+        showNotice(L("Zkopírováno do schránky."))
     }
 
     func copyPaths(names: Bool) {
@@ -1105,7 +1105,7 @@ final class AppModel: ObservableObject {
     func transferURLs(_ urls: [URL], to dst: PaneState, folder: URL?, move: Bool?,
                       source: PaneState? = nil, items itemsOverride: [FileItem]? = nil) {
         guard !dst.isArchive else {
-            Dialogs.error("Archiv je otevřený jen pro čtení.")
+            Dialogs.error(L("Archiv je otevřený jen pro čtení."))
             return
         }
         let items = itemsOverride ?? urls.compactMap(FileItem.load)
@@ -1113,15 +1113,15 @@ final class AppModel: ObservableObject {
         let src = source ?? PaneState(url: first.url.deletingLastPathComponent(), ephemeral: true)
         let target = folder.map { PaneState(url: $0, ephemeral: true) } ?? dst
         if src.connection == nil && target.connection == nil && src.url == target.url {
-            showNotice("Zdrojová a cílová složka jsou stejné.")
+            showNotice(L("Zdrojová a cílová složka jsou stejné."))
             return
         }
         let doMove: Bool
         if let move {
             doMove = move
         } else {
-            switch Dialogs.choose("Co udělat s \(describe(items))?", info: "Cíl: \(target.title)",
-                                  buttons: ["Kopírovat", "Přesunout", "Zrušit"]) {
+            switch Dialogs.choose(L("Co udělat s \(describe(items))?"), info: L("Cíl: \(target.title)"),
+                                  buttons: [L("Kopírovat"), L("Přesunout"), L("Zrušit")]) {
             case 0: doMove = false
             case 1: doMove = true
             default: return
@@ -1155,7 +1155,7 @@ final class AppModel: ObservableObject {
     func systemQuickLook() {
         let pane = active
         guard pane.connection == nil, let item = pane.current, !item.isParent else {
-            showNotice("Quick Look funguje jen u lokálních souborů.")
+            showNotice(L("Quick Look funguje jen u lokálních souborů."))
             return
         }
         qlProcess?.terminate()
@@ -1170,7 +1170,7 @@ final class AppModel: ObservableObject {
 
     func startTags() {
         guard active.connection == nil, !active.isArchive else {
-            Dialogs.error("Štítky Finderu jde nastavit jen u lokálních souborů.")
+            Dialogs.error(L("Štítky Finderu jde nastavit jen u lokálních souborů."))
             return
         }
         let items = active.targets
@@ -1199,21 +1199,21 @@ final class AppModel: ObservableObject {
         guard src.connection == nil, !src.isArchive, dst.connection == nil, !dst.isArchive,
               let archive = dst.current, !archive.isDirectory, !archive.isParent,
               archive.name.lowercased().hasSuffix(".zip") else {
-            Dialogs.error("Označte soubory v aktivním panelu a v druhém panelu postavte kurzor na archiv .zip.")
+            Dialogs.error(L("Označte soubory v aktivním panelu a v druhém panelu postavte kurzor na archiv .zip."))
             return
         }
         let items = src.targets
         guard !items.isEmpty else { return }
-        guard Dialogs.confirm("Přidat \(describe(items)) do „\(archive.name)“?", ok: "Přidat") else { return }
-        guard let password = Dialogs.promptSecure("Heslo pro přidané soubory",
-                                                  info: "Nechte prázdné pro soubory bez hesla.", ok: "Pokračovat") else { return }
+        guard Dialogs.confirm(L("Přidat \(describe(items)) do „\(archive.name)“?"), ok: L("Přidat")) else { return }
+        guard let password = Dialogs.promptSecure(L("Heslo pro přidané soubory"),
+                                                  info: L("Nechte prázdné pro soubory bez hesla."), ok: L("Pokračovat")) else { return }
         let names = items.map { $0.name.hasPrefix("-") ? "./" + $0.name : $0.name }
         let args = ["-r", "-q"] + (password.isEmpty ? [] : ["-P", password]) + [archive.url.path] + names
-        notice = "Přidávám do \(archive.name)…"
+        notice = L("Přidávám do \(archive.name)…")
         do {
             try await Shell.run("/usr/bin/zip", args, cwd: src.url)
             src.marked = []
-            showNotice("Přidáno do archivu: \(archive.name)")
+            showNotice(L("Přidáno do archivu: \(archive.name)"))
         } catch {
             notice = nil
             Dialogs.error(error.localizedDescription)
@@ -1230,8 +1230,8 @@ final class AppModel: ObservableObject {
             } catch {
                 let message = error.localizedDescription.lowercased()
                 guard message.contains("password") || message.contains("82") else { throw error }
-                guard let password = Dialogs.promptSecure("Archiv je chráněný heslem", info: file.lastPathComponent,
-                                                          ok: "Rozbalit") else { throw CancellationError() }
+                guard let password = Dialogs.promptSecure(L("Archiv je chráněný heslem"), info: file.lastPathComponent,
+                                                          ok: L("Rozbalit")) else { throw CancellationError() }
                 try await Shell.run("/usr/bin/unzip", ["-o", "-q", "-P", password, file.path, "-d", dest.path])
             }
         } else {
@@ -1244,7 +1244,7 @@ final class AppModel: ObservableObject {
     func startBatchRename() {
         let items = active.targets
         guard !items.isEmpty else { return }
-        guard !active.isArchive else { Dialogs.error("Archiv je otevřený jen pro čtení."); return }
+        guard !active.isArchive else { Dialogs.error(L("Archiv je otevřený jen pro čtení.")); return }
         batchItems = items
         sheet = .batchRename
     }
@@ -1271,7 +1271,7 @@ final class AppModel: ObservableObject {
 
         for (i, (item, new)) in pairs.enumerated() {
             progress = Double(i) / Double(pairs.count)
-            progressText = "Přejmenovávám \(item.name)"
+            progressText = L("Přejmenovávám \(item.name)")
             do {
                 if needsTemp {
                     let tmp = ".__brn\(i)_\(UUID().uuidString.prefix(6))"
@@ -1300,36 +1300,36 @@ final class AppModel: ObservableObject {
     func pack() async {
         let src = active
         guard src.connection == nil else {
-            Dialogs.error("Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5).")
+            Dialogs.error(L("Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5)."))
             return
         }
         let items = src.targets
         guard !items.isEmpty else { return }
         let destDir = other.connection == nil ? other.url : src.url
         let base = items.count == 1 ? items[0].name
-            : (src.url.lastPathComponent.isEmpty ? "Archiv" : src.url.lastPathComponent)
-        guard let name = Dialogs.prompt("Zabalit do archivu", info: "Do: \(destDir.path)\nPodporováno: .zip, .tar.gz",
-                                        initial: base + ".zip", ok: "Zabalit") else { return }
+            : (src.url.lastPathComponent.isEmpty ? L("Archiv") : src.url.lastPathComponent)
+        guard let name = Dialogs.prompt(L("Zabalit do archivu"), info: L("Do: \(destDir.path)\nPodporováno: .zip, .tar.gz"),
+                                        initial: base + ".zip", ok: L("Zabalit")) else { return }
         let lower = name.lowercased()
         let isZip = lower.hasSuffix(".zip")
         guard isZip || lower.hasSuffix(".tar.gz") || lower.hasSuffix(".tgz") else {
-            Dialogs.error("Název archivu musí končit na .zip, .tar.gz nebo .tgz.")
+            Dialogs.error(L("Název archivu musí končit na .zip, .tar.gz nebo .tgz."))
             return
         }
         let dest = destDir.appendingPathComponent(name)
         if FileManager.default.fileExists(atPath: dest.path) {
-            guard Dialogs.confirm("Archiv „\(name)“ už existuje. Přepsat?", ok: "Přepsat") else { return }
+            guard Dialogs.confirm(L("Archiv „\(name)“ už existuje. Přepsat?"), ok: L("Přepsat")) else { return }
             try? FileManager.default.removeItem(at: dest)
         }
         let names = items.map { $0.name.hasPrefix("-") ? "./" + $0.name : $0.name }
         var password = ""
         if isZip {
-            guard let pw = Dialogs.promptSecure("Heslo archivu (volitelné)",
-                                                info: "Nechte prázdné pro archiv bez hesla. Zip používá starší šifrování (dobré proti náhodnému nahlédnutí, ne proti útočníkovi); heslo je po dobu balení vidět v seznamu procesů.",
-                                                ok: "Zabalit") else { return }
+            guard let pw = Dialogs.promptSecure(L("Heslo archivu (volitelné)"),
+                                                info: L("Nechte prázdné pro archiv bez hesla. Zip používá starší šifrování (dobré proti náhodnému nahlédnutí, ne proti útočníkovi); heslo je po dobu balení vidět v seznamu procesů."),
+                                                ok: L("Zabalit")) else { return }
             password = pw
         }
-        notice = "Balím \(name)…"
+        notice = L("Balím \(name)…")
         do {
             if isZip {
                 let zipArgs = ["-r", "-q"] + (password.isEmpty ? [] : ["-P", password]) + [dest.path] + names
@@ -1338,7 +1338,7 @@ final class AppModel: ObservableObject {
                 try await Shell.run("/usr/bin/tar", ["-czf", dest.path] + names, cwd: src.url)
             }
             src.marked = []
-            showNotice("Archiv vytvořen: \(name)")
+            showNotice(L("Archiv vytvořen: \(name)"))
         } catch {
             notice = nil
             Dialogs.error(error.localizedDescription)
@@ -1350,15 +1350,15 @@ final class AppModel: ObservableObject {
     func unpack() async {
         let src = active
         guard src.connection == nil, let item = src.current, !item.isParent, !item.isDirectory else {
-            Dialogs.error("Vyberte lokální soubor s archivem (zip, tar, tar.gz, tar.bz2, 7z…).")
+            Dialogs.error(L("Vyberte lokální soubor s archivem (zip, tar, tar.gz, tar.bz2, 7z…)."))
             return
         }
         let destDir = other.connection == nil ? other.url : src.url
-        guard Dialogs.confirm("Rozbalit „\(item.name)“?", info: "Do: \(destDir.path)", ok: "Rozbalit") else { return }
-        notice = "Rozbaluji \(item.name)…"
+        guard Dialogs.confirm(L("Rozbalit „\(item.name)“?"), info: "Do: \(destDir.path)", ok: L("Rozbalit")) else { return }
+        notice = L("Rozbaluji \(item.name)…")
         do {
             try await extractArchive(item.url, to: destDir)
-            showNotice("Rozbaleno do \(destDir.lastPathComponent)")
+            showNotice(L("Rozbaleno do \(destDir.lastPathComponent)"))
         } catch is CancellationError {
             notice = nil
         } catch {
@@ -1397,7 +1397,7 @@ final class AppModel: ObservableObject {
         let before = Set(Self.mountedVolumes())
         let escaped = address.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let script = "mount volume \"\(escaped)\""
-        progressText = "Připojuji \(address)…"
+        progressText = L("Připojuji \(address)…")
         progress = 0
         let (status, err): (Int32, String) = await Task.detached { () -> (Int32, String) in
             let p = Process()
@@ -1414,7 +1414,7 @@ final class AppModel: ObservableObject {
         progress = nil
         progressText = ""
         if status != 0 {
-            Dialogs.error("Disk se nepodařilo připojit:\n\(err.trimmingCharacters(in: .whitespacesAndNewlines))")
+            Dialogs.error(L("Disk se nepodařilo připojit:\n\(err.trimmingCharacters(in: .whitespacesAndNewlines))"))
             return
         }
         let added = Set(Self.mountedVolumes()).subtracting(before).sorted()

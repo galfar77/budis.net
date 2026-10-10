@@ -7,7 +7,7 @@ enum Dialogs {
     static func error(_ message: String) {
         let a = NSAlert()
         a.alertStyle = .warning
-        a.messageText = "Chyba"
+        a.messageText = L("Chyba")
         a.informativeText = message
         a.addButton(withTitle: "OK")
         a.runModal()
@@ -18,7 +18,7 @@ enum Dialogs {
         a.messageText = title
         a.informativeText = info
         a.addButton(withTitle: ok)
-        a.addButton(withTitle: "Zrušit")
+        a.addButton(withTitle: L("Zrušit"))
         return a.runModal() == .alertFirstButtonReturn
     }
 
@@ -27,7 +27,7 @@ enum Dialogs {
         a.messageText = title
         a.informativeText = info
         a.addButton(withTitle: ok)
-        a.addButton(withTitle: "Zrušit")
+        a.addButton(withTitle: L("Zrušit"))
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
         field.stringValue = initial
         a.accessoryView = field
@@ -53,7 +53,7 @@ enum Dialogs {
         a.messageText = title
         a.informativeText = info
         a.addButton(withTitle: ok)
-        a.addButton(withTitle: "Zrušit")
+        a.addButton(withTitle: L("Zrušit"))
         let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
         a.accessoryView = field
         a.window.initialFirstResponder = field
@@ -63,12 +63,12 @@ enum Dialogs {
 
     static func conflict(_ name: String) -> ConflictChoice {
         let a = NSAlert()
-        a.messageText = "„\(name)“ již v cíli existuje"
-        a.informativeText = "Chcete existující položku přepsat?"
-        a.addButton(withTitle: "Přepsat")
-        a.addButton(withTitle: "Přepsat vše")
-        a.addButton(withTitle: "Přeskočit")
-        a.addButton(withTitle: "Zrušit")
+        a.messageText = L("„\(name)“ již v cíli existuje")
+        a.informativeText = L("Chcete existující položku přepsat?")
+        a.addButton(withTitle: L("Přepsat"))
+        a.addButton(withTitle: L("Přepsat vše"))
+        a.addButton(withTitle: L("Přeskočit"))
+        a.addButton(withTitle: L("Zrušit"))
         switch a.runModal() {
         case .alertFirstButtonReturn: return .overwrite
         case .alertSecondButtonReturn: return .overwriteAll

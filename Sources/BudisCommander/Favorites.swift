@@ -35,8 +35,8 @@ final class FavoritesStore: ObservableObject {
 
     static var builtIn: [(String, String)] {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return [("Domů", home), ("Plocha", home + "/Desktop"), ("Dokumenty", home + "/Documents"),
-                ("Stažené", home + "/Downloads"), ("Aplikace", "/Applications"), ("Disky", "/Volumes")]
+        return [(L("Domů"), home), (L("Plocha"), home + "/Desktop"), (L("Dokumenty"), home + "/Documents"),
+                (L("Stažené"), home + "/Downloads"), (L("Aplikace"), "/Applications"), (L("Disky"), "/Volumes")]
     }
 }
 
@@ -63,7 +63,7 @@ struct FavoritesSheet: View {
             if removable {
                 Button { store.remove(path) } label: { Image(systemName: "minus.circle") }
                     .buttonStyle(.plain)
-                    .help("Odebrat z oblíbených")
+                    .help(L("Odebrat z oblíbených"))
             }
         }
     }
@@ -71,31 +71,31 @@ struct FavoritesSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Oblíbené a poslední složky").font(.headline)
+                Text(L("Oblíbené a poslední složky")).font(.headline)
                 Spacer()
-                Button("Přidat aktuální složku") { store.add(model.active.url.path) }
+                Button(L("Přidat aktuální složku")) { store.add(model.active.url.path) }
                     .disabled(model.active.connection != nil || model.active.isArchive)
             }
             List {
-                Section("Rychlý přístup") {
+                Section(L("Rychlý přístup")) {
                     ForEach(FavoritesStore.builtIn, id: \.1) { row($0.0, $0.1) }
                 }
                 if !store.favorites.isEmpty {
-                    Section("Oblíbené") {
+                    Section(L("Oblíbené")) {
                         ForEach(store.favorites, id: \.self) { row(($0 as NSString).lastPathComponent, $0, removable: true) }
                     }
                 }
                 if !store.recents.isEmpty {
-                    Section("Naposledy navštívené") {
+                    Section(L("Naposledy navštívené")) {
                         ForEach(store.recents, id: \.self) { row($0, $0) }
                     }
                 }
             }
             .frame(height: 340)
             HStack {
-                Text("Zpět a vpřed v historii panelu: ⌘[ a ⌘].").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(L("Zpět a vpřed v historii panelu: ⌘[ a ⌘].")).font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }
         .padding(16)

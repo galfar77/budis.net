@@ -70,12 +70,12 @@ struct ContentView: View {
                 Text(model.notice ?? model.progressText).font(.system(size: 11))
                 Spacer()
                 if model.queueCount > 0 {
-                    Text("ve frontě: \(model.queueCount)").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(L("ve frontě: \(model.queueCount)")).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 if model.canCancel && model.progress != nil {
-                    Button("Zrušit") { model.cancelTransfer() }.controlSize(.small)
+                    Button(L("Zrušit")) { model.cancelTransfer() }.controlSize(.small)
                     if model.queueCount > 0 {
-                        Button("Zrušit vše") { model.cancelTransfer(all: true) }.controlSize(.small)
+                        Button(L("Zrušit vše")) { model.cancelTransfer(all: true) }.controlSize(.small)
                     }
                 }
             }
@@ -102,16 +102,16 @@ struct ContentView: View {
 
     private var functionBar: some View {
         HStack(spacing: 2) {
-            fnButton("F2", "Přejmenovat") { Task { await model.rename() } }
-            fnButton("F3", "Zobrazit") { Task { await model.view() } }
-            fnButton("F4", "Editovat") { Task { await model.edit() } }
-            fnButton("F5", "Kopírovat") { model.startTransfer(move: false) }
-            fnButton("F6", "Přesunout") { model.startTransfer(move: true) }
-            fnButton("F7", "Nový adr.") { Task { await model.makeDirectory() } }
-            fnButton("F8", "Smazat") { model.startDelete() }
-            fnButton("⌘S", "Velikosti") { model.calcDirSizes() }
-            fnButton("⌘K", "Server") { model.sheet = .server }
-            fnButton("⌘L", "Síť") { model.sheet = .network }
+            fnButton("F2", L("Přejmenovat")) { Task { await model.rename() } }
+            fnButton("F3", L("Zobrazit")) { Task { await model.view() } }
+            fnButton("F4", L("Editovat")) { Task { await model.edit() } }
+            fnButton("F5", L("Kopírovat")) { model.startTransfer(move: false) }
+            fnButton("F6", L("Přesunout")) { model.startTransfer(move: true) }
+            fnButton("F7", L("Nový adr.")) { Task { await model.makeDirectory() } }
+            fnButton("F8", L("Smazat")) { model.startDelete() }
+            fnButton("⌘S", L("Velikosti")) { model.calcDirSizes() }
+            fnButton("⌘K", L("Server")) { model.sheet = .server }
+            fnButton("⌘L", L("Síť")) { model.sheet = .network }
         }
         .padding(4)
         .background(Color.secondary.opacity(0.15))
@@ -249,10 +249,10 @@ struct ViewerSheet: View {
                 Text(content.title).font(.headline)
                 Spacer()
                 if let url = content.openURL {
-                    Button("Otevřít v aplikaci") { NSWorkspace.shared.open(url) }
+                    Button(L("Otevřít v aplikaci")) { NSWorkspace.shared.open(url) }
                 }
-                Button("Tisk…") { ViewerPrinter.printContent(content) }.keyboardShortcut("p", modifiers: .command)
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Tisk…")) { ViewerPrinter.printContent(content) }.keyboardShortcut("p", modifiers: .command)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
             .padding(10)
             Divider()

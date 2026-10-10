@@ -6,7 +6,7 @@ struct AppCommands: Commands {
     @ObservedObject var settings = Settings.shared
 
     private func title(_ action: ShortcutAction) -> String {
-        if action == .undo, let t = model.undoTitle { return "Vrátit: \(t)" }
+        if action == .undo, let t = model.undoTitle { return L("Vrátit: \(t)") }
         return action.title
     }
 
@@ -32,7 +32,7 @@ struct AppCommands: Commands {
         CommandGroup(replacing: .newItem) {
             item(.newTab)
         }
-        CommandMenu("Nástroje") {
+        CommandMenu(L("Nástroje")) {
             item(.undo)
             Divider()
             item(.copyFiles)
@@ -79,7 +79,7 @@ struct AppCommands: Commands {
             Divider()
             item(.resumeTransfer)
             Divider()
-            Menu("Uživatelské příkazy") {
+            Menu(L("Uživatelské příkazy")) {
                 ForEach(settings.userCommands) { cmd in
                     Button(cmd.name) { model.runUser(cmd) }
                 }

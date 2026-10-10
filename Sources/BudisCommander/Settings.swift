@@ -14,52 +14,52 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .newTab: return "Nová záložka"
-        case .closeTab: return "Zavřít záložku"
-        case .refresh: return "Obnovit"
-        case .markAll: return "Označit vše"
-        case .hidden: return "Skryté soubory"
-        case .mirror: return "Zrcadlit adresář do druhého panelu"
-        case .connect: return "Připojit k serveru"
-        case .network: return "Síť a disky"
-        case .compare: return "Porovnat adresáře"
-        case .batchRename: return "Hromadné přejmenování"
-        case .pack: return "Zabalit do archivu"
-        case .unpack: return "Rozbalit archiv"
-        case .search: return "Hledat soubory"
-        case .settings: return "Nastavení"
-        case .sync: return "Zrcadlit adresář do druhého panelu"
-        case .commandLine: return "Příkazový řádek"
-        case .favorites: return "Oblíbené a poslední složky"
-        case .back: return "Zpět v historii"
-        case .forward: return "Vpřed v historii"
-        case .diff: return "Porovnat dva soubory (obsah)"
-        case .compareContent: return "Porovnat adresáře podle obsahu"
-        case .checksum: return "Kontrolní součty (MD5, SHA)"
-        case .branch: return "Všechny podsložky najednou (Branch view)"
-        case .dirSizes: return "Spočítat velikosti složek"
-        case .attributes: return "Atributy a časy"
-        case .quickView: return "Panel rychlého náhledu"
-        case .split: return "Rozdělit soubor na díly"
-        case .combine: return "Slepit díly souboru"
-        case .symlink: return "Vytvořit symbolický odkaz"
-        case .userMenu: return "Uživatelské příkazy…"
-        case .resumeTransfer: return "Pokračovat v přerušeném přenosu"
-        case .thumbnails: return "Miniatury souborů"
-        case .undo: return "Vrátit poslední operaci"
-        case .copyFiles: return "Kopírovat soubory do schránky"
-        case .cutFiles: return "Vyjmout soubory do schránky"
-        case .pasteFiles: return "Vložit soubory ze schránky"
-        case .copyPath: return "Kopírovat cestu"
-        case .copyName: return "Kopírovat název"
-        case .copyDirPath: return "Kopírovat cestu složky"
-        case .quickLook: return "Systémový Quick Look"
-        case .duplicates: return "Hledat duplicity"
-        case .addToArchive: return "Přidat do archivu v druhém panelu"
-        case .tags: return "Štítky Finderu…"
-        case .tabSets: return "Sady záložek…"
-        case .cloud: return "Cloudová úložiště (rclone)…"
-        case .checkUpdate: return "Aktualizovat aplikaci…"
+        case .newTab: return L("Nová záložka")
+        case .closeTab: return L("Zavřít záložku")
+        case .refresh: return L("Obnovit")
+        case .markAll: return L("Označit vše")
+        case .hidden: return L("Skryté soubory")
+        case .mirror: return L("Zrcadlit adresář do druhého panelu")
+        case .connect: return L("Připojit k serveru")
+        case .network: return L("Síť a disky")
+        case .compare: return L("Porovnat adresáře")
+        case .batchRename: return L("Hromadné přejmenování")
+        case .pack: return L("Zabalit do archivu")
+        case .unpack: return L("Rozbalit archiv")
+        case .search: return L("Hledat soubory")
+        case .settings: return L("Nastavení")
+        case .sync: return L("Zrcadlit adresář do druhého panelu")
+        case .commandLine: return L("Příkazový řádek")
+        case .favorites: return L("Oblíbené a poslední složky")
+        case .back: return L("Zpět v historii")
+        case .forward: return L("Vpřed v historii")
+        case .diff: return L("Porovnat dva soubory (obsah)")
+        case .compareContent: return L("Porovnat adresáře podle obsahu")
+        case .checksum: return L("Kontrolní součty (MD5, SHA)")
+        case .branch: return L("Všechny podsložky najednou (Branch view)")
+        case .dirSizes: return L("Spočítat velikosti složek")
+        case .attributes: return L("Atributy a časy")
+        case .quickView: return L("Panel rychlého náhledu")
+        case .split: return L("Rozdělit soubor na díly")
+        case .combine: return L("Slepit díly souboru")
+        case .symlink: return L("Vytvořit symbolický odkaz")
+        case .userMenu: return L("Uživatelské příkazy…")
+        case .resumeTransfer: return L("Pokračovat v přerušeném přenosu")
+        case .thumbnails: return L("Miniatury souborů")
+        case .undo: return L("Vrátit poslední operaci")
+        case .copyFiles: return L("Kopírovat soubory do schránky")
+        case .cutFiles: return L("Vyjmout soubory do schránky")
+        case .pasteFiles: return L("Vložit soubory ze schránky")
+        case .copyPath: return L("Kopírovat cestu")
+        case .copyName: return L("Kopírovat název")
+        case .copyDirPath: return L("Kopírovat cestu složky")
+        case .quickLook: return L("Systémový Quick Look")
+        case .duplicates: return L("Hledat duplicity")
+        case .addToArchive: return L("Přidat do archivu v druhém panelu")
+        case .tags: return L("Štítky Finderu…")
+        case .tabSets: return L("Sady záložek…")
+        case .cloud: return L("Cloudová úložiště (rclone)…")
+        case .checkUpdate: return L("Aktualizovat aplikaci…")
         }
     }
 
@@ -134,6 +134,10 @@ final class Settings: ObservableObject {
     @Published var showButtonBar: Bool {
         didSet { UserDefaults.standard.set(showButtonBar, forKey: "showButtonBar") }
     }
+    /// Jazyk rozhraní: "cs" nebo "en" (změna se projeví po restartu aplikace).
+    @Published var language: String {
+        didSet { UserDefaults.standard.set(language, forKey: "language") }
+    }
     /// Při startu se zeptat GitHubu na novou verzi (nejvýš jednou za 20 hodin).
     @Published var autoCheckUpdates: Bool {
         didSet { UserDefaults.standard.set(autoCheckUpdates, forKey: "autoCheckUpdates") }
@@ -172,6 +176,7 @@ final class Settings: ObservableObject {
         showMedia = d.bool(forKey: "showMedia")
         showTags = d.object(forKey: "showTags") as? Bool ?? true
         rclonePath = d.string(forKey: "rclonePath") ?? ""
+        language = d.string(forKey: "language") ?? "cs"
         autoCheckUpdates = d.object(forKey: "autoCheckUpdates") as? Bool ?? true
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
             // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
@@ -217,28 +222,34 @@ struct SettingsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Nastavení").font(.headline)
+            Text(L("Nastavení")).font(.headline)
 
-            Picker("Vzhled", selection: $settings.theme) {
-                Text("Podle systému").tag("system")
-                Text("Světlý").tag("light")
-                Text("Tmavý").tag("dark")
+            Picker(L("Vzhled"), selection: $settings.theme) {
+                Text(L("Podle systému")).tag("system")
+                Text(L("Světlý")).tag("light")
+                Text(L("Tmavý")).tag("dark")
             }
             .pickerStyle(.segmented)
 
-            Stepper("Velikost písma: \(Int(settings.fontSize)) pt", value: $settings.fontSize, in: 10...20, step: 1)
-            Toggle("Samostatný sloupec s příponou", isOn: $settings.showExt)
-            Toggle("Sloupec Práva", isOn: $settings.showPerms)
-            Toggle("Sloupec Vlastník", isOn: $settings.showOwner)
-            Toggle("Sloupec Rozměry obrázku / délka zvuku a videa", isOn: $settings.showMedia)
-            Toggle("Barevné štítky Finderu u názvů", isOn: $settings.showTags)
-            Toggle("Miniatury souborů místo ikon", isOn: $settings.showThumbs)
-            Toggle("Automaticky počítat velikosti složek (na pozadí, jen lokální složky)", isOn: $settings.autoDirSizes)
-            Toggle("Tlačítková lišta uživatelských příkazů", isOn: $settings.showButtonBar)
-            Toggle("Při startu zkontrolovat, jestli je dostupná nová verze", isOn: $settings.autoCheckUpdates)
+            Picker(L("Jazyk (po restartu)"), selection: $settings.language) {
+                Text("Čeština").tag("cs")
+                Text("English").tag("en")
+            }
+            .pickerStyle(.segmented)
+
+            Stepper(L("Velikost písma: \(Int(settings.fontSize)) pt"), value: $settings.fontSize, in: 10...20, step: 1)
+            Toggle(L("Samostatný sloupec s příponou"), isOn: $settings.showExt)
+            Toggle(L("Sloupec Práva"), isOn: $settings.showPerms)
+            Toggle(L("Sloupec Vlastník"), isOn: $settings.showOwner)
+            Toggle(L("Sloupec Rozměry obrázku / délka zvuku a videa"), isOn: $settings.showMedia)
+            Toggle(L("Barevné štítky Finderu u názvů"), isOn: $settings.showTags)
+            Toggle(L("Miniatury souborů místo ikon"), isOn: $settings.showThumbs)
+            Toggle(L("Automaticky počítat velikosti složek (na pozadí, jen lokální složky)"), isOn: $settings.autoDirSizes)
+            Toggle(L("Tlačítková lišta uživatelských příkazů"), isOn: $settings.showButtonBar)
+            Toggle(L("Při startu zkontrolovat, jestli je dostupná nová verze"), isOn: $settings.autoCheckUpdates)
 
             Divider()
-            Text("Klávesové zkratky (⌘ + znak)").font(.subheadline).foregroundStyle(.secondary)
+            Text(L("Klávesové zkratky (⌘ + znak)")).font(.subheadline).foregroundStyle(.secondary)
             ScrollView {
                 VStack(spacing: 6) {
                     ForEach(ShortcutAction.allCases) { action in
@@ -246,7 +257,7 @@ struct SettingsSheet: View {
                             Text(action.title)
                             Spacer()
                             if settings.isDuplicate(action) {
-                                Text("použito vícekrát").font(.system(size: 11)).foregroundStyle(.red)
+                                Text(L("použito vícekrát")).font(.system(size: 11)).foregroundStyle(.red)
                             }
                             Text("⌘")
                             TextField("", text: Binding(
@@ -261,13 +272,13 @@ struct SettingsSheet: View {
                 .padding(.trailing, 8)
             }
             .frame(height: 200)
-            Text("Klávesy F2–F8, Tab, šipky a ⌘1–9 (záložky) jsou pevné. Změna zkratek se projeví hned.")
+            Text(L("Klávesy F2–F8, Tab, šipky a ⌘1–9 (záložky) jsou pevné. Změna zkratek se projeví hned."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             HStack {
-                Button("Obnovit výchozí zkratky") { settings.resetShortcuts() }
+                Button(L("Obnovit výchozí zkratky")) { settings.resetShortcuts() }
                 Spacer()
-                Button("Hotovo") { dismiss() }.keyboardShortcut(.defaultAction)
+                Button(L("Hotovo")) { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(16)

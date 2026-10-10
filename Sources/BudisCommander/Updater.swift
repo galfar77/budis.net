@@ -30,7 +30,7 @@ enum Updater {
         req.timeoutInterval = 20
         let (data, response) = try await URLSession.shared.data(for: req)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-            throw RemoteError(message: "GitHub vrátil kód \(http.statusCode).")
+            throw RemoteError(message: L("GitHub vrátil kód \(http.statusCode)."))
         }
         guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let body = obj["body"] as? String else { return nil }
@@ -53,7 +53,7 @@ enum Updater {
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         let (tmp, response) = try await URLSession.shared.download(from: info.assetURL)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-            throw RemoteError(message: "Stažení selhalo (kód \(http.statusCode)).")
+            throw RemoteError(message: L("Stažení selhalo (kód \(http.statusCode))."))
         }
         let zip = work.appendingPathComponent(assetName)
         try FileManager.default.moveItem(at: tmp, to: zip)
@@ -67,10 +67,10 @@ enum Updater {
             p.waitUntilExit()
             return p.terminationStatus
         }.value
-        guard status == 0 else { throw RemoteError(message: "Rozbalení stažené aplikace selhalo.") }
+        guard status == 0 else { throw RemoteError(message: L("Rozbalení stažené aplikace selhalo.")) }
         let apps = (try? FileManager.default.contentsOfDirectory(at: out, includingPropertiesForKeys: nil)) ?? []
         guard let app = apps.first(where: { $0.pathExtension == "app" }) else {
-            throw RemoteError(message: "Stažený archiv neobsahuje aplikaci.")
+            throw RemoteError(message: L("Stažený archiv neobsahuje aplikaci."))
         }
         return app
     }
@@ -80,10 +80,10 @@ enum Updater {
     static func installAndRelaunch(_ newApp: URL) throws {
         let target = Bundle.main.bundleURL
         guard target.pathExtension == "app" else {
-            throw RemoteError(message: "Aplikace neběží jako balíček .app (spuštěná příkazem swift run).")
+            throw RemoteError(message: L("Aplikace neběží jako balíček .app (spuštěná příkazem swift run)."))
         }
         guard FileManager.default.isWritableFile(atPath: target.deletingLastPathComponent().path) else {
-            throw RemoteError(message: "Do složky „\(target.deletingLastPathComponent().path)“ nelze zapisovat. Přesuňte aplikaci třeba do složky Aplikace ve vašem domovském adresáři.")
+            throw RemoteError(message: L("Do složky „\(target.deletingLastPathComponent().path)“ nelze zapisovat. Přesuňte aplikaci třeba do složky Aplikace ve vašem domovském adresáři."))
         }
         let script = """
         while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
@@ -108,28 +108,28 @@ extension AppModel {
     /// Zeptá se na novou verzi, stáhne ji a vymění aplikaci.
     func checkForUpdate() async {
         guard Updater.isAppBundle else {
-            Dialogs.error("Aktualizace funguje jen v aplikaci .app (ne při spuštění příkazem swift run).")
+            Dialogs.error(L("Aktualizace funguje jen v aplikaci .app (ne při spuštění příkazem swift run)."))
             return
         }
-        notice = "Zjišťuji, jestli je nová verze…"
+        notice = L("Zjišťuji, jestli je nová verze…")
         let info: UpdateInfo?
         do {
             info = try await Updater.check(current: Updater.currentCommit)
         } catch {
             notice = nil
-            Dialogs.error("Kontrola aktualizací se nezdařila (je Mac online?):\n\n\(error.localizedDescription)")
+            Dialogs.error(L("Kontrola aktualizací se nezdařila (je Mac online?):\n\n\(error.localizedDescription)"))
             return
         }
         notice = nil
         Settings.shared.lastUpdateCheck = Date().timeIntervalSince1970
         guard let info else {
-            showNotice("Máte nejnovější verzi.")
+            showNotice(L("Máte nejnovější verzi."))
             return
         }
         let size = ByteCountFormatter.string(fromByteCount: info.size, countStyle: .file)
-        guard Dialogs.confirm("Je dostupná nová verze",
-                              info: "Stáhne se \(size) a aplikace se po výměně restartuje.", ok: "Aktualizovat") else { return }
-        progressText = "Stahuji aktualizaci…"
+        guard Dialogs.confirm(L("Je dostupná nová verze"),
+                              info: L("Stáhne se \(size) a aplikace se po výměně restartuje."), ok: L("Aktualizovat")) else { return }
+        progressText = L("Stahuji aktualizaci…")
         progress = 0
         do {
             let newApp = try await Updater.downloadAndUnpack(info)
@@ -139,7 +139,7 @@ extension AppModel {
         } catch {
             progress = nil
             progressText = ""
-            Dialogs.error("Aktualizace se nezdařila:\n\n\(error.localizedDescription)")
+            Dialogs.error(L("Aktualizace se nezdařila:\n\n\(error.localizedDescription)"))
         }
     }
 
@@ -152,7 +152,7 @@ extension AppModel {
             let info = try await Updater.check(current: Updater.currentCommit)
             settings.lastUpdateCheck = Date().timeIntervalSince1970
             if info != nil {
-                showNotice("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.")
+                showNotice(L("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci."))
             }
         } catch {
             // bez internetu se nic neděje

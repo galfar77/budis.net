@@ -33,7 +33,7 @@ enum Shell {
                 } else {
                     var msg = String(decoding: errData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
                     if msg.isEmpty { msg = String(decoding: outBox.data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) }
-                    cont.resume(throwing: RemoteError(message: msg.isEmpty ? "Příkaz skončil s kódem \(p.terminationStatus)" : msg))
+                    cont.resume(throwing: RemoteError(message: msg.isEmpty ? L("Příkaz skončil s kódem \(p.terminationStatus)") : msg))
                 }
             }
         }

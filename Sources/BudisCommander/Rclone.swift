@@ -111,7 +111,7 @@ enum Rclone {
     /// Názvy nastavených úložišť (bez dvojtečky).
     static func listRemotes(_ exe: String) async throws -> [String] {
         let r = try await run(exe, ["listremotes"])
-        guard r.status == 0 else { throw RemoteError(message: message(from: r.err, fallback: "rclone listremotes selhal.")) }
+        guard r.status == 0 else { throw RemoteError(message: message(from: r.err, fallback: L("rclone listremotes selhal."))) }
         return String(decoding: r.out, as: UTF8.self)
             .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: ":")) }
@@ -157,7 +157,7 @@ extension RemoteConnection {
     private func rclone(_ args: [String], onErrLine: (@Sendable (String) -> Void)? = nil) async throws -> Rclone.Output {
         let r = try await Rclone.run(rcloneExe, args, onErrLine: onErrLine)
         if r.status != 0 {
-            throw RemoteError(message: Rclone.message(from: r.err, fallback: "rclone skončil s kódem \(r.status)"))
+            throw RemoteError(message: Rclone.message(from: r.err, fallback: L("rclone skončil s kódem \(r.status)")))
         }
         return r
     }
@@ -221,25 +221,25 @@ struct CloudSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Cloudová úložiště (rclone)").font(.headline)
-            Text("Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.")
+            Text(L("Cloudová úložiště (rclone)")).font(.headline)
+            Text(L("Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu."))
                 .font(.system(size: 12)).foregroundStyle(.secondary)
             if !remotes.isEmpty {
-                Picker("Úložiště", selection: $selected) {
+                Picker(L("Úložiště"), selection: $selected) {
                     ForEach(remotes, id: \.self) { Text($0).tag($0) }
                 }
             }
             if !status.isEmpty {
                 Text(status).font(.system(size: 12)).foregroundStyle(.secondary)
             }
-            TextField("cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)", text: $settings.rclonePath)
+            TextField(L("cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)"), text: $settings.rclonePath)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("Nastavit úložiště…") { openConfig() }.disabled(exe == nil)
-                Button("Obnovit") { Task { await refresh() } }
+                Button(L("Nastavit úložiště…")) { openConfig() }.disabled(exe == nil)
+                Button(L("Obnovit")) { Task { await refresh() } }
                 Spacer()
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Připojit") {
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Připojit")) {
                     let remote = selected
                     dismiss()
                     Task { await model.connectCloud(remote) }
@@ -258,13 +258,13 @@ struct CloudSheet: View {
         guard let exe else {
             remotes = []
             selected = ""
-            status = "Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit."
+            status = L("Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.")
             return
         }
         do {
             remotes = try await Rclone.listRemotes(exe)
             if !remotes.contains(selected) { selected = remotes.first ?? "" }
-            status = remotes.isEmpty ? "Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“." : "rclone: \(exe)"
+            status = remotes.isEmpty ? L("Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“.") : "rclone: \(exe)"
         } catch {
             status = error.localizedDescription
         }
@@ -287,19 +287,19 @@ extension AppModel {
     /// Připojí aktivní panel k cloudovému úložišti nastavenému v rclone.
     func connectCloud(_ remote: String) async {
         guard let exe = Rclone.findExecutable(custom: Settings.shared.rclonePath) else {
-            Dialogs.error("Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone“ nebo zadejte jeho cestu.")
+            Dialogs.error(L("Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone“ nebo zadejte jeho cestu."))
             return
         }
         let conn = RemoteConnection(proto: .rclone, host: remote, port: 0, user: "", password: "",
                                     insecure: false, rcloneExe: exe)
-        progressText = "Připojuji \(conn.displayName)…"
+        progressText = L("Připojuji \(conn.displayName)…")
         progress = 0
         do {
             _ = try await conn.list(conn.startPath)
         } catch {
             progress = nil
             progressText = ""
-            Dialogs.error("Připojení k úložišti „\(remote)“ se nezdařilo:\n\n\(error.localizedDescription)")
+            Dialogs.error(L("Připojení k úložišti „\(remote)“ se nezdařilo:\n\n\(error.localizedDescription)"))
             return
         }
         progress = nil

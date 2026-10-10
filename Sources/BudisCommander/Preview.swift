@@ -14,25 +14,25 @@ enum PreviewLoader {
     static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "heic", "tif", "tiff", "bmp", "webp"]
 
     static func load(_ item: FileItem?, remote: Bool) async -> PreviewContent {
-        guard let item, !item.isParent else { return .message("Nic k zobrazení.") }
-        if remote { return .message("Náhled souboru na serveru: stiskněte F3.") }
+        guard let item, !item.isParent else { return .message(L("Nic k zobrazení.")) }
+        if remote { return .message(L("Náhled souboru na serveru: stiskněte F3.")) }
         let url = item.url
         let isDir = item.isDirectory
         return await Task.detached { () -> PreviewContent in
             if isDir {
                 let names = (try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? []
                 let size = ByteCountFormatter.string(fromByteCount: LocalFS.totalSize(url), countStyle: .file)
-                return .message("Složka\n\(names.count) položek, \(size)")
+                return .message(L("Složka\n\(names.count) položek, \(size)"))
             }
             let ext = url.pathExtension.lowercased()
             if ext == "pdf" { return .pdf(url) }
             if imageExtensions.contains(ext), LocalFS.totalSize(url) < 60 * 1024 * 1024, let img = NSImage(contentsOf: url) {
                 return .image(img)
             }
-            guard let handle = try? FileHandle(forReadingFrom: url) else { return .message("Soubor nelze přečíst.") }
+            guard let handle = try? FileHandle(forReadingFrom: url) else { return .message(L("Soubor nelze přečíst.")) }
             defer { try? handle.close() }
             let data = (try? handle.read(upToCount: 200 * 1024)) ?? Data()
-            if data.isEmpty { return .message("Prázdný soubor.") }
+            if data.isEmpty { return .message(L("Prázdný soubor.")) }
             if data.prefix(4096).contains(0) { return .hex(LocalFS.hexDump(data.prefix(4096))) }
             return .text(String(decoding: data, as: UTF8.self))
         }.value
@@ -57,9 +57,9 @@ struct QuickViewContent: View {
         VStack(spacing: 0) {
             HStack {
                 Image(systemName: "eye")
-                Text(pane.current?.name ?? "Rychlý náhled").lineLimit(1).truncationMode(.middle)
+                Text(pane.current?.name ?? L("Rychlý náhled")).lineLimit(1).truncationMode(.middle)
                 Spacer()
-                Text("⌘V zavře").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(L("⌘V zavře")).font(.system(size: 10)).foregroundStyle(.secondary)
             }
             .font(.system(size: 12, weight: .medium))
             .padding(.horizontal, 8)

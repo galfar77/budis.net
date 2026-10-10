@@ -36,7 +36,7 @@ struct ChecksumSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Kontrolní součty").font(.headline)
+            Text(L("Kontrolní součty")).font(.headline)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(items) { item in
@@ -49,7 +49,7 @@ struct ChecksumSheet: View {
                             } else if running {
                                 ProgressView().controlSize(.small)
                             } else {
-                                Text("Soubor se nepodařilo přečíst.").foregroundStyle(.red)
+                                Text(L("Soubor se nepodařilo přečíst.")).foregroundStyle(.red)
                             }
                         }
                     }
@@ -59,16 +59,16 @@ struct ChecksumSheet: View {
             .frame(height: 240)
 
             HStack {
-                TextField("Očekávaný součet (vložte pro ověření)", text: $expected)
+                TextField(L("Očekávaný součet (vložte pro ověření)"), text: $expected)
                     .textFieldStyle(.roundedBorder)
                 verdict
             }
 
             HStack {
-                Button("Kopírovat vše") { copyAll() }.disabled(results.isEmpty)
-                Button("Uložit .sha256 vedle souborů") { saveSidecars() }.disabled(results.isEmpty)
+                Button(L("Kopírovat vše")) { copyAll() }.disabled(results.isEmpty)
+                Button(L("Uložit .sha256 vedle souborů")) { saveSidecars() }.disabled(results.isEmpty)
                 Spacer()
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }
         .padding(16)
@@ -96,7 +96,7 @@ struct ChecksumSheet: View {
         let e = expected.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !e.isEmpty {
             let match = results.values.contains { [$0.md5, $0.sha1, $0.sha256].contains(e) }
-            Label(match ? "Shoduje se" : "Neshoduje se", systemImage: match ? "checkmark.circle.fill" : "xmark.circle.fill")
+            Label(match ? L("Shoduje se") : L("Neshoduje se"), systemImage: match ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundStyle(match ? Color.green : Color.red)
                 .font(.system(size: 12, weight: .semibold))
         }

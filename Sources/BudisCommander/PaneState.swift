@@ -104,9 +104,9 @@ final class PaneState: ObservableObject {
     }
 
     var title: String {
-        if let a = archive { return "Archiv \(a.name)" + String(url.path.dropFirst(a.root.path.count)) + " (jen pro čtení)" }
+        if let a = archive { return "Archiv \(a.name)" + String(url.path.dropFirst(a.root.path.count)) + L(" (jen pro čtení)") }
         if let c = connection { return c.displayName + remotePath }
-        if branch { return url.path + "  (všechny podsložky)" }
+        if branch { return url.path + L("  (všechny podsložky)") }
         return url.path
     }
 
@@ -164,7 +164,7 @@ final class PaneState: ObservableObject {
             urls = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil,
                                                                options: showHidden ? [] : [.skipsHiddenFiles])
         } catch {
-            if !silent { Dialogs.error("Adresář nelze otevřít:\n\(dir.path)\n\n\(error.localizedDescription)") }
+            if !silent { Dialogs.error(L("Adresář nelze otevřít:\n\(dir.path)\n\n\(error.localizedDescription)")) }
             return false
         }
         let previousID = id ?? current?.id
@@ -262,7 +262,7 @@ final class PaneState: ObservableObject {
             apply(list, previousID: previousID)
             return true
         } catch {
-            Dialogs.error("Server: \(conn.displayName)\n\n\(error.localizedDescription)")
+            Dialogs.error(L("Server: \(conn.displayName)\n\n\(error.localizedDescription)"))
             return false
         }
     }
@@ -376,7 +376,7 @@ final class PaneState: ObservableObject {
             }
         } catch {
             try? FileManager.default.removeItem(at: dest)
-            Dialogs.error("Archiv „\(item.name)“ se nepodařilo otevřít:\n\(error.localizedDescription)")
+            Dialogs.error(L("Archiv „\(item.name)“ se nepodařilo otevřít:\n\(error.localizedDescription)"))
         }
     }
 
@@ -480,11 +480,11 @@ final class PaneState: ObservableObject {
         let markedItems = files.filter { marked.contains($0.id) }
         let fmt = { (n: Int64) in ByteCountFormatter.string(fromByteCount: n, countStyle: .file) }
         if !filter.isEmpty {
-            return "Filtr „\(filter)“: \(files.count) z \(allItems.filter { !$0.isParent }.count) položek (Esc zruší)"
+            return L("Filtr „\(filter)“: \(files.count) z \(allItems.filter { !$0.isParent }.count) položek (Esc zruší)")
         }
         if markedItems.isEmpty {
-            return "\(files.count) položek, \(fmt(files.reduce(0) { $0 + $1.size }))"
+            return L("\(files.count) položek, \(fmt(files.reduce(0) { $0 + $1.size }))")
         }
-        return "Označeno \(markedItems.count) z \(files.count), \(fmt(markedItems.reduce(0) { $0 + $1.size }))"
+        return L("Označeno \(markedItems.count) z \(files.count), \(fmt(markedItems.reduce(0) { $0 + $1.size }))")
     }
 }

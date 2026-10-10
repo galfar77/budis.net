@@ -131,27 +131,27 @@ struct SearchSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Hledat soubory").font(.headline)
+            Text(L("Hledat soubory")).font(.headline)
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 6) {
-                GridRow { Text("Začít v"); TextField("", text: $root) }
-                GridRow { Text("Název"); TextField("např. *.jpg nebo část názvu", text: $mask) }
+                GridRow { Text(L("Začít v")); TextField("", text: $root) }
+                GridRow { Text(L("Název")); TextField(L("např. *.jpg nebo část názvu"), text: $mask) }
                 GridRow {
-                    Text("Obsahuje")
-                    TextField(conn == nil ? "text v souboru (volitelné)" : "na serveru jen podle názvu", text: $text)
+                    Text(L("Obsahuje"))
+                    TextField(conn == nil ? L("text v souboru (volitelné)") : L("na serveru jen podle názvu"), text: $text)
                         .disabled(conn != nil)
                 }
             }
             .textFieldStyle(.roundedBorder)
-            Toggle("Včetně skrytých souborů", isOn: $hidden).font(.system(size: 12))
+            Toggle(L("Včetně skrytých souborů"), isOn: $hidden).font(.system(size: 12))
 
             HStack {
                 if search.running {
-                    Button("Zastavit") { search.stop() }
+                    Button(L("Zastavit")) { search.stop() }
                     ProgressView().controlSize(.small)
                 } else {
-                    Button("Hledat") { run() }.keyboardShortcut(.defaultAction)
+                    Button(L("Hledat")) { run() }.keyboardShortcut(.defaultAction)
                 }
-                Text(conn == nil ? "Nalezeno \(search.results.count), prohledáno \(search.scanned)" : "Nalezeno \(search.results.count), prohledaných složek \(search.scanned)")
+                Text(conn == nil ? L("Nalezeno \(search.results.count), prohledáno \(search.scanned)") : L("Nalezeno \(search.results.count), prohledaných složek \(search.scanned)"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
             }
@@ -169,10 +169,10 @@ struct SearchSheet: View {
             .frame(height: 220)
 
             HStack {
-                Text("Kliknutím se v aktivním panelu otevře složka souboru.")
+                Text(L("Kliknutím se v aktivním panelu otevře složka souboru."))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }
         .padding(16)
@@ -191,7 +191,7 @@ struct SearchSheet: View {
         }
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: root, isDirectory: &isDir), isDir.boolValue else {
-            Dialogs.error("Složka „\(root)“ neexistuje.")
+            Dialogs.error(L("Složka „\(root)“ neexistuje."))
             return
         }
         search.start(root: URL(fileURLWithPath: root), mask: mask, text: text, hidden: hidden)

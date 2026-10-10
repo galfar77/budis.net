@@ -9,8 +9,8 @@ struct UserCommand: Codable, Identifiable, Hashable {
     var command: String
 
     static let defaults: [UserCommand] = [
-        UserCommand(name: "Terminál zde", command: "open -a Terminal %d"),
-        UserCommand(name: "Ukázat ve Finderu", command: "open -R %f"),
+        UserCommand(name: L("Terminál zde"), command: "open -a Terminal %d"),
+        UserCommand(name: L("Ukázat ve Finderu"), command: "open -R %f"),
     ]
 }
 
@@ -20,15 +20,15 @@ struct UserMenuSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Uživatelské příkazy").font(.headline)
-            Text("Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek.")
+            Text(L("Uživatelské příkazy")).font(.headline)
+            Text(L("Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             ScrollView {
                 VStack(spacing: 6) {
                     ForEach($settings.userCommands) { $cmd in
                         HStack {
-                            TextField("Název", text: $cmd.name).frame(width: 150)
-                            TextField("Příkaz", text: $cmd.command)
+                            TextField(L("Název"), text: $cmd.name).frame(width: 150)
+                            TextField(L("Příkaz"), text: $cmd.command)
                                 .font(.system(size: 12, design: .monospaced))
                             Button {
                                 settings.userCommands.removeAll { $0.id == cmd.id }
@@ -41,10 +41,10 @@ struct UserMenuSheet: View {
             }
             .frame(height: 220)
             HStack {
-                Button("Přidat příkaz") { settings.userCommands.append(UserCommand(name: "Nový", command: "")) }
-                Button("Výchozí") { settings.userCommands = UserCommand.defaults }
+                Button(L("Přidat příkaz")) { settings.userCommands.append(UserCommand(name: L("Nový"), command: "")) }
+                Button(L("Výchozí")) { settings.userCommands = UserCommand.defaults }
                 Spacer()
-                Button("Hotovo") { dismiss() }.keyboardShortcut(.defaultAction)
+                Button(L("Hotovo")) { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(16)
@@ -66,27 +66,27 @@ struct AttributesSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Atributy a časy (\(items.count) položek)").font(.headline)
-            Toggle("Nastavit datum a čas změny", isOn: $setDate)
+            Text(L("Atributy a časy (\(items.count) položek)")).font(.headline)
+            Toggle(L("Nastavit datum a čas změny"), isOn: $setDate)
             DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
                 .labelsHidden().disabled(!setDate)
             HStack {
-                Button("Teď") { date = Date(); setDate = true }
+                Button(L("Teď")) { date = Date(); setDate = true }
                 Spacer()
             }
-            Toggle("Nastavit práva (osmičkově, např. 644 nebo 755)", isOn: $setPerms)
+            Toggle(L("Nastavit práva (osmičkově, např. 644 nebo 755)"), isOn: $setPerms)
             TextField("644", text: $perms).frame(width: 80).textFieldStyle(.roundedBorder).disabled(!setPerms)
-            Picker("Skrytý", selection: $hiddenChoice) {
-                Text("Beze změny").tag(0)
-                Text("Skrýt").tag(1)
-                Text("Zobrazit").tag(2)
+            Picker(L("Skrytý"), selection: $hiddenChoice) {
+                Text(L("Beze změny")).tag(0)
+                Text(L("Skrýt")).tag(1)
+                Text(L("Zobrazit")).tag(2)
             }
             .pickerStyle(.segmented)
-            Toggle("Včetně obsahu složek", isOn: $recursive)
+            Toggle(L("Včetně obsahu složek"), isOn: $recursive)
             HStack {
                 Spacer()
-                Button("Zrušit") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Použít") { apply() }.keyboardShortcut(.defaultAction)
+                Button(L("Zrušit")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Použít")) { apply() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(16)
@@ -105,7 +105,7 @@ struct AttributesSheet: View {
         var mode: Int?
         if setPerms {
             guard let m = Int(perms, radix: 8), (0...0o7777).contains(m) else {
-                Dialogs.error("Práva zadejte osmičkově, např. 644.")
+                Dialogs.error(L("Práva zadejte osmičkově, např. 644."))
                 return
             }
             mode = m

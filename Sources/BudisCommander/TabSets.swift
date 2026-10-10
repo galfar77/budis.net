@@ -85,7 +85,7 @@ extension AppModel {
         leftTabs.replace(urls: l, selected: ls)
         rightTabs.replace(urls: r, selected: rs)
         saveState()
-        showNotice("Sada záložek „\(set.name)“ otevřena.")
+        showNotice(L("Sada záložek „\(set.name)“ otevřena."))
     }
 }
 
@@ -97,18 +97,18 @@ struct TabSetsSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Sady záložek").font(.headline)
+                Text(L("Sady záložek")).font(.headline)
                 Spacer()
-                Button("Uložit aktuální…") {
-                    if let name = Dialogs.prompt("Uložit sadu záložek",
-                                                 info: "Zapíše záložky obou panelů (záložky na serveru se vynechají).",
-                                                 ok: "Uložit") {
+                Button(L("Uložit aktuální…")) {
+                    if let name = Dialogs.prompt(L("Uložit sadu záložek"),
+                                                 info: L("Zapíše záložky obou panelů (záložky na serveru se vynechají)."),
+                                                 ok: L("Uložit")) {
                         model.saveTabSet(name)
                     }
                 }
             }
             if store.sets.isEmpty {
-                Text("Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikněte na „Uložit aktuální…“.")
+                Text(L("Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikněte na „Uložit aktuální…“."))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
             } else {
@@ -129,17 +129,17 @@ struct TabSetsSheet: View {
                             .buttonStyle(.plain)
                             Button { store.delete(set.name) } label: { Image(systemName: "minus.circle") }
                                 .buttonStyle(.plain)
-                                .help("Smazat sadu")
+                                .help(L("Smazat sadu"))
                         }
                     }
                 }
                 .frame(height: 300)
             }
             HStack {
-                Text("Klepnutím sadu otevřete. Sada pamatuje záložky obou panelů.")
+                Text(L("Klepnutím sadu otevřete. Sada pamatuje záložky obou panelů."))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }
         .padding(16)

@@ -74,10 +74,10 @@ struct DiffSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Porovnání souborů").font(.headline)
+                Text(L("Porovnání souborů")).font(.headline)
                 Spacer()
-                Toggle("Jen rozdíly", isOn: $onlyChanges).toggleStyle(.checkbox)
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Toggle(L("Jen rozdíly"), isOn: $onlyChanges).toggleStyle(.checkbox)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
             .padding(10)
             if let (a, b) = files {
@@ -102,15 +102,15 @@ struct DiffSheet: View {
     private var content: some View {
         switch result {
         case nil:
-            VStack { ProgressView("Porovnávám…").padding(40) }.frame(maxWidth: .infinity)
+            VStack { ProgressView(L("Porovnávám…")).padding(40) }.frame(maxWidth: .infinity)
         case .binary(let identical)?:
-            message(identical ? "Binární soubory jsou shodné." : "Binární soubory se liší.")
+            message(identical ? L("Binární soubory jsou shodné.") : L("Binární soubory se liší."))
         case .tooLarge(let identical)?:
-            message(identical ? "Soubory jsou příliš velké pro porovnání po řádcích, ale jsou shodné."
-                              : "Soubory jsou příliš velké pro porovnání po řádcích (nad 3 MB nebo 8000 řádků) a liší se.")
+            message(identical ? L("Soubory jsou příliš velké pro porovnání po řádcích, ale jsou shodné.")
+                              : L("Soubory jsou příliš velké pro porovnání po řádcích (nad 3 MB nebo 8000 řádků) a liší se."))
         case .rows(let rows, let changes)?:
             VStack(spacing: 0) {
-                Text(changes == 0 ? "Soubory jsou shodné." : "Rozdílných řádků: \(changes)")
+                Text(changes == 0 ? L("Soubory jsou shodné.") : L("Rozdílných řádků: \(changes)"))
                     .font(.system(size: 12)).padding(6).frame(maxWidth: .infinity, alignment: .leading)
                 ScrollView([.vertical, .horizontal]) {
                     LazyVStack(alignment: .leading, spacing: 0) {

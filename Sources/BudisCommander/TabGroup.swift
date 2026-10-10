@@ -75,7 +75,7 @@ struct PanelView: View {
             }
             Button { onActivate(); group.newTab() } label: { Image(systemName: "plus") }
                 .buttonStyle(.plain)
-                .help("Nová záložka (⌘T)")
+                .help(L("Nová záložka (⌘T)"))
                 .padding(.horizontal, 6)
         }
         .padding(.horizontal, 4)

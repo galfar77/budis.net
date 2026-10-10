@@ -192,9 +192,9 @@ final class RemoteConnection: @unchecked Sendable {
                     if let r = msg.range(of: "curl:") { msg = String(msg[r.lowerBound...]) }
                     else if onProgress != nil { msg = "" }
                     msg = msg.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if msg.isEmpty { msg = "curl skončil s kódem \(p.terminationStatus)" }
+                    if msg.isEmpty { msg = L("curl skončil s kódem \(p.terminationStatus)") }
                     if p.terminationStatus == 51 || p.terminationStatus == 60 {
-                        msg += "\n\nKlíč/certifikát serveru nelze ověřit. Pokud serveru věříte, zaškrtněte při připojení „Důvěřovat serveru bez ověření“."
+                        msg += L("\n\nKlíč/certifikát serveru nelze ověřit. Pokud serveru věříte, zaškrtněte při připojení „Důvěřovat serveru bez ověření“.")
                     }
                     cont.resume(throwing: RemoteError(message: msg))
                 }

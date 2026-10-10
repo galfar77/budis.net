@@ -40,7 +40,7 @@ struct PaneView: View {
                 if pane.connection != nil {
                     Button { pane.disconnect() } label: { Image(systemName: "eject.fill") }
                         .buttonStyle(.plain)
-                        .help("Odpojit od serveru")
+                        .help(L("Odpojit od serveru"))
                 }
             }
             .padding(.horizontal, 8)
@@ -54,7 +54,7 @@ struct PaneView: View {
                     Spacer()
                     Button { pane.clearFilter() } label: { Image(systemName: "xmark.circle.fill") }
                         .buttonStyle(.plain)
-                        .help("Zrušit filtr (Esc)")
+                        .help(L("Zrušit filtr (Esc)"))
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 22)
@@ -112,21 +112,21 @@ struct PaneView: View {
 
     private var columnHeader: some View {
         HStack(spacing: 6) {
-            headerButton("Název", .name).frame(maxWidth: .infinity, alignment: .leading)
+            headerButton(L("Název"), .name).frame(maxWidth: .infinity, alignment: .leading)
             if settings.showExt {
-                Text("Přípona").font(.system(size: 11, weight: .semibold)).frame(width: 64, alignment: .leading)
+                Text(L("Přípona")).font(.system(size: 11, weight: .semibold)).frame(width: 64, alignment: .leading)
             }
             if settings.showPerms {
-                Text("Práva").font(.system(size: 11, weight: .semibold)).frame(width: 78, alignment: .leading)
+                Text(L("Práva")).font(.system(size: 11, weight: .semibold)).frame(width: 78, alignment: .leading)
             }
             if settings.showOwner {
-                Text("Vlastník").font(.system(size: 11, weight: .semibold)).frame(width: 70, alignment: .leading)
+                Text(L("Vlastník")).font(.system(size: 11, weight: .semibold)).frame(width: 70, alignment: .leading)
             }
             if settings.showMedia {
-                Text("Rozměry/délka").font(.system(size: 11, weight: .semibold)).frame(width: 84, alignment: .trailing)
+                Text(L("Rozměry/délka")).font(.system(size: 11, weight: .semibold)).frame(width: 84, alignment: .trailing)
             }
-            headerButton("Velikost", .size).frame(width: 80, alignment: .trailing)
-            headerButton("Změněno", .date).frame(width: 130, alignment: .trailing)
+            headerButton(L("Velikost"), .size).frame(width: 80, alignment: .trailing)
+            headerButton(L("Změněno"), .date).frame(width: 130, alignment: .trailing)
         }
         .padding(.horizontal, 8)
         .frame(height: 22)

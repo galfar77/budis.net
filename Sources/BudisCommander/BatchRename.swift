@@ -72,38 +72,38 @@ struct BatchRenameSheet: View {
         let new = names
         let bad = problems
         VStack(alignment: .leading, spacing: 10) {
-            Text("Hromadné přejmenování (\(items.count) položek)").font(.headline)
+            Text(L("Hromadné přejmenování (\(items.count) položek)")).font(.headline)
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 6) {
                 GridRow {
-                    Text("Maska")
+                    Text(L("Maska"))
                     TextField("[N].[E]", text: $opts.mask)
                 }
                 GridRow {
-                    Text("Hledat")
+                    Text(L("Hledat"))
                     TextField("", text: $opts.search)
                 }
                 GridRow {
-                    Text("Nahradit")
+                    Text(L("Nahradit"))
                     TextField("", text: $opts.replace)
                 }
                 GridRow {
                     Text("")
-                    Toggle("Regulární výraz (v náhradě lze použít $1, $2…)", isOn: $opts.regex)
+                    Toggle(L("Regulární výraz (v náhradě lze použít $1, $2…)"), isOn: $opts.regex)
                 }
                 GridRow {
-                    Text("Čítač")
+                    Text(L("Čítač"))
                     HStack {
                         Stepper("od \(opts.start)", value: $opts.start, in: 0...99999)
-                        Stepper("číslic \(opts.digits)", value: $opts.digits, in: 1...6)
+                        Stepper(L("číslic \(opts.digits)"), value: $opts.digits, in: 1...6)
                     }
                 }
                 GridRow {
-                    Text("Písmena")
+                    Text(L("Písmena"))
                     Picker("", selection: $opts.caseMode) {
-                        Text("Beze změny").tag(0)
-                        Text("malá").tag(1)
-                        Text("VELKÁ").tag(2)
+                        Text(L("Beze změny")).tag(0)
+                        Text(L("malá")).tag(1)
+                        Text(L("VELKÁ")).tag(2)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
@@ -111,7 +111,7 @@ struct BatchRenameSheet: View {
             }
             .textFieldStyle(.roundedBorder)
 
-            Text("Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.")
+            Text(L("Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             ScrollView {
@@ -134,15 +134,15 @@ struct BatchRenameSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 6))
 
             if !bad.isEmpty {
-                Text("Červeně označené názvy jsou prázdné, duplicitní nebo už existují.")
+                Text(L("Červeně označené názvy jsou prázdné, duplicitní nebo už existují."))
                     .font(.system(size: 11)).foregroundStyle(.red)
             }
 
             HStack {
                 if busy { ProgressView().controlSize(.small) }
                 Spacer()
-                Button("Zrušit") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Přejmenovat") {
+                Button(L("Zrušit")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Přejmenovat")) {
                     busy = true
                     Task {
                         await model.applyRename(items, new)

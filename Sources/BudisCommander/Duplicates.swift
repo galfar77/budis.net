@@ -19,7 +19,7 @@ final class DuplicateFinder: ObservableObject {
         stop()
         groups = []
         running = true
-        status = "Procházím složky…"
+        status = L("Procházím složky…")
         let flag = CancelFlag()
         self.flag = flag
         Task.detached(priority: .userInitiated) { [weak self] in
@@ -30,7 +30,7 @@ final class DuplicateFinder: ObservableObject {
             DispatchQueue.main.async {
                 self?.groups = found.sorted { $0.size * Int64($0.files.count) > $1.size * Int64($1.files.count) }
                 self?.running = false
-                self?.status = flag.isSet ? "Zastaveno." : (found.isEmpty ? "Žádné duplicity." : "Nalezeno skupin: \(found.count)")
+                self?.status = flag.isSet ? "Zastaveno." : (found.isEmpty ? L("Žádné duplicity.") : L("Nalezeno skupin: \(found.count)"))
             }
         }
     }
@@ -55,7 +55,7 @@ final class DuplicateFinder: ObservableObject {
                 guard size >= minSize, size > 0, seen.insert(url.path).inserted else { continue }
                 bySize[size, default: []].append(url)
                 count += 1
-                if count % 500 == 0 { report("Prohledáno souborů: \(count)") }
+                if count % 500 == 0 { report(L("Prohledáno souborů: \(count)")) }
                 if count >= fileLimit { break outer }
             }
         }
@@ -65,7 +65,7 @@ final class DuplicateFinder: ObservableObject {
         for (size, urls) in candidates {
             if flag.isSet { return [] }
             done += 1
-            report("Porovnávám obsah (\(done)/\(candidates.count))…")
+            report(L("Porovnávám obsah (\(done)/\(candidates.count))…"))
             var byPartial: [String: [URL]] = [:]
             for u in urls { if let h = hash(u, limit: 64 * 1024) { byPartial[h, default: []].append(u) } }
             for (_, partial) in byPartial where partial.count > 1 {
@@ -107,24 +107,24 @@ struct DuplicatesSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Hledání duplicit").font(.headline)
+            Text(L("Hledání duplicit")).font(.headline)
             HStack {
-                Toggle("Hledat i ve složce druhého panelu", isOn: $bothPanes)
-                Toggle("Včetně skrytých", isOn: $hidden)
+                Toggle(L("Hledat i ve složce druhého panelu"), isOn: $bothPanes)
+                Toggle(L("Včetně skrytých"), isOn: $hidden)
                 Spacer()
-                Text("Nejmenší velikost (kB)")
+                Text(L("Nejmenší velikost (kB)"))
                 TextField("1", text: $minKB).frame(width: 60).textFieldStyle(.roundedBorder)
             }
             .font(.system(size: 12))
-            Text(roots.isEmpty ? "" : "Prohledá se: " + roots.map(\.path).joined(separator: ", "))
+            Text(roots.isEmpty ? "" : L("Prohledá se: ") + roots.map(\.path).joined(separator: ", "))
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(2)
 
             HStack {
                 if finder.running {
-                    Button("Zastavit") { finder.stop() }
+                    Button(L("Zastavit")) { finder.stop() }
                     ProgressView().controlSize(.small)
                 } else {
-                    Button("Hledat") { start() }.keyboardShortcut(.defaultAction)
+                    Button(L("Hledat")) { start() }.keyboardShortcut(.defaultAction)
                 }
                 Text(finder.status).font(.system(size: 11)).foregroundStyle(.secondary)
                 Spacer()
@@ -140,7 +140,7 @@ struct DuplicatesSheet: View {
                                     .labelsHidden()
                                 Text(url.path).font(.system(size: 11)).lineLimit(1).truncationMode(.middle)
                                 Spacer()
-                                Button("Ukázat") { model.reveal(url); dismiss() }.controlSize(.small)
+                                Button(L("Ukázat")) { model.reveal(url); dismiss() }.controlSize(.small)
                             }
                         }
                     }
@@ -149,11 +149,11 @@ struct DuplicatesSheet: View {
             .frame(height: 280)
 
             HStack {
-                Button("Vybrat přebytečné (ponechat nejstarší)") { selectExtras() }.disabled(finder.groups.isEmpty)
-                Button("Zrušit výběr") { selected = [] }.disabled(selected.isEmpty)
+                Button(L("Vybrat přebytečné (ponechat nejstarší)")) { selectExtras() }.disabled(finder.groups.isEmpty)
+                Button(L("Zrušit výběr")) { selected = [] }.disabled(selected.isEmpty)
                 Spacer()
-                Button("Do koše (\(selected.count))") { trashSelected() }.disabled(selected.isEmpty)
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Do koše (\(selected.count))")) { trashSelected() }.disabled(selected.isEmpty)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }
         .padding(16)
@@ -174,7 +174,7 @@ struct DuplicatesSheet: View {
 
     private func start() {
         guard !roots.isEmpty else {
-            Dialogs.error("Hledání duplicit funguje jen v lokálních složkách.")
+            Dialogs.error(L("Hledání duplicit funguje jen v lokálních složkách."))
             return
         }
         selected = []
@@ -198,7 +198,7 @@ struct DuplicatesSheet: View {
 
     private func trashSelected() {
         let urls = Array(selected)
-        guard Dialogs.confirm("Přesunout \(urls.count) souborů do koše?", info: "Vybrané duplicity půjde vrátit příkazem Vrátit poslední operaci.", ok: "Do koše") else { return }
+        guard Dialogs.confirm(L("Přesunout \(urls.count) souborů do koše?"), info: L("Vybrané duplicity půjde vrátit příkazem Vrátit poslední operaci."), ok: L("Do koše")) else { return }
         Task {
             await model.trashURLs(urls)
             for i in finder.groups.indices { finder.groups[i].files.removeAll { selected.contains($0) } }

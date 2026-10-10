@@ -50,10 +50,10 @@ struct ConnectSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Připojit k serveru").font(.headline)
+                Text(L("Připojit k serveru")).font(.headline)
                 Spacer()
                 if !saved.isEmpty {
-                    Menu("Uložené servery") {
+                    Menu(L("Uložené servery")) {
                         ForEach(saved) { s in
                             Button(s.title) { fill(s) }
                         }
@@ -62,51 +62,51 @@ struct ConnectSheet: View {
                 }
             }
 
-            Picker("Protokol", selection: $proto) {
+            Picker(L("Protokol"), selection: $proto) {
                 ForEach(RemoteProtocol.allCases.filter { $0 != .rclone }) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                 GridRow {
-                    Text("Server")
+                    Text(L("Server"))
                     HStack {
-                        TextField("např. ftp.example.com", text: $host)
+                        TextField(L("např. ftp.example.com"), text: $host)
                         TextField("\(proto.defaultPort)", text: $port).frame(width: 60)
                     }
                 }
                 GridRow {
-                    Text("Uživatel")
-                    TextField(proto == .sftp ? "povinné" : "prázdné = anonymní", text: $user)
+                    Text(L("Uživatel"))
+                    TextField(proto == .sftp ? L("povinné") : L("prázdné = anonymní"), text: $user)
                 }
                 if proto == .sftp {
                     GridRow {
-                        Text("Klíč")
+                        Text(L("Klíč"))
                         HStack {
-                            TextField("volitelné, např. ~/.ssh/id_rsa", text: $keyPath)
-                            Button("Vybrat…") { chooseKey() }
+                            TextField(L("volitelné, např. ~/.ssh/id_rsa"), text: $keyPath)
+                            Button(L("Vybrat…")) { chooseKey() }
                         }
                     }
                 }
                 GridRow {
-                    Text(proto == .sftp && !keyPath.isEmpty ? "Heslo klíče" : "Heslo")
+                    Text(proto == .sftp && !keyPath.isEmpty ? L("Heslo klíče") : L("Heslo"))
                     SecureField("", text: $password)
                 }
             }
             .textFieldStyle(.roundedBorder)
 
-            Toggle("Důvěřovat serveru bez ověření klíče/certifikátu", isOn: $insecure)
+            Toggle(L("Důvěřovat serveru bez ověření klíče/certifikátu"), isOn: $insecure)
                 .font(.system(size: 12))
-            Toggle("Uložit heslo do Klíčenky", isOn: $remember)
+            Toggle(L("Uložit heslo do Klíčenky"), isOn: $remember)
                 .font(.system(size: 12))
-            Text("U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.")
+            Text(L("U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             HStack {
                 if busy { ProgressView().controlSize(.small) }
                 Spacer()
-                Button("Zrušit") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Připojit") { connect() }
+                Button(L("Zrušit")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Připojit")) { connect() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(host.trimmingCharacters(in: .whitespaces).isEmpty || busy)
             }
@@ -128,7 +128,7 @@ struct ConnectSheet: View {
         panel.canChooseDirectories = false
         panel.showsHiddenFiles = true
         panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".ssh")
-        panel.message = "Vyberte soukromý SSH klíč"
+        panel.message = L("Vyberte soukromý SSH klíč")
         if panel.runModal() == .OK, let url = panel.url { keyPath = url.path }
     }
 
@@ -161,9 +161,9 @@ struct NetworkSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Síť a disky").font(.headline)
+            Text(L("Síť a disky")).font(.headline)
 
-            Text("Připojené disky").font(.subheadline).foregroundStyle(.secondary)
+            Text(L("Připojené disky")).font(.subheadline).foregroundStyle(.secondary)
             List(volumes, id: \.self) { v in
                 Button {
                     model.active.navigate(to: URL(fileURLWithPath: "/Volumes/\(v)"))
@@ -175,7 +175,7 @@ struct NetworkSheet: View {
             }
             .frame(height: 110)
 
-            Text("Počítače v síti (SMB)").font(.subheadline).foregroundStyle(.secondary)
+            Text(L("Počítače v síti (SMB)")).font(.subheadline).foregroundStyle(.secondary)
             List(lan.hosts) { h in
                 Button {
                     mount("smb://\(h.address)")
@@ -186,23 +186,23 @@ struct NetworkSheet: View {
             }
             .frame(height: 130)
             .overlay {
-                if lan.hosts.isEmpty { Text("Hledám…").foregroundStyle(.secondary) }
+                if lan.hosts.isEmpty { Text(L("Hledám…")).foregroundStyle(.secondary) }
             }
 
-            Text("Adresa sdílení").font(.subheadline).foregroundStyle(.secondary)
+            Text(L("Adresa sdílení")).font(.subheadline).foregroundStyle(.secondary)
             HStack {
-                TextField("smb://server/sdílená-složka", text: $address)
+                TextField(L("smb://server/sdílená-složka"), text: $address)
                     .textFieldStyle(.roundedBorder)
-                Button("Připojit") { mount(address) }
+                Button(L("Připojit")) { mount(address) }
                     .keyboardShortcut(.defaultAction)
                     .disabled(address.count < 7)
             }
-            Text("Podporované: smb://, afp://, nfs://. O přihlášení se postará systém.")
+            Text(L("Podporované: smb://, afp://, nfs://. O přihlášení se postará systém."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             HStack {
                 Spacer()
-                Button("Zavřít") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
             }
         }
         .padding(16)

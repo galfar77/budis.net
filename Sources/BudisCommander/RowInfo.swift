@@ -146,7 +146,7 @@ struct TagsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Štítky Finderu (\(items.count) položek)").font(.headline)
+            Text(L("Štítky Finderu (\(items.count) položek)")).font(.headline)
             HStack(spacing: 10) {
                 ForEach(1..<max(1, min(8, TagPalette.names.count)), id: \.self) { i in
                     Button {
@@ -161,13 +161,13 @@ struct TagsSheet: View {
                     .buttonStyle(.plain)
                 }
             }
-            TextField("Další štítky (oddělené čárkou)", text: $custom).textFieldStyle(.roundedBorder)
-            Text("Změní se jen štítky, které mají všechny vybrané položky společné; ostatní zůstanou.")
+            TextField(L("Další štítky (oddělené čárkou)"), text: $custom).textFieldStyle(.roundedBorder)
+            Text(L("Změní se jen štítky, které mají všechny vybrané položky společné; ostatní zůstanou."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             HStack {
                 Spacer()
-                Button("Zrušit") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Použít") {
+                Button(L("Zrušit")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Použít")) {
                     let colorNames = picked.map { TagPalette.names[$0] }
                     let extra = custom.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                     dismiss()

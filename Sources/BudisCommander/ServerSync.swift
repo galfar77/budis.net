@@ -97,7 +97,7 @@ extension AppModel {
     /// Zrcadlení mezi místní složkou a serverem (jeden z panelů je server): udělá z neaktivního panelu kopii aktivního.
     func syncWithServer(src: PaneState, dst: PaneState) async {
         guard !src.isArchive, !dst.isArchive else {
-            Dialogs.error("Archiv se zrcadlit nedá.")
+            Dialogs.error(L("Archiv se zrcadlit nedá."))
             return
         }
         let upload = dst.connection != nil
@@ -107,7 +107,7 @@ extension AppModel {
         let srcList = src.connection != nil ? TreeMirror.remoteLister(conn) : TreeMirror.localLister()
         let dstList = dst.connection != nil ? TreeMirror.remoteLister(conn) : TreeMirror.localLister()
 
-        notice = "Porovnávám se serverem…"
+        notice = L("Porovnávám se serverem…")
         let plan: MirrorPlan
         do {
             plan = try await TreeMirror.plan(src: srcList, srcRoot: srcRoot, dst: dstList, dstRoot: dstRoot, tolerance: 120)
@@ -118,17 +118,17 @@ extension AppModel {
         }
         notice = nil
         guard !plan.isEmpty else {
-            showNotice("Složky jsou shodné, není co zrcadlit.")
+            showNotice(L("Složky jsou shodné, není co zrcadlit."))
             return
         }
         let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
-        var info = "Kopírovat nebo přepsat: \(plan.copies.count) souborů (\(size))\nVytvořit složek: \(plan.mkdirs.count)\n"
-        info += upload ? "Smazat na serveru: \(plan.deletes.count)" : "Přesunout do koše (jen v cíli): \(plan.deletes.count)"
+        var info = L("Kopírovat nebo přepsat: \(plan.copies.count) souborů (\(size))\nVytvořit složek: \(plan.mkdirs.count)\n")
+        info += upload ? L("Smazat na serveru: \(plan.deletes.count)") : L("Přesunout do koše (jen v cíli): \(plan.deletes.count)")
         let preview = plan.deletes.prefix(6).map { "  • " + ($0.path as NSString).lastPathComponent }
         if !preview.isEmpty { info += "\n" + preview.joined(separator: "\n") + (plan.deletes.count > 6 ? "\n  …" : "") }
-        info += "\n\nKopírují se soubory s jinou velikostí nebo novější než v cíli."
-        let title = upload ? "Nahrát změny na server?" : "Stáhnout změny ze serveru?"
-        guard Dialogs.confirm(title, info: info, ok: upload ? "Nahrát" : "Stáhnout") else { return }
+        info += L("\n\nKopírují se soubory s jinou velikostí nebo novější než v cíli.")
+        let title = upload ? L("Nahrát změny na server?") : L("Stáhnout změny ze serveru?")
+        guard Dialogs.confirm(title, info: info, ok: upload ? L("Nahrát") : L("Stáhnout")) else { return }
 
         var errors: [String] = []
         let total = plan.deletes.count + plan.mkdirs.count + plan.copies.count
@@ -141,7 +141,7 @@ extension AppModel {
         for (path, isDir) in plan.deletes {
             if Task.isCancelled { break }
             let name = (path as NSString).lastPathComponent
-            tick((upload ? "Mažu: " : "Do koše: ") + name)
+            tick((upload ? L("Mažu: ") : L("Do koše: ")) + name)
             do {
                 if upload {
                     try await conn.delete(path: path, isDirectory: isDir)
@@ -157,7 +157,7 @@ extension AppModel {
         for path in plan.mkdirs {
             if Task.isCancelled { break }
             let name = (path as NSString).lastPathComponent
-            tick("Složka: " + name)
+            tick(L("Složka: ") + name)
             do {
                 if upload {
                     try await conn.mkdir(path)
@@ -173,7 +173,7 @@ extension AppModel {
         for (from, to, fileSize) in plan.copies {
             if Task.isCancelled { break }
             let name = (from as NSString).lastPathComponent
-            let verb = upload ? "Nahrávám: " : "Stahuji: "
+            let verb = upload ? L("Nahrávám: ") : L("Stahuji: ")
             tick(verb + name)
             let base = done
             let report: @Sendable (String, Double) -> Void = { [weak self] fileName, fraction in
@@ -203,7 +203,7 @@ extension AppModel {
         progressText = ""
         src.reload()
         dst.reload()
-        showNotice(Task.isCancelled ? "Zrcadlení zrušeno." : "Zrcadlení hotovo.")
+        showNotice(Task.isCancelled ? L("Zrcadlení zrušeno.") : L("Zrcadlení hotovo."))
         if !errors.isEmpty { Dialogs.error(errors.prefix(12).joined(separator: "\n")) }
     }
 }
