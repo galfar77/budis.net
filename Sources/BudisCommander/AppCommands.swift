@@ -32,6 +32,16 @@ struct AppCommands: Commands {
         CommandGroup(replacing: .newItem) {
             item(.newTab)
         }
+        CommandGroup(replacing: .help) {
+            Button(L("Co je nového…")) { model.sheet = .whatsNew }
+                .disabled(model.sheet != nil || model.viewer != nil)
+            Button(L("Přehled funkcí…")) { model.sheet = .features }
+                .disabled(model.sheet != nil || model.viewer != nil)
+            Button(L("O aplikaci…")) { model.sheet = .about }
+                .disabled(model.sheet != nil || model.viewer != nil)
+            Divider()
+            item(.checkUpdate)
+        }
         CommandMenu(L("Nástroje")) {
             item(.undo)
             Divider()
@@ -100,7 +110,6 @@ struct AppCommands: Commands {
             item(.hidden)
             item(.mirror)
             Divider()
-            item(.checkUpdate)
             item(.settings)
         }
     }

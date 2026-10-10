@@ -81,6 +81,15 @@ public sealed partial class MainWindow
             Shortcuts.CreateAll(exe);
             _core.ShowNotice("Zástupci vytvořeni na ploše a v nabídce Start.");
         });
+        H("whatsNew", () => ShowToolAsync(new InfoWindow("Co je nového", InfoTexts.News)));
+        H("features", () => ShowToolAsync(new InfoWindow("Přehled funkcí", InfoTexts.Features)));
+        H("about", async () =>
+        {
+            var commit = Updater.CurrentCommit;
+            var build = commit.Length > 0 ? Tr.T($"Sestavení z commitu: {commit[..Math.Min(commit.Length, 12)]}") : Tr.T("Vývojové sestavení (bez označení verze)");
+            var header = "Budis Commander\n" + Tr.T("Dvoupanelový správce souborů") + "\n" + build + "\n" + Tr.T($"Projekt: {"https://github.com/" + Updater.Repo}");
+            await ShowToolAsync(new InfoWindow("O aplikaci", new[] { "# Nové" }.Concat(InfoTexts.News.Skip(1).Take(5)), header, () => _ = Run("update")));
+        });
         H("update", async () =>
         {
             if (!await _core.UpdateAsync()) return;

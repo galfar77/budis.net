@@ -55,6 +55,9 @@ struct ContentView: View {
             case .duplicates: DuplicatesSheet(model: model)
             case .tags: TagsSheet(model: model)
             case .tabSets: TabSetsSheet(model: model)
+            case .whatsNew: InfoSheet(title: L("Co je nového"), lines: InfoTexts.news)
+            case .features: InfoSheet(title: L("Přehled funkcí"), lines: InfoTexts.features)
+            case .about: AboutSheet(model: model)
             case .cloud: CloudSheet(model: model)
             }
         }

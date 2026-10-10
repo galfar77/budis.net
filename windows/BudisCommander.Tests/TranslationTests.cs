@@ -80,7 +80,7 @@ public class TranslationTests
             for (int i = 0; i < 15; i++) { Dispatcher.UIThread.RunJobs(); await Task.Delay(20); }
             var menu = w.GetVisualDescendants().OfType<Menu>().First();
             var headers = menu.Items.OfType<MenuItem>().Select(m => m.Header as string).ToList();
-            Assert.Equal(new[] { "File", "Mark", "Tools", "View", "Servers" }, headers);
+            Assert.Equal(new[] { "File", "Mark", "Tools", "View", "Servers", "Help" }, headers);
             var texts = w.GetVisualDescendants().OfType<TextBlock>().Select(x => x.Text).ToList();
             Assert.Contains("Rename", texts);
             Assert.Contains("New folder", texts);

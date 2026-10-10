@@ -340,3 +340,19 @@ public class FolderViewAndTypeFilterTests
         Assert.Empty(pane.Items.Where(i => !i.IsParent));
     }
 }
+
+[Collection("Language")]
+public class InfoTextsTests
+{
+    [Fact]
+    public void EveryInfoLineHasEnglish()
+    {
+        try
+        {
+            Tr.SetLanguage("en");
+            var czech = InfoTexts.News.Concat(InfoTexts.Features).Where(l => Tr.T(l) == l).ToList();
+            Assert.Empty(czech);
+        }
+        finally { Tr.SetLanguage("cs"); }
+    }
+}

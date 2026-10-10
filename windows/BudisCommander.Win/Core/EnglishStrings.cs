@@ -427,5 +427,56 @@ Jen hudba	Music only
 Jen video	Video only
 Jen archivy	Archives only
 {}: {} z {} položek	{}: {} of {} items
+# Nové	# New
+Řazení podle typu souboru: klikněte na záhlaví Přípona nebo použijte menu.	Sorting by file type: click the Extension header or use the menu.
+Řazení se pamatuje zvlášť pro každou složku (např. fotky podle data, hudba podle názvu).	Sorting is remembered separately for each folder (e.g. photos by date, music by name).
+Filtr podle typu souboru: tlačítko v panelu ukáže jen obrázky, dokumenty, hudbu, video nebo archivy.	File type filter: the button in the panel shows only images, documents, music, video or archives.
+Sady záložek: uložte rozložení obou panelů pod jménem a otevřete ho jedním klikem.	Tab sets: save the layout of both panels under a name and open it with one click.
+Zrcadlení mezi složkou a serverem (FTP, SFTP, cloud) v obou směrech.	Mirroring between a folder and a server (FTP, SFTP, cloud) in both directions.
+Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.	Cloud storage (Dropbox, Google Drive, OneDrive…) through the rclone program.
+Čeština a angličtina (Nastavení, platí po restartu).	Czech and English (Settings, applies after a restart).
+Aktualizace z GitHubu: menu Nápověda → Aktualizovat aplikaci; při startu se jen oznámí nová verze.	Updates from GitHub: Help menu → Update application; at startup you are only told that a new version exists.
+# Dříve	# Earlier
+Dva panely, záložky, ovládání z klávesnice, F2 až F8, označování, rychlé hledání, vrácení operací.	Two panels, tabs, keyboard control, F2 to F8, marking, quick search, undo of operations.
+FTP, FTP+TLS a SFTP (heslo i klíč), síťové disky a sdílené složky.	FTP, FTP+TLS and SFTP (password or key), network drives and shared folders.
+Archivy (zip, tar.gz, 7z, rar…) jako složky, balení a rozbalení.	Archives (zip, tar.gz, 7z, rar…) as folders, packing and unpacking.
+Hledání souborů podle názvu a obsahu, hledání duplicit.	Searching files by name and content, finding duplicates.
+Porovnání adresářů a souborů, zrcadlení, hromadné přejmenování.	Comparing directories and files, mirroring, batch renaming.
+Rychlý náhled, hex, kontrolní součty, dělení a slepování souborů, příkazový řádek.	Quick view, hex, checksums, splitting and joining files, command line.
+# Základy	# Basics
+Dva panely, Tab přepíná mezi nimi. Šipky, Enter a Backspace se pohybují po složkách.	Two panels, Tab switches between them. Arrows, Enter and Backspace move through folders.
+F3 zobrazí soubor, F4 ho upraví (na serveru se změny po uložení nahrají zpět).	F3 views a file, F4 edits it (on a server the changes are uploaded back after saving).
+F5 a F6 kopírují a přesouvají do druhého panelu, F7 vytvoří složku, F8 smaže do koše.	F5 and F6 copy and move to the other panel, F7 creates a folder, F8 deletes to the trash.
+Zkratky všech funkcí jsou vidět v menu a jdou změnit v Nastavení.	The shortcuts of all functions are shown in the menus and can be changed in Settings.
+# Panely	# Panels
+Záložky v každém panelu a sady záložek, které si pamatují rozložení obou panelů.	Tabs in each panel and tab sets that remember the layout of both panels.
+Rychlé hledání psaním písmen, filtr názvů a filtr podle typu souboru (tlačítko v panelu).	Quick search by typing letters, a name filter and a file type filter (button in the panel).
+Řazení klikem na záhlaví sloupce; řazení se pamatuje zvlášť pro každou složku.	Sorting by clicking a column header; the sorting is remembered separately for each folder.
+Označování souborů, označení podle masky a vrácení posledních operací.	Marking files, marking by mask and undo of the last operations.
+# Servery a cloud	# Servers and cloud
+Připojení k FTP, FTP+TLS a SFTP serverům, hesla se ukládají bezpečně.	Connecting to FTP, FTP+TLS and SFTP servers, passwords are stored securely.
+Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.	Cloud storage (Dropbox, Google Drive, OneDrive…) through the rclone program.
+Zrcadlení složky do druhého panelu, i mezi složkou a serverem.	Mirroring a folder to the other panel, also between a folder and a server.
+# Nástroje	# Tools
+Hledání souborů podle názvu a obsahu, hledání duplicit.	Searching files by name and content, finding duplicates.
+Porovnání adresářů a souborů, hromadné přejmenování, kontrolní součty.	Comparing directories and files, batch renaming, checksums.
+Archivy jako složky, balení a rozbalení, dělení a slepování souborů.	Archives as folders, packing and unpacking, splitting and joining files.
+Rychlý náhled, příkazový řádek a vlastní příkazy v menu.	Quick view, command line and your own commands in the menu.
+# Aplikace a jazyk	# Application and language
+Čeština a angličtina, světlý a tmavý vzhled, nastavení sloupců a písma.	Czech and English, light and dark appearance, column and font settings.
+Aktualizace z GitHubu v menu Nápověda; při startu se jen oznámí nová verze.	Updates from GitHub in the Help menu; at startup you are only told that a new version exists.
+Zástupci na ploše a v nabídce Start (menu Nástroje).	Shortcuts on the desktop and in the Start menu (Tools menu).
+Nápověda	Help
+Co je nového…	What's new…
+Přehled funkcí…	Feature overview…
+O aplikaci…	About…
+Co je nového	What's new
+Přehled funkcí	Feature overview
+O aplikaci	About
+Sestavení z commitu: {}	Built from commit: {}
+Vývojové sestavení (bez označení verze)	Development build (no version mark)
+Dvoupanelový správce souborů	Two-panel file manager
+Projekt: {}	Project: {}
+Zkontrolovat aktualizace	Check for updates
 """;
 }

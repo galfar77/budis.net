@@ -8,7 +8,7 @@ public sealed record ActionDef(string Id, string Title, string? DefaultGesture, 
 /// <summary>Všechny akce aplikace: název, výchozí zkratka a menu, do kterého patří.</summary>
 public static class Actions
 {
-    public const string File = "Soubor", Mark = "Označit", Tools = "Nástroje", View = "Zobrazit", Servers = "Servery";
+    public const string File = "Soubor", Mark = "Označit", Tools = "Nástroje", View = "Zobrazit", Servers = "Servery", Help = "Nápověda";
 
     public static readonly IReadOnlyList<ActionDef> All = new List<ActionDef>
     {
@@ -57,7 +57,10 @@ public static class Actions
         new("userMenu", "Uživatelské příkazy…", null, Tools),
         new("resumeTransfer", "Pokračovat v přerušeném přenosu", null, Tools),
         new("shortcuts", "Vytvořit zástupce na ploše a v nabídce Start", null, Tools),
-        new("update", "Aktualizovat aplikaci…", null, Tools),
+        new("whatsNew", "Co je nového…", null, Help),
+        new("features", "Přehled funkcí…", null, Help),
+        new("update", "Aktualizovat aplikaci…", null, Help),
+        new("about", "O aplikaci…", null, Help),
         new("settings", "Nastavení…", "Ctrl+OemComma", Tools),
 
         new("refresh", "Obnovit", "Ctrl+R", View),

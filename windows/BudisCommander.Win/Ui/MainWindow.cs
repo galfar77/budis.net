@@ -169,7 +169,7 @@ public sealed partial class MainWindow : Window
     private void BuildMenu()
     {
         _menu.Items.Clear();
-        foreach (var group in new[] { Actions.File, Actions.Mark, Actions.Tools, Actions.View, Actions.Servers })
+        foreach (var group in new[] { Actions.File, Actions.Mark, Actions.Tools, Actions.View, Actions.Servers, Actions.Help })
         {
             var top = new MenuItem { Header = group };
             foreach (var a in Actions.All.Where(a => a.Menu == group))

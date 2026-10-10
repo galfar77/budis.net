@@ -292,3 +292,34 @@ public sealed class CloudWindow : Window
         catch (Exception e) { _status.Text = e.Message; }
     }
 }
+
+/// <summary>Okno nápovědy: seznam odrážek s nadpisy (co je nového, přehled funkcí, o aplikaci).</summary>
+public sealed class InfoWindow : Window
+{
+    public InfoWindow(string title, IEnumerable<string> lines, string? header = null, Action? onUpdate = null)
+    {
+        Title = Tr.T(title);
+        Width = 640; Height = 560;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var stack = new StackPanel { Spacing = 6 };
+        if (header != null) stack.Children.Add(UiKit.Label(header, 13));
+        foreach (var raw in lines)
+        {
+            if (raw.StartsWith("# "))
+                stack.Children.Add(new TextBlock { Text = Tr.T(raw)[2..], FontSize = 15, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            else
+                stack.Children.Add(new TextBlock { Text = "•  " + Tr.T(raw), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 0, 0, 0) });
+        }
+        var buttons = new List<Control>();
+        if (onUpdate != null) buttons.Add(UiKit.Button("Zkontrolovat aktualizace", () => { Close(); onUpdate(); }));
+        buttons.Add(UiKit.Button("Zavřít", Close, true));
+        var dock = new DockPanel { Margin = new Thickness(16) };
+        var bar = UiKit.ButtonRow(buttons.ToArray());
+        bar.Margin = new Thickness(0, 10, 0, 0);
+        DockPanel.SetDock(bar, Dock.Bottom);
+        dock.Children.Add(bar);
+        dock.Children.Add(new ScrollViewer { Content = stack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto });
+        Content = dock;
+        this.CloseOnEscape();
+    }
+}

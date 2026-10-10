@@ -116,11 +116,20 @@ enum Tr {
 \n\nKopírují se soubory s jinou velikostí nebo novější než v cíli.	\n\nFiles with a different size or newer than the destination are copied.
   (všechny podsložky)	 (all subfolders)
  (jen pro čtení)	 (read-only)
+# Aplikace a jazyk	# Application and language
+# Dříve	# Earlier
+# Nové	# New
+# Nástroje	# Tools
+# Panely	# Panels
+# Servery a cloud	# Servers and cloud
+# Základy	# Basics
 (jen lokální složky)	(local folders only)
 Adresa sdílení	Share address
 Adresář nelze otevřít:\n{}\n\n{}	The directory cannot be opened:\n{}\n\n{}
 Aktualizace funguje jen v aplikaci .app (ne při spuštění příkazem swift run).	Updates work only in the .app application (not when started with swift run).
 Aktualizace se nezdařila:\n\n{}	The update failed:\n\n{}
+Aktualizace z GitHubu v menu Nápověda; při startu se jen oznámí nová verze.	Updates from GitHub in the Help menu; at startup you are only told that a new version exists.
+Aktualizace z GitHubu: menu Nápověda → Aktualizovat aplikaci; při startu se jen oznámí nová verze.	Updates from GitHub: Help menu → Update application; at startup you are only told that a new version exists.
 Aktualizovat	Update
 Aktualizovat aplikaci…	Update application…
 Aplikace	Applications
@@ -134,6 +143,8 @@ Archiv vytvořen: {}	Archive created: {}
 Archiv {}	Archive {}
 Archiv „{}“ se nepodařilo otevřít:\n{}	Could not open archive "{}":\n{}
 Archiv „{}“ už existuje. Přepsat?	Archive "{}" already exists. Overwrite?
+Archivy (zip, tar.gz, 7z, rar…) jako složky, balení a rozbalení.	Archives (zip, tar.gz, 7z, rar…) as folders, packing and unpacking.
+Archivy jako složky, balení a rozbalení, dělení a slepování souborů.	Archives as folders, packing and unpacking, splitting and joining files.
 Atributy a časy	Attributes and times
 Atributy a časy ({} položek)	Attributes and times ({} items)
 Atributy lze měnit jen u souborů na lokálním disku.	Attributes can only be changed for files on a local disk.
@@ -148,8 +159,11 @@ Binární soubory se liší.	The binary files differ.
 Budis Commander	Budis Commander
 Chcete existující položku přepsat?	Do you want to overwrite the existing item?
 Chyba	Error
+Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.	Cloud storage (Dropbox, Google Drive, OneDrive…) through the rclone program.
 Cloudová úložiště (rclone)	Cloud storage (rclone)
 Cloudová úložiště (rclone)…	Cloud storage (rclone)…
+Co je nového	What's new
+Co je nového…	What's new…
 Co udělat s {}?	What to do with {}?
 Cíl: {}	Destination: {}
 Další štítky (oddělené čárkou)	Other tags (comma separated)
@@ -163,12 +177,19 @@ Do složky „{}“ nelze zapisovat. Přesuňte aplikaci třeba do složky Aplik
 Do: {}\nPodporováno: .zip, .tar.gz	To: {}\nSupported: .zip, .tar.gz
 Dokumenty	Documents
 Domů	Home
+Dva panely, Tab přepíná mezi nimi. Šipky, Enter a Backspace se pohybují po složkách.	Two panels, Tab switches between them. Arrows, Enter and Backspace move through folders.
+Dva panely, záložky, ovládání z klávesnice, F2 až F8, označování, rychlé hledání, vrácení operací.	Two panels, tabs, keyboard control, F2 to F8, marking, quick search, undo of operations.
+Dvoupanelový správce souborů	Two-panel file manager
 Dělení zrušeno.	Splitting cancelled.
 Dělím {}…	Splitting {}…
 Důvěřovat serveru bez ověření klíče/certifikátu	Trust the server without verifying its key/certificate
 Editace „{}“: po uložení se změny nahrají na server	Editing "{}": changes are uploaded to the server after saving
 Editovat	Edit
+F3 zobrazí soubor, F4 ho upraví (na serveru se změny po uložení nahrají zpět).	F3 views a file, F4 edits it (on a server the changes are uploaded back after saving).
+F5 a F6 kopírují a přesouvají do druhého panelu, F7 vytvoří složku, F8 smaže do koše.	F5 and F6 copy and move to the other panel, F7 creates a folder, F8 deletes to the trash.
+FTP, FTP+TLS a SFTP (heslo i klíč), síťové disky a sdílené složky.	FTP, FTP+TLS and SFTP (password or key), network drives and shared folders.
 Filtr podle typu souboru	File type filter
+Filtr podle typu souboru: tlačítko v panelu ukáže jen obrázky, dokumenty, hudbu, video nebo archivy.	File type filter: the button in the panel shows only images, documents, music, video or archives.
 Filtr „{}“: {} z {} položek (Esc zruší)	Filter "{}": {} of {} items (Esc cancels)
 GitHub vrátil kód {}.	GitHub returned code {}.
 Heslo	Password
@@ -182,6 +203,7 @@ Hledat soubory	Search files
 Hledám…	Searching…
 Hledání duplicit	Duplicate search
 Hledání duplicit funguje jen v lokálních složkách.	Duplicate search works only in local folders.
+Hledání souborů podle názvu a obsahu, hledání duplicit.	Searching files by name and content, finding duplicates.
 Hotovo	Done
 Hromadné přejmenování	Batch rename
 Hromadné přejmenování ({} položek)	Batch rename ({} items)
@@ -246,9 +268,12 @@ Nový	New
 Nový adr.	New dir.
 Nový adresář	New directory
 Náhled souboru na serveru: stiskněte F3.	Preview of a file on the server: press F3.
+Nápověda	Help
 Nástroje	Tools
 Název	Name
 Název archivu musí končit na .zip, .tar.gz nebo .tgz.	The archive name must end with .zip, .tar.gz or .tgz.
+O aplikaci	About
+O aplikaci…	About…
 Oblíbené	Favorites
 Oblíbené a poslední složky	Favorites and recent folders
 Obnovit	Refresh
@@ -261,6 +286,7 @@ Otevřít v aplikaci	Open in application
 Označeno {} z {}, {}	Marked {} of {}, {}
 Označit podle masky	Mark by mask
 Označit vše	Mark all
+Označování souborů, označení podle masky a vrácení posledních operací.	Marking files, marking by mask and undo of the last operations.
 Označte soubory v aktivním panelu a v druhém panelu postavte kurzor na archiv .zip.	Mark files in the active panel and place the cursor on a .zip archive in the other panel.
 Očekávaný součet (vložte pro ověření)	Expected sum (paste to verify)
 Panel rychlého náhledu	Quick view panel
@@ -273,6 +299,8 @@ Pokračovat v přerušeném přenosu	Resume interrupted transfer
 Porovnat adresáře	Compare directories
 Porovnat adresáře podle obsahu	Compare directories by content
 Porovnat dva soubory (obsah)	Compare two files (content)
+Porovnání adresářů a souborů, hromadné přejmenování, kontrolní součty.	Comparing directories and files, batch renaming, checksums.
+Porovnání adresářů a souborů, zrcadlení, hromadné přejmenování.	Comparing directories and files, mirroring, batch renaming.
 Porovnání souborů	File comparison
 Porovnání souborů funguje jen mezi lokálními soubory.	File comparison works only between local files.
 Porovnání: vlevo označeno {}, vpravo {} (chybějící, novější nebo jiné). Zkopírujte je klávesou F5.	Comparison: {} marked on the left, {} on the right (missing, newer or different). Copy them with F5.
@@ -290,12 +318,15 @@ Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone�
 Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.	rclone was not found. Install it in Terminal with "brew install rclone" (or from rclone.org) and click Refresh.
 Prohledá se: 	Searched: 
 Prohledáno souborů: {}	Files searched: {}
+Projekt: {}	Project: {}
 Protokol	Protocol
 Práva	Permissions
 Práva zadejte osmičkově, např. 644.	Enter the permissions in octal, e.g. 644.
 Právě probíhá jiná operace.	Another operation is running.
 Prázdný soubor.	Empty file.
 Písmena	Letters
+Přehled funkcí	Feature overview
+Přehled funkcí…	Feature overview…
 Přejmenovat	Rename
 Přejmenovávám {}	Renaming {}
 Přenos zrušen. Zbylé položky ({}) jde dokončit z menu Nástroje.	The transfer was cancelled. The remaining items ({}) can be finished from the Tools menu.
@@ -316,6 +347,7 @@ Přidáno do archivu: {}	Added to archive: {}
 Přidáno do fronty (ve frontě: {})	Added to the queue (in queue: {})
 Přidávám do {}…	Adding to {}…
 Připojené disky	Connected disks
+Připojení k FTP, FTP+TLS a SFTP serverům, hesla se ukládají bezpečně.	Connecting to FTP, FTP+TLS and SFTP servers, passwords are stored securely.
 Připojení k úložišti „{}“ se nezdařilo:\n\n{}	Connecting to storage "{}" failed:\n\n{}
 Připojit	Connect
 Připojit k serveru	Connect to server
@@ -338,16 +370,21 @@ Rozdělit	Split
 Rozdělit soubor na díly	Split file into parts
 Rozdělit „{}“	Split "{}"
 Rozměry/délka	Dimensions/duration
+Rychlé hledání psaním písmen, filtr názvů a filtr podle typu souboru (tlačítko v panelu).	Quick search by typing letters, a name filter and a file type filter (button in the panel).
 Rychlý náhled	Quick view
+Rychlý náhled, hex, kontrolní součty, dělení a slepování souborů, příkazový řádek.	Quick view, hex, checksums, splitting and joining files, command line.
+Rychlý náhled, příkazový řádek a vlastní příkazy v menu.	Quick view, command line and your own commands in the menu.
 Rychlý přístup	Quick access
 Sada záložek „{}“ otevřena.	Tab set "{}" opened.
 Sady záložek	Tab sets
+Sady záložek: uložte rozložení obou panelů pod jménem a otevřete ho jedním klikem.	Tab sets: save the layout of both panels under a name and open it with one click.
 Sady záložek…	Tab sets…
 Samostatný sloupec s příponou	Separate column with the extension
 Schránka neobsahuje soubory.	The clipboard contains no files.
 Schránka souborů funguje jen pro lokální soubory.	The file clipboard works only for local files.
 Server	Server
 Server: {}\n\n{}	Server: {}\n\n{}
+Sestavení z commitu: {}	Built from commit: {}
 Shoduje se	Matches
 Skryté soubory	Hidden files
 Skrytý	Hidden
@@ -440,6 +477,7 @@ Vytvořit symbolický odkaz	Create symbolic link
 Vytvoří se v {}	It will be created in {}
 Vzhled	Appearance
 Výchozí	Default
+Vývojové sestavení (bez označení verze)	Development build (no version mark)
 Včetně obsahu složek	Including folder contents
 Včetně skrytých	Including hidden
 Včetně skrytých souborů	Including hidden files
@@ -461,8 +499,10 @@ Zdrojová a cílová složka jsou stejné.	The source and destination folders ar
 Zdrojová a cílová složka se nesmí překrývat.	The source and destination folders must not overlap.
 Zdrojový a cílový adresář jsou stejné.	The source and destination directories are the same.
 Zjišťuji, jestli je nová verze…	Checking for a new version…
+Zkontrolovat aktualizace	Check for updates
 Zkopírováno do schránky.	Copied to clipboard.
 Zkopírováno: {} položek. Vložte klávesou ⌘V.	Copied: {} items. Paste with ⌘V.
+Zkratky všech funkcí jsou vidět v menu a jdou změnit v Nastavení.	The shortcuts of all functions are shown in the menus and can be changed in Settings.
 Změny „{}“ se nepodařilo nahrát:\n{}	Changes to "{}" could not be uploaded:\n{}
 Změní se jen štítky, které mají všechny vybrané položky společné; ostatní zůstanou.	Only tags that all selected items have in common are changed; the others stay.
 Změněno	Modified
@@ -471,6 +511,8 @@ Zpět a vpřed v historii panelu: ⌘[ a ⌘].	Back and forward in the panel his
 Zpět v historii	Back in history
 Zrcadlení hotovo.	Mirroring finished.
 Zrcadlení mezi dvěma servery není podporováno. Jeden z panelů musí být místní složka.	Mirroring between two servers is not supported. One of the panels must be a local folder.
+Zrcadlení mezi složkou a serverem (FTP, SFTP, cloud) v obou směrech.	Mirroring between a folder and a server (FTP, SFTP, cloud) in both directions.
+Zrcadlení složky do druhého panelu, i mezi složkou a serverem.	Mirroring a folder to the other panel, also between a folder and a server.
 Zrcadlení zrušeno.	Mirroring cancelled.
 Zrcadlit	Mirror
 Zrcadlit adresář do druhého panelu	Mirror the directory to the other panel
@@ -479,6 +521,7 @@ Zrušit	Cancel
 Zrušit filtr (Esc)	Clear filter (Esc)
 Zrušit výběr	Clear selection
 Zrušit vše	Cancel all
+Záložky v každém panelu a sady záložek, které si pamatují rozložení obou panelů.	Tabs in each panel and tab sets that remember the layout of both panels.
 Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek.	Placeholders: %f file under the cursor, %n its name, %d panel folder, %o other panel folder, %F marked files (or the file under the cursor), %% a percent sign. Paths are quoted automatically.
 cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)	path to rclone (optional, otherwise PATH and Homebrew are searched)
 curl skončil s kódem {}	curl finished with code {}
@@ -511,8 +554,13 @@ vytvoření složky „{}“	creating folder "{}"
 Úložiště	Storage
 Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.	Storage is set up with the rclone program (the "rclone config" command). Here you just pick one and connect it to the active panel.
 Červeně označené názvy jsou prázdné, duplicitní nebo už existují.	Names marked in red are empty, duplicate or already exist.
+Čeština a angličtina (Nastavení, platí po restartu).	Czech and English (Settings, applies after a restart).
+Čeština a angličtina, světlý a tmavý vzhled, nastavení sloupců a písma.	Czech and English, light and dark appearance, column and font settings.
 Čítač	Counter
 číslic {}	digits {}
+Řazení klikem na záhlaví sloupce; řazení se pamatuje zvlášť pro každou složku.	Sorting by clicking a column header; the sorting is remembered separately for each folder.
+Řazení podle typu souboru: klikněte na záhlaví Přípona nebo použijte menu.	Sorting by file type: click the Extension header or use the menu.
+Řazení se pamatuje zvlášť pro každou složku (např. fotky podle data, hudba podle názvu).	Sorting is remembered separately for each folder (e.g. photos by date, music by name).
 Štítky Finderu ({} položek)	Finder tags ({} items)
 Štítky Finderu jde nastavit jen u lokálních souborů.	Finder tags can only be set for local files.
 Štítky Finderu…	Finder tags…
