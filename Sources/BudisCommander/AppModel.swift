@@ -559,6 +559,7 @@ final class AppModel: ObservableObject {
         case .symlink: makeSymlink()
         case .userMenu: sheet = .userMenu
         case .resumeTransfer: resumeTransfer()
+        case .sortByType: active.setSort(.type)
         case .tabSets: sheet = .tabSets
         case .cloud: sheet = .cloud
         case .checkUpdate: Task { await checkForUpdate() }

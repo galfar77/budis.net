@@ -124,6 +124,7 @@ public sealed partial class MainWindow
             _core.ShowNotice("Vzhled: " + _settings.Theme switch { "light" => "světlý", "dark" => "tmavý", _ => "podle systému" });
             await Task.CompletedTask;
         });
+        H("sortType", () => Pane.SetSortAsync(SortKey.Ext));
         S("focusPath", () => ActivePanel.FocusPathBox());
 
         H("connect", () => ShowToolAsync(new ConnectWindow(_core)));

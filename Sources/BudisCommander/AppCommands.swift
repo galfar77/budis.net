@@ -64,6 +64,7 @@ struct AppCommands: Commands {
             item(.dirSizes)
             item(.symlink)
             Divider()
+            item(.sortByType)
             item(.branch)
             item(.quickView)
             item(.thumbnails)

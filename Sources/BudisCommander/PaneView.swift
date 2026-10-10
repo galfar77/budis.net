@@ -123,7 +123,7 @@ struct PaneView: View {
         HStack(spacing: 6) {
             headerButton(L("Název"), .name).frame(maxWidth: .infinity, alignment: .leading)
             if settings.showExt {
-                Text(L("Přípona")).font(.system(size: 11, weight: .semibold)).frame(width: 64, alignment: .leading)
+                headerButton(L("Přípona"), .type).frame(width: 64, alignment: .leading)
             }
             if settings.showPerms {
                 Text(L("Práva")).font(.system(size: 11, weight: .semibold)).frame(width: 78, alignment: .leading)

@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-enum SortKey { case name, size, date }
+enum SortKey { case name, size, date, type }
 
 /// Archiv otevřený jako složka: rozbalený do dočasného adresáře, jen pro čtení.
 struct ArchiveInfo {
@@ -291,6 +291,9 @@ final class PaneState: ObservableObject {
             var r = byName
             switch sortKey {
             case .name: break
+            case .type:
+                let ea = (a.name as NSString).pathExtension, eb = (b.name as NSString).pathExtension
+                r = ea.localizedStandardCompare(eb)
             case .size: r = a.size == b.size ? .orderedSame : (a.size < b.size ? .orderedAscending : .orderedDescending)
             case .date:
                 let da = a.modified ?? .distantPast, db = b.modified ?? .distantPast

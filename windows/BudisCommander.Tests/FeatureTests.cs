@@ -256,3 +256,18 @@ public class UpdaterTests
         Assert.Contains("nejnovější", core.Notice ?? "");
     }
 }
+
+public class SortByTypeTests
+{
+    [Fact]
+    public async Task SortsByExtensionThenName()
+    {
+        using var t = new TempDir();
+        var core = Helpers.NewCore(t.Dir("sorted-here"), t.Dir("other"));
+        foreach (var n in new[] { "b.txt", "a.zip", "c.txt", "d.avi" }) t.File("sorted-here/" + n);
+        t.Dir("sorted-here/slozka");
+        await core.Active.SetSortAsync(SortKey.Ext);
+        var names = core.Active.Items.Where(i => !i.IsParent).Select(i => i.Name).ToList();
+        Assert.Equal(new[] { "slozka", "d.avi", "b.txt", "c.txt", "a.zip" }, names);
+    }
+}

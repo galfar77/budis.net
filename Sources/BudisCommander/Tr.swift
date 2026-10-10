@@ -392,6 +392,7 @@ Tlačítková lišta uživatelských příkazů	Button bar of user commands
 Tmavý	Dark
 Trvale smazat {} ze serveru?	Delete {} from the server permanently?
 Tuto akci nelze vrátit zpět.	This action cannot be undone.
+Třídit podle typu souboru	Sort by file type
 U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.	For SFTP you can enter a private key (RSA/ECDSA); the password is then the key's passphrase.
 Ukázat	Show
 Ukázat ve Finderu	Show in Finder

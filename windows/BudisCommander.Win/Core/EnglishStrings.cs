@@ -418,5 +418,6 @@ Velikost ▲	Size ▲
 Velikost ▼	Size ▼
 Změněno ▲	Modified ▲
 Změněno ▼	Modified ▼
+Třídit podle typu souboru	Sort by file type
 """;
 }
