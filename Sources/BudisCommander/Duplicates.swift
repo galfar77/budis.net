@@ -30,7 +30,7 @@ final class DuplicateFinder: ObservableObject {
             DispatchQueue.main.async {
                 self?.groups = found.sorted { $0.size * Int64($0.files.count) > $1.size * Int64($1.files.count) }
                 self?.running = false
-                self?.status = flag.isSet ? "Zastaveno." : (found.isEmpty ? L("Žádné duplicity.") : L("Nalezeno skupin: \(found.count)"))
+                self?.status = flag.isSet ? L("Zastaveno.") : (found.isEmpty ? L("Žádné duplicity.") : L("Nalezeno skupin: \(found.count)"))
             }
         }
     }

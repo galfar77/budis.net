@@ -199,7 +199,7 @@ final class AppModel: ObservableObject {
             if src.connection == nil && dst.connection == nil && item.isDirectory {
                 let d = dst.url.path, s = item.url.path
                 if d == s || d.hasPrefix(s + "/") {
-                    errors.append(L("\(item.name): nelze \(move ? "přesunout" : "kopírovat") adresář do sebe sama"))
+                    errors.append(L("\(item.name): nelze \(move ? L("přesunout") : L("kopírovat")) adresář do sebe sama"))
                     continue
                 }
             }
@@ -241,7 +241,7 @@ final class AppModel: ObservableObject {
         if !undoCopies.isEmpty || !undoMoves.isEmpty {
             let copies = undoCopies, moves = undoMoves
             let count = copies.count + moves.count
-            pushUndo(L("\(move ? "přesun" : "kopírování") \(count) položek")) { try self.undoTransfer(copies: copies, moves: moves) }
+            pushUndo(L("\(move ? L("přesun") : L("kopírování")) \(count) položek")) { try self.undoTransfer(copies: copies, moves: moves) }
             undoCopies = []
             undoMoves = []
         }
@@ -1033,7 +1033,7 @@ final class AppModel: ObservableObject {
     }
 
     private func pushTrashUndo(_ pairs: [(URL, URL)]) {
-        pushUndo(L("smazání \(pairs.count == 1 ? "„\(pairs[0].1.lastPathComponent)“" : "\(pairs.count) položek")")) {
+        pushUndo(L("smazání \(pairs.count == 1 ? "„\(pairs[0].1.lastPathComponent)“" : L("\(pairs.count) položek"))")) {
             let fm = FileManager.default
             for (trashURL, original) in pairs {
                 try fm.createDirectory(at: original.deletingLastPathComponent(), withIntermediateDirectories: true)

@@ -104,7 +104,7 @@ final class PaneState: ObservableObject {
     }
 
     var title: String {
-        if let a = archive { return "Archiv \(a.name)" + String(url.path.dropFirst(a.root.path.count)) + L(" (jen pro čtení)") }
+        if let a = archive { return L("Archiv \(a.name)") + String(url.path.dropFirst(a.root.path.count)) + L(" (jen pro čtení)") }
         if let c = connection { return c.displayName + remotePath }
         if branch { return url.path + L("  (všechny podsložky)") }
         return url.path

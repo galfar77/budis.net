@@ -131,6 +131,7 @@ Archiv je otevřený jen pro čtení, nelze do něj kopírovat.	The archive is o
 Archiv je otevřený jen pro čtení.	The archive is open read-only.
 Archiv se zrcadlit nedá.	An archive cannot be mirrored.
 Archiv vytvořen: {}	Archive created: {}
+Archiv {}	Archive {}
 Archiv „{}“ se nepodařilo otevřít:\n{}	Could not open archive "{}":\n{}
 Archiv „{}“ už existuje. Přepsat?	Archive "{}" already exists. Overwrite?
 Atributy a časy	Attributes and times
@@ -441,6 +442,7 @@ Zabalit	Pack
 Zabalit do archivu	Pack into archive
 Zadejte velikost dílu jako číslo v MB.	Enter the part size as a number in MB.
 Zapíše záložky obou panelů (záložky na serveru se vynechají).	Saves the tabs of both panels (tabs on a server are left out).
+Zastaveno.	Stopped.
 Zastavit	Stop
 Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“.	No storage is configured yet. Click "Set up storage…".
 Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikněte na „Uložit aktuální…“.	No set is saved yet. Set up the tabs in both panels and click "Save current…".
@@ -472,6 +474,8 @@ Zrušit vše	Cancel all
 Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek.	Placeholders: %f file under the cursor, %n its name, %d panel folder, %o other panel folder, %F marked files (or the file under the cursor), %% a percent sign. Paths are quoted automatically.
 cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)	path to rclone (optional, otherwise PATH and Homebrew are searched)
 curl skončil s kódem {}	curl finished with code {}
+kopírovat	copy
+kopírování	copying
 malá	lower
 na serveru jen podle názvu	on the server by name only
 např. *.jpg nebo část názvu	e.g. *.jpg or part of a name
@@ -480,6 +484,8 @@ použito vícekrát	used more than once
 povinné	required
 prázdné = anonymní	empty = anonymous
 přejmenování „{}“	rename of "{}"
+přesun	move
+přesunout	move
 příkaz (Enter spustí, Esc zavře)	command (Enter runs, Esc closes)
 rclone listremotes selhal.	rclone listremotes failed.
 rclone skončil s kódem {}	rclone finished with code {}
