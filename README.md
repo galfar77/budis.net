@@ -36,7 +36,7 @@ Nebo v Xcode: `File ▸ Open…` a vybrat složku projektu (Package.swift), pak 
 | ⌘P / ⌘E | zabalit (.zip s volitelným heslem, .tar.gz) / rozbalit archiv (i zip s heslem) |
 | ⌘F | hledat soubory podle názvu a obsahu |
 | ⌘, | nastavení: vzhled, písmo, klávesové zkratky |
-| ⌘Y | zrcadlit adresář do druhého panelu (nové a změněné zkopíruje, přebytečné v cíli přesune do koše; s potvrzením) |
+| ⌘Y | zrcadlit adresář do druhého panelu (nové a změněné zkopíruje, přebytečné v cíli přesune do koše; s potvrzením); funguje i mezi složkou a serverem, v obou směrech |
 | ⌘J | příkazový řádek ve složce aktivního panelu |
 | ⌘B | oblíbené a poslední složky |
 | ⌘[ / ⌘] | zpět / vpřed v historii panelu |
@@ -92,6 +92,16 @@ Skript `make-app.sh` umí podepsat aplikaci a poslat ji k notarizaci, pokud mát
 - **Duplicity:** menu Nástroje → Hledat duplicity (podle obsahu, volitelně i druhý panel), výběr přebytečných a do koše.
 - **Sloupce Práva, Vlastník, Rozměry/délka** a **barevné štítky Finderu** (Nastavení; štítky nastavíte z menu Nástroje → Štítky Finderu…).
 - **Zip:** zabalit s heslem, přidat soubory do existujícího zipu (kurzor v druhém panelu na archivu), rozbalit zip s heslem.
+
+## Sady záložek, cloud, aktualizace a jazyk
+
+- **Sady záložek** (menu Nástroje ▸ Sady záložek…): uloží záložky obou panelů pod jménem a otevře je jedním klikem.
+- **Cloudová úložiště** (Nástroje ▸ Cloudová úložiště (rclone)…): Dropbox, Google Drive, OneDrive a další přes program
+  [rclone](https://rclone.org) (`brew install rclone`). Úložiště se nastaví tlačítkem *Nastavit úložiště…* (spustí `rclone config`
+  v Terminálu); pak je cloud v panelu jako obyčejný server.
+- **Aktualizace** (Nástroje ▸ Aktualizovat aplikaci…): stáhne z GitHubu (Releases, tag `macos-latest`) novou verzi a vymění
+  aplikaci. Při startu jen oznámí, že nová verze existuje (jde vypnout v Nastavení). Funguje u aplikace `.app`.
+- **Jazyk**: čeština nebo angličtina v Nastavení (po restartu).
 
 ## Windows
 
