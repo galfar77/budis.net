@@ -36,12 +36,14 @@ struct PaneView: View {
                                     return NSItemProvider(object: item.url as NSURL)
                                 }
                                 .modifier(FolderDrop(item: item, pane: pane, model: model, dropRow: $dropRow, onActivate: onActivate))
-                                .onTapGesture(count: 2) {
-                                    onActivate(); pane.cursor = index; pane.enter()
-                                }
-                                .onTapGesture {
+                                // Jednoduché kliknutí se vyhodnocuje hned: kdyby šlo o onTapGesture vedle onTapGesture(count: 2),
+                                // systém by čekal na možné druhé kliknutí a přepnutí panelu by se zpozdilo.
+                                .simultaneousGesture(TapGesture().onEnded {
                                     onActivate(); pane.cursor = index
-                                }
+                                })
+                                .simultaneousGesture(TapGesture(count: 2).onEnded {
+                                    onActivate(); pane.cursor = index; pane.enter()
+                                })
                         }
     }
 
