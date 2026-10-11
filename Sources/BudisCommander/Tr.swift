@@ -158,6 +158,7 @@ Atributy nastaveny.	Attributes set.
 Automaticky počítat velikosti složek (na pozadí, jen lokální složky)	Calculate folder sizes automatically (in the background, local folders only)
 Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5).	Packing works only on a local disk. Copy the files from the server first (F5).
 Balím {}…	Packing {}…
+Barevná témata: šest vzhledů v Nastavení.	Colour themes: six looks in Settings.
 Barevné téma	Color theme
 Barevné štítky Finderu u názvů	Colored Finder tags next to names
 Beze změny	No change
@@ -480,8 +481,10 @@ Soubory jsou shodné.	The files are identical.
 Spouštět	Run
 Spočítat velikosti složek	Calculate folder sizes
 Správce procesů	Process manager
+Správce procesů: přehled běžících programů, řazení a ukončení (menu Nástroje).	Process manager: running programs, sorting and quitting them (Tools menu).
 Správce procesů…	Process manager…
 Správce přenosů	Transfer manager
+Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat.	Transfer manager: copies and moves run in the background and can be cancelled or retried.
 Správce přenosů…	Transfer manager…
 Spustit teď	Run now
 Spustit znovu	Run again
@@ -501,6 +504,7 @@ Světlý	Light
 Symbolický odkaz jde vytvořit jen na lokální soubor nebo složku.	A symbolic link can only be created for a local file or folder.
 Symbolický odkaz na „{}“	Symbolic link to "{}"
 Synchronizace na pozadí	Background sync
+Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače.	Background sync: saved tasks run on a timer.
 Synchronizace na pozadí…	Background sync…
 Synchronizace „{}“: {}	Sync "{}": {}
 Synchronizace: {}	Sync: {}
@@ -510,6 +514,7 @@ Síť	Network
 Síť a disky	Network and drives
 Telefon (Android)	Phone (Android)
 Telefon (Android)…	Phone (Android)…
+Telefon s Androidem: procházení a přenos souborů přes adb (iPhone není podporován).	Android phone: browse and transfer files via adb (iPhone is not supported).
 Terminál	Terminal
 Terminál zde	Terminal here
 Teď	Now
@@ -544,6 +549,7 @@ Velikost jednoho dílu v MB (např. 100, 700, 4000).\nDíly se uloží do {}	Siz
 Velikost písma: {} pt	Font size: {} pt
 Velikost složky	Folder size
 Velikosti	Sizes
+Vestavěný terminál v okně aplikace (Ctrl+`).	Built-in terminal inside the app window (Ctrl+`).
 Vlastník	Owner
 Vložit soubory ze schránky	Paste files from clipboard
 Vpřed v historii	Forward in history

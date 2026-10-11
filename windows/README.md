@@ -63,6 +63,15 @@ vzhled jde přepnout i z menu *Zobrazit*.
 
 Nastavení a stav se ukládají do `%APPDATA%\BudisCommander\settings.json`.
 
+## Procesy, přenosy, terminál, telefon a témata
+
+- **Správce procesů:** běžící programy, řazení, ukončení.
+- **Správce přenosů:** kopírování a přesuny běží na pozadí; zrušení, opakování, vyčištění hotových.
+- **Synchronizace na pozadí:** uložené úlohy (složka ↔ složka, server nebo cloud) se spouštějí podle časovače.
+- **Vestavěný terminál** (Ctrl+`): na Macu plný terminál (SwiftTerm), ve Windows řádkový.
+- **Telefon s Androidem** přes adb (adb si aplikace umí stáhnout); iPhone podporován není.
+- **Barevná témata:** šest vzhledů v Nastavení.
+
 ## Vývoj a testy
 
 ```powershell

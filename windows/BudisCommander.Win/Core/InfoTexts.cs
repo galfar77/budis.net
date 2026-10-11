@@ -10,6 +10,12 @@ public static class InfoTexts
             var list = new List<string>
             {
         "# Nové",
+            "Správce procesů: přehled běžících programů, řazení a ukončení (menu Nástroje).",
+            "Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat.",
+            "Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače.",
+            "Vestavěný terminál v okně aplikace (Ctrl+`).",
+            "Telefon s Androidem: procházení a přenos souborů přes adb (iPhone není podporován).",
+            "Barevná témata: šest vzhledů v Nastavení.",
             "Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání.",
             "Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.",
             "Průhledné okno ve stylu skla (jde vypnout v Nastavení).",

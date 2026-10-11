@@ -615,5 +615,11 @@ Stahuji Android platform-tools z dl.google.com…	Downloading Android platform-t
 iPhone a iPad: Apple neumožňuje přímý přístup k souborům přes kabel, použijte AirDrop nebo iCloud.	iPhone and iPad: Apple does not allow direct file access over a cable, use AirDrop or iCloud.
 Program adb nebyl nalezen. Nainstalujte ho v okně Telefon.	adb was not found. Install it in the Phone window.
 Připojení k telefonu se nezdařilo:\n\n{}	Connecting to the phone failed:\n\n{}
+Správce procesů: přehled běžících programů, řazení a ukončení (menu Nástroje).	Process manager: running programs, sorting and quitting them (Tools menu).
+Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat.	Transfer manager: copies and moves run in the background and can be cancelled or retried.
+Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače.	Background sync: saved tasks run on a timer.
+Vestavěný terminál v okně aplikace (Ctrl+`).	Built-in terminal inside the app window (Ctrl+`).
+Telefon s Androidem: procházení a přenos souborů přes adb (iPhone není podporován).	Android phone: browse and transfer files via adb (iPhone is not supported).
+Barevná témata: šest vzhledů v Nastavení.	Colour themes: six looks in Settings.
 """;
 }

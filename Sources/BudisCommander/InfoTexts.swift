@@ -4,6 +4,12 @@ import Foundation
 enum InfoTexts {
     static let news: [String] = [
         L("# Nové"),
+        L("Správce procesů: přehled běžících programů, řazení a ukončení (menu Nástroje)."),
+        L("Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat."),
+        L("Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače."),
+        L("Vestavěný terminál v okně aplikace (Ctrl+`)."),
+        L("Telefon s Androidem: procházení a přenos souborů přes adb (iPhone není podporován)."),
+        L("Barevná témata: šest vzhledů v Nastavení."),
         L("Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání."),
         L("Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2."),
         L("Průhledné okno ve stylu skla (jde vypnout v Nastavení)."),
