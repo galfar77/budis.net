@@ -16,6 +16,8 @@ public sealed class PtySession : IDisposable
     public event Action<int>? Exited;
     public string Executable { get; }
     public bool Running { get; private set; }
+    /// <summary>Poslední chyba při čtení výstupu nebo při jeho zpracování (pro hledání potíží).</summary>
+    public string? LastError { get; private set; }
 
     private Stream? _in, _out;
     private Process? _proc;                        // jen mimo Windows
@@ -82,10 +84,14 @@ public sealed class PtySession : IDisposable
                 while ((n = s.Read(buf, 0, buf.Length)) > 0)
                 {
                     var c = dec.GetChars(buf, 0, n, chars, 0);
-                    if (c > 0 && !_disposed) Output?.Invoke(new string(chars, 0, c));
+                    if (c > 0 && !_disposed)
+                    {
+                        try { Output?.Invoke(new string(chars, 0, c)); }
+                        catch (Exception e) { LastError = "Zpracování výstupu: " + e; }
+                    }
                 }
             }
-            catch { /* roura se zavřela */ }
+            catch (Exception e) { LastError = "Čtení výstupu: " + e.Message; }
             RaiseExited(exitCode);
         }) { IsBackground = true, Name = "pty-reader" };
         th.Start();

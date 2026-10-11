@@ -152,13 +152,15 @@ public class PtyTests
         if (!OperatingSystem.IsWindows() && !File.Exists("/usr/bin/script") && !File.Exists("/bin/script")) return;
         var t = new TerminalBuffer(100, 30);
         using var pty = new PtySession();
-        pty.Output += s => { lock (t) t.Write(s); };
+        var raw = new System.Text.StringBuilder();
+        pty.Output += s => { lock (t) { raw.Append(s); t.Write(s); } };
         t.Reply += pty.Write;                                    // ConPTY čeká na odpověď na dotaz na polohu kurzoru
         pty.Start(Path.GetTempPath(), 100, 30);
         await Task.Delay(500);
         pty.Write(OperatingSystem.IsWindows() ? "echo ahoj-pty-123\r" : "echo ahoj-pty-$((100+23))\r");
         Assert.True(await WaitFor(t, s => s.Contains("ahoj-pty-123") && s.Split('\n').Any(l => l.Trim() == "ahoj-pty-123")),
-                    "Výstup příkazu se v terminálu neobjevil:\n" + t.GetScreenText());
+                    "Výstup příkazu se v terminálu neobjevil:\n" + t.GetScreenText()
+                    + "\n--- chyba: " + pty.LastError + "\n--- surový výstup: " + raw.ToString().Replace("\x1b", "<ESC>").Replace("\r", "<CR>").Replace("\n", "<LF>\n"));
     }
 
     [Fact]
