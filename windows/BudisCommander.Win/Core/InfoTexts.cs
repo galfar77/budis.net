@@ -10,6 +10,10 @@ public static class InfoTexts
             var list = new List<string>
             {
         "# Nové",
+            "Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top, ssh a další celoobrazovkové programy.",
+            "Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.",
+            "Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.",
+            "Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda).",
             "Správce procesů: přehled běžících programů, řazení a ukončení (menu Nástroje).",
             "Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat.",
             "Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače.",

@@ -68,9 +68,13 @@ Nastavení a stav se ukládají do `%APPDATA%\BudisCommander\settings.json`.
 - **Správce procesů:** běžící programy, řazení, ukončení.
 - **Správce přenosů:** kopírování a přesuny běží na pozadí; zrušení, opakování, vyčištění hotových.
 - **Synchronizace na pozadí:** uložené úlohy (složka ↔ složka, server nebo cloud) se spouštějí podle časovače.
-- **Vestavěný terminál** (Ctrl+`): na Macu plný terminál (SwiftTerm), ve Windows řádkový.
+- **Vestavěný terminál** (Ctrl+`): plný terminál, fungují i vim, top a ssh (Mac: SwiftTerm, Windows: ConPTY).
 - **Telefon s Androidem** přes adb (adb si aplikace umí stáhnout); iPhone podporován není.
 - **Barevná témata:** šest vzhledů v Nastavení.
+- **Rozšířené označování:** menu Označit/Nástroje → *Označit podle podmínek…* (maska, druh, velikost, datum změny), *Označit stejnou příponu*, *Převrátit označení*.
+- **Hledání v archivech a v obsahu na serveru:** v okně hledání volba *Hledat i uvnitř archivů*; na serveru a v cloudu jde hledat i text (čte se první MB nejvýše 300 souborů).
+- **Aktualizace:** volitelně se nová verze stáhne a nainstaluje sama (Nastavení); předchozí verzi vrátí menu Nápověda → *Vrátit předchozí verzi…*.
+- **Podepsání aplikací** (macOS Developer ID s notarizací, Windows Authenticode): zapne se po zadání certifikátů, návod v [docs/PODEPISOVANI.md](docs/PODEPISOVANI.md).
 
 ## Vývoj a testy
 

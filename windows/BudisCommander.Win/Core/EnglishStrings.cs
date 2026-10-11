@@ -621,5 +621,56 @@ Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače.	Bac
 Vestavěný terminál v okně aplikace (Ctrl+`).	Built-in terminal inside the app window (Ctrl+`).
 Telefon s Androidem: procházení a přenos souborů přes adb (iPhone není podporován).	Android phone: browse and transfer files via adb (iPhone is not supported).
 Barevná témata: šest vzhledů v Nastavení.	Colour themes: six looks in Settings.
+text v souboru (čte se jen první MB, nejvýše 300 souborů)	text in file (only the first MB is read, at most 300 files)
+Hledat i uvnitř archivů (zip, tar, 7z, rar…)	Also search inside archives (zip, tar, 7z, rar…)
+, přečteno souborů {}	, files read {}
+ (další se kvůli limitu nečetly)	 (more were not read because of the limit)
+Nalezeno {}, prohledaných složek {}, přečteno souborů {}	Found {}, folders searched {}, files read {}
+Nalezeno {}, prohledaných složek {}, přečteno souborů {} (další se kvůli limitu nečetly)	Found {}, folders searched {}, files read {} (more were not read because of the limit)
+Označit podle podmínek	Mark by conditions
+Maska názvu	Name mask
+např. *.jpg;*.png	e.g. *.jpg;*.png
+Druh	Kind
+Soubory i složky	Files and folders
+Jen soubory	Files only
+Jen složky	Folders only
+Velikost od	Size from
+např. 10 MB	e.g. 10 MB
+Velikost do	Size to
+např. 1 GB	e.g. 1 GB
+Změněno od	Modified from
+např. 1. 1. 2025	e.g. 1 Jan 2025
+Změněno do	Modified to
+např. 31. 12. 2025	e.g. 31 Dec 2025
+Akce	Action
+Odznačit	Unmark
+Vyplněné podmínky platí zároveň. Složky nemají velikost, takže při zadané velikosti se vynechají.	All filled-in conditions apply together. Folders have no size, so they are skipped when a size is given.
+Provést	Run
+Velikost zapište např. 500, 10 KB nebo 1,5 MB.	Enter a size such as 500, 10 KB or 1.5 MB.
+Datum zapište např. 31. 12. 2025 nebo 2025-12-31.	Enter a date such as 31. 12. 2025 or 2025-12-31.
+Označeno: 	Marked: 
+Odznačeno: 	Unmarked: 
+Označit podle podmínek…	Mark by conditions…
+Označit stejnou příponu	Mark same extension
+Vrátit předchozí verzi…	Go back to the previous version…
+Novou verzi stáhnout a nainstalovat automaticky (při ukončení aplikace)	Download and install new versions automatically (when the app quits)
+Novou verzi stáhnout a nainstalovat automaticky (projeví se po restartu)	Download and install new versions automatically (takes effect after a restart)
+Předchozí verze není k dispozici. Uloží se při příští aktualizaci.	The previous version is not available. It is saved at the next update.
+Vrátit předchozí verzi?	Go back to the previous version?
+Teď nainstalovaná verze se uloží a půjde na ni přepnout zpět stejným příkazem. Aplikace se restartuje.	The currently installed version is kept, and you can switch back to it with the same command. The app will restart.
+Teď nainstalovaná verze se uloží a půjde na ni přepnout zpět stejným příkazem.	The currently installed version is kept, and you can switch back to it with the same command.
+Vrátit	Go back
+Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is downloaded and will be installed when the app quits. You can go back to the previous one in the Help menu.
+Nová verze je nainstalovaná, projeví se po restartu aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is installed and takes effect after the app restarts. You can go back to the previous one in the Help menu.
+Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from Help → Update the application.
+Tuto aplikaci nelze vyměnit za sebe samu (nespustili jste samostatný BudisCommander.exe).	This application cannot replace itself (you did not run the standalone BudisCommander.exe).
+Návrat se nezdařil:\n\n	Going back failed:\n\n
+Předchozí verze je připravená	The previous version is ready
+Stažená aplikace je prázdná.	The downloaded application is empty.
+[proces skončil, kód {}; Restartovat v liště nahoře]	[process ended, code {}; use Restart in the bar above]
+Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top, ssh a další celoobrazovkové programy.	The built-in terminal on Windows is a full terminal (ConPTY): vim, top, ssh and other full-screen programs work.
+Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.	Advanced marking: by mask, kind, size and modification date, same extension, invert marks.
+Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.	Search inside archives and in the contents of files on servers and in the cloud.
+Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda).	Automatic installation of updates (optional, in Settings) and going back to the previous version (Help menu).
 """;
 }

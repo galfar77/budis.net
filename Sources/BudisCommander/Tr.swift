@@ -115,6 +115,7 @@ enum Tr {
 \n\nKlíč/certifikát serveru nelze ověřit. Pokud serveru věříte, zaškrtněte při připojení „Důvěřovat serveru bez ověření“.	\n\nThe server's key/certificate cannot be verified. If you trust the server, tick "Trust the server without verification" when connecting.
 \n\nKopírují se soubory s jinou velikostí nebo novější než v cíli.	\n\nFiles with a different size or newer than the destination are copied.
   (všechny podsložky)	 (all subfolders)
+ (další se kvůli limitu nečetly)	 (more were not read because of the limit)
  (jen pro čtení)	 (read-only)
 # Aplikace a jazyk	# Application and language
 # Dříve	# Earlier
@@ -125,11 +126,13 @@ enum Tr {
 # Základy	# Basics
 (jen lokální složky)	(local folders only)
 , chyb {}: {}	, errors {}: {}
+, přečteno souborů {}	, files read {}
 , smazáno {}	, deleted {}
 Adresa (https://…)	Address (https://…)
 Adresa sdílení	Share address
 Adresa serveru (jen mimo AWS)	Server address (not for AWS)
 Adresář nelze otevřít:\n{}\n\n{}	The directory cannot be opened:\n{}\n\n{}
+Akce	Action
 Aktualizace funguje jen v aplikaci .app (ne při spuštění příkazem swift run).	Updates work only in the .app application (not when started with swift run).
 Aktualizace se nezdařila:\n\n{}	The update failed:\n\n{}
 Aktualizace z GitHubu v menu Nápověda; při startu se jen oznámí nová verze.	Updates from GitHub in the Help menu; at startup you are only told that a new version exists.
@@ -156,6 +159,7 @@ Atributy a časy ({} položek)	Attributes and times ({} items)
 Atributy lze měnit jen u souborů na lokálním disku.	Attributes can only be changed for files on a local disk.
 Atributy nastaveny.	Attributes set.
 Automaticky počítat velikosti složek (na pozadí, jen lokální složky)	Calculate folder sizes automatically (in the background, local folders only)
+Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda).	Automatic installation of updates (optional, in Settings) and going back to the previous version (Help menu).
 Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5).	Packing works only on a local disk. Copy the files from the server first (F5).
 Balím {}…	Packing {}…
 Barevná témata: šest vzhledů v Nastavení.	Colour themes: six looks in Settings.
@@ -180,6 +184,7 @@ Cíl	Target
 Cíl v cloudu zapište jako rclone:název:/cesta.	Write a cloud target as rclone:name:/path.
 Cíl: {}	Destination: {}
 Další štítky (oddělené čárkou)	Other tags (comma separated)
+Datum zapište např. 31. 12. 2025 nebo 2025-12-31.	Enter a date such as 31. 12. 2025 or 2025-12-31.
 Disk se nepodařilo připojit:\n{}	The disk could not be connected:\n{}
 Disky	Volumes
 Do koše	To Trash
@@ -191,6 +196,7 @@ Do: {}\nPodporováno: .zip, .tar.gz	To: {}\nSupported: .zip, .tar.gz
 Dokončete přihlášení v Terminálu a prohlížeči, pak klikněte na Obnovit.	Finish the login in Terminal and the browser, then click Refresh.
 Dokumenty	Documents
 Domů	Home
+Druh	Kind
 Druh (nextcloud, owncloud, other)	Type (nextcloud, owncloud, other)
 Dva panely, Tab přepíná mezi nimi. Šipky, Enter a Backspace se pohybují po složkách.	Two panels, Tab switches between them. Arrows, Enter and Backspace move through folders.
 Dva panely, záložky, ovládání z klávesnice, F2 až F8, označování, rychlé hledání, vrácení operací.	Two panels, tabs, keyboard control, F2 to F8, marking, quick search, undo of operations.
@@ -217,12 +223,14 @@ Heslo klíče	Key password
 Heslo pro přidané soubory	Password for the added files
 Hledat	Search
 Hledat duplicity	Find duplicates
+Hledat i uvnitř archivů (zip, tar, 7z, rar…)	Also search inside archives (zip, tar, 7z, rar…)
 Hledat i ve složce druhého panelu	Also search the other panel's folder
 Hledat soubory	Search files
 Hledám…	Searching…
 Hledání duplicit	Duplicate search
 Hledání duplicit funguje jen v lokálních složkách.	Duplicate search works only in local folders.
 Hledání souborů podle názvu a obsahu, hledání duplicit.	Searching files by name and content, finding duplicates.
+Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.	Search inside archives and in the contents of files on servers and in the cloud.
 Hotovo	Done
 Hromadné přejmenování	Batch rename
 Hromadné přejmenování ({} položek)	Batch rename ({} items)
@@ -230,6 +238,7 @@ ID účtu nebo klíče	Account or key ID
 Instalace se nezdařila: {}	The installation failed: {}
 Jazyk (po restartu)	Language (after restart)
 Je dostupná nová verze	A new version is available
+Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from Help → Update the application.
 Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from the Tools menu → Update application.
 Jednosměrně: zdroj se kopíruje do cíle. Cíl v cloudu zapište jako rclone:název:/cesta (úložiště přidáte v menu Nástroje → Cloudová úložiště).	One way: the source is copied to the target. Write a cloud target as rclone:name:/path (add storage in the Tools menu → Cloud storage).
 Jednou denně	Once a day
@@ -239,6 +248,8 @@ Jen hudba	Music only
 Jen obrázky	Images only
 Jen rozdíly	Differences only
 Jen ručně	Manual only
+Jen složky	Folders only
+Jen soubory	Files only
 Jen video	Video only
 Každou hodinu	Every hour
 Každých 15 minut	Every 15 minutes
@@ -266,6 +277,7 @@ Kopírování: {} → {}	Copy: {} → {}
 Kopíruji: {}	Copying: {}
 Les	Forest
 Maska	Mask
+Maska názvu	Name mask
 Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.	Mask: [N] = name without extension, [E] = extension, [C] = counter.
 Mazat v cíli soubory, které ve zdroji nejsou	Delete files in the target that are not in the source
 Mazání	Deleting
@@ -284,6 +296,8 @@ Nainstalovat adb	Install adb
 Nainstalovat rclone	Install rclone
 Nalezeno skupin: {}	Groups found: {}
 Nalezeno {}, prohledaných složek {}	Found {}, folders searched {}
+Nalezeno {}, prohledaných složek {}, přečteno souborů {}	Found {}, folders searched {}, files read {}
+Nalezeno {}, prohledaných složek {}, přečteno souborů {} (další se kvůli limitu nečetly)	Found {}, folders searched {}, files read {} (more were not read because of the limit)
 Nalezeno {}, prohledáno {}	Found {}, searched {}
 Naposledy navštívené	Recently visited
 Např. *.jpg	E.g. *.jpg
@@ -301,7 +315,11 @@ Není co vracet.	Nothing to undo.
 Není žádný přerušený přenos.	There is no interrupted transfer.
 Neshoduje se	Does not match
 Nic k zobrazení.	Nothing to show.
+Novou verzi stáhnout a nainstalovat automaticky (projeví se po restartu)	Download and install new versions automatically (takes effect after a restart)
+Novou verzi stáhnout a nainstalovat automaticky (při ukončení aplikace)	Download and install new versions automatically (when the app quits)
 Nová synchronizace	New sync
+Nová verze je nainstalovaná, projeví se po restartu aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is installed and takes effect after the app restarts. You can go back to the previous one in the Help menu.
+Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is downloaded and will be installed when the app quits. You can go back to the previous one in the Help menu.
 Nová záložka	New tab
 Nová záložka (⌘T)	New tab (⌘T)
 Nové přenosy (F5, F6) se řadí do fronty a běží postupně. Zrušenou nebo selhanou úlohu lze spustit znovu.	New transfers (F5, F6) are queued and run one after another. A cancelled or failed job can be run again.
@@ -311,6 +329,7 @@ Nový adresář	New directory
 Náhled souboru na serveru: stiskněte F3.	Preview of a file on the server: press F3.
 Nápověda	Help
 Nástroje	Tools
+Návrat se nezdařil:\n\n	Going back failed:\n\n
 Název	Name
 Název archivu musí končit na .zip, .tar.gz nebo .tgz.	The archive name must end with .zip, .tar.gz or .tgz.
 Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.	The name may only contain letters, digits, a hyphen and an underscore.
@@ -324,12 +343,19 @@ Obsahuje	Contains
 Oceán	Ocean
 Odebrat z oblíbených	Remove from favorites
 Odpojit od serveru	Disconnect from server
+Odznačeno: 	Unmarked: 
+Odznačit	Unmark
 Odznačit podle masky	Unmark by mask
 Operace	Operation
 Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit.	Terminal with rclone and a browser with the service login will open. When done, click Refresh.
 Otevřít v aplikaci	Open in application
 Označeno {} z {}, {}	Marked {} of {}, {}
+Označeno: 	Marked: 
+Označit	Mark
 Označit podle masky	Mark by mask
+Označit podle podmínek	Mark by conditions
+Označit podle podmínek…	Mark by conditions…
+Označit stejnou příponu	Mark same extension
 Označit vše	Mark all
 Označování souborů, označení podle masky a vrácení posledních operací.	Marking files, marking by mask and undo of the last operations.
 Označte soubory v aktivním panelu a v druhém panelu postavte kurzor na archiv .zip.	Mark files in the active panel and place the cursor on a .zip archive in the other panel.
@@ -374,6 +400,7 @@ Prohledá se: 	Searched:
 Prohledáno souborů: {}	Files searched: {}
 Projekt: {}	Project: {}
 Protokol	Protocol
+Provést	Run
 Práva	Permissions
 Práva zadejte osmičkově, např. 644.	Enter the permissions in octal, e.g. 644.
 Právě probíhá jiná operace.	Another operation is running.
@@ -381,6 +408,8 @@ Prázdný soubor.	Empty file.
 Průhledné okno ve stylu skla	Glass-style translucent window
 Průhledné okno ve stylu skla (jde vypnout v Nastavení).	Glass-style translucent window (can be turned off in Settings).
 Písmena	Letters
+Předchozí verze je připravená	The previous version is ready
+Předchozí verze není k dispozici. Uloží se při příští aktualizaci.	The previous version is not available. It is saved at the next update.
 Přehled funkcí	Feature overview
 Přehled funkcí…	Feature overview…
 Přejmenovat	Rename
@@ -396,6 +425,7 @@ Přesunout	Move
 Přesunout do koše (jen v cíli): {}	Move to Trash (destination only): {}
 Přesunout {} do koše?	Move {} to the Trash?
 Přesunout {} souborů do koše?	Move {} files to the Trash?
+Převrátit označení	Invert marks
 Při startu zkontrolovat, jestli je dostupná nová verze	Check for a new version at startup
 Přidat	Add
 Přidat aktuální složku	Add current folder
@@ -409,7 +439,8 @@ Přidáno do fronty (ve frontě: {})	Added to the queue (in queue: {})
 Přidávám do {}…	Adding to {}…
 Připojené disky	Connected disks
 Připojení k FTP, FTP+TLS a SFTP serverům, hesla se ukládají bezpečně.	Connecting to FTP, FTP+TLS and SFTP servers, passwords are stored securely.
-Připojení k telefonu se nezdařilo:\n\n{}	Connecting to the phone failed:\n\n{}
+Připojení k telefonu se nezdařilo:\n\n{}	Could not connect to the phone:\n\n{}
+Připojení k telefonu se nezdařilo:\n\n{}	Could not connect to the phone:\n\n{}
 Připojení k úložišti „{}“ se nezdařilo:\n\n{}	Connecting to storage "{}" failed:\n\n{}
 Připojit	Connect
 Připojit k serveru	Connect to server
@@ -433,6 +464,7 @@ Rozdělit	Split
 Rozdělit soubor na díly	Split file into parts
 Rozdělit „{}“	Split "{}"
 Rozměry/délka	Dimensions/duration
+Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.	Advanced marking: by mask, kind, size and modification date, same extension, invert marks.
 Rychlé hledání psaním písmen, filtr názvů a filtr podle typu souboru (tlačítko v panelu).	Quick search by typing letters, a name filter and a file type filter (button in the panel).
 Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání.	Fast search through the index (Spotlight on Mac, Windows Search on Windows): just leave it ticked in the search window.
 Rychlý náhled	Quick view
@@ -475,6 +507,7 @@ Soubor nelze přečíst.	The file cannot be read.
 Soubor rozdělen na {} dílů.	The file was split into {} parts.
 Soubor se nepodařilo přečíst.	The file could not be read.
 Soubor slepen: {}	File joined: {}
+Soubory i složky	Files and folders
 Soubory jsou příliš velké pro porovnání po řádcích (nad 3 MB nebo 8000 řádků) a liší se.	The files are too large for a line comparison (over 3 MB or 8000 lines) and they differ.
 Soubory jsou příliš velké pro porovnání po řádcích, ale jsou shodné.	The files are too large for a line comparison, but they are identical.
 Soubory jsou shodné.	The files are identical.
@@ -494,6 +527,7 @@ Stahuji náhled {}…	Downloading preview of {}…
 Stahuji rclone z oficiálního webu rclone.org…	Downloading rclone from the official rclone.org site…
 Stahuji {}…	Downloading {}…
 Stahuji: 	Downloading: 
+Stažená aplikace je prázdná.	The downloaded application is empty.
 Stažené	Downloads
 Stažení selhalo (kód {}).	The download failed (code {}).
 Stažený archiv neobsahuje aplikaci.	The downloaded archive does not contain the application.
@@ -518,11 +552,14 @@ Telefon s Androidem: procházení a přenos souborů přes adb (iPhone není pod
 Terminál	Terminal
 Terminál zde	Terminal here
 Teď	Now
+Teď nainstalovaná verze se uloží a půjde na ni přepnout zpět stejným příkazem.	The currently installed version is kept, and you can switch back to it with the same command.
+Teď nainstalovaná verze se uloží a půjde na ni přepnout zpět stejným příkazem. Aplikace se restartuje.	The currently installed version is kept, and you can switch back to it with the same command. The app will restart.
 Tisk…	Print…
 Tlačítková lišta uživatelských příkazů	Button bar of user commands
 Tmavý	Dark
 Trvale smazat {} ze serveru?	Delete {} from the server permanently?
 Tuto akci nelze vrátit zpět.	This action cannot be undone.
+Tuto aplikaci nelze vyměnit za sebe samu (nespustili jste samostatný BudisCommander.exe).	This application cannot replace itself (you did not run the standalone BudisCommander.exe).
 Třídit podle typu souboru	Sort by file type
 U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.	For SFTP you can enter a private key (RSA/ECDSA); the password is then the key's passphrase.
 Ukončit	End
@@ -545,17 +582,24 @@ Uživatelské příkazy…	User commands…
 V telefonu zapněte Nastavení → Možnosti pro vývojáře → Ladění přes USB, připojte ho kabelem a potvrďte v telefonu dotaz na povolení. Soubory telefonu se pak otevřou v aktivním panelu.	On the phone turn on Settings → Developer options → USB debugging, connect it with a cable and confirm the permission prompt on the phone. The phone files then open in the active panel.
 VELKÁ	UPPER
 Velikost	Size
+Velikost do	Size to
 Velikost jednoho dílu v MB (např. 100, 700, 4000).\nDíly se uloží do {}	Size of one part in MB (e.g. 100, 700, 4000).\nThe parts are saved to {}
+Velikost od	Size from
 Velikost písma: {} pt	Font size: {} pt
 Velikost složky	Folder size
+Velikost zapište např. 500, 10 KB nebo 1,5 MB.	Enter a size such as 500, 10 KB or 1.5 MB.
 Velikosti	Sizes
 Vestavěný terminál v okně aplikace (Ctrl+`).	Built-in terminal inside the app window (Ctrl+`).
+Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top, ssh a další celoobrazovkové programy.	The built-in terminal on Windows is a full terminal (ConPTY): vim, top, ssh and other full-screen programs work.
 Vlastník	Owner
 Vložit soubory ze schránky	Paste files from clipboard
 Vpřed v historii	Forward in history
 Vráceno: {}	Undone: {}
 Vrácení se nepodařilo:\n{}	Undo failed:\n{}
+Vrátit	Go back
 Vrátit poslední operaci	Undo last operation
+Vrátit předchozí verzi?	Go back to the previous version?
+Vrátit předchozí verzi…	Go back to the previous version…
 Vrátit: {}	Undo: {}
 Vyberte aspoň jeden soubor.	Select at least one file.
 Vyberte lokální soubor s archivem (zip, tar, tar.gz, tar.bz2, 7z…).	Select a local archive file (zip, tar, tar.gz, tar.bz2, 7z…).
@@ -568,6 +612,7 @@ Vybrat…	Choose…
 Vyjmout soubory do schránky	Cut files to clipboard
 Vyjmuto: {} položek. Vložte klávesou ⌘V.	Cut: {} items. Paste with ⌘V.
 Vynutit ukončení	Force quit
+Vyplněné podmínky platí zároveň. Složky nemají velikost, takže při zadané velikosti se vynechají.	All filled-in conditions apply together. Folders have no size, so they are skipped when a size is given.
 Vytvořit	Create
 Vytvořit symbolický odkaz	Create symbolic link
 Vytvoří se v {}	It will be created in {}
@@ -613,6 +658,8 @@ Zkratky všech funkcí jsou vidět v menu a jdou změnit v Nastavení.	The short
 Změny „{}“ se nepodařilo nahrát:\n{}	Changes to "{}" could not be uploaded:\n{}
 Změní se jen štítky, které mají všechny vybrané položky společné; ostatní zůstanou.	Only tags that all selected items have in common are changed; the others stay.
 Změněno	Modified
+Změněno do	Modified to
+Změněno od	Modified from
 Zobrazit	View
 Zpět a vpřed v historii panelu: ⌘[ a ⌘].	Back and forward in the panel history: ⌘[ and ⌘].
 Zpět v historii	Back in history
@@ -632,6 +679,7 @@ Zrušit vše	Cancel all
 Záložky v každém panelu a sady záložek, které si pamatují rozložení obou panelů.	Tabs in each panel and tab sets that remember the layout of both panels.
 Západ slunce	Sunset
 Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek.	Placeholders: %f file under the cursor, %n its name, %d panel folder, %o other panel folder, %F marked files (or the file under the cursor), %% a percent sign. Paths are quoted automatically.
+[proces skončil, kód {}; Restartovat v liště nahoře]	[process ended, code {}; use Restart in the bar above]
 beze změn	no changes
 cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)	path to rclone (optional, otherwise PATH and Homebrew are searched)
 chyba	error
@@ -646,6 +694,11 @@ malá	lower
 na serveru jen podle názvu	on the server by name only
 naposledy {}: {}	last {}: {}
 např. *.jpg nebo část názvu	e.g. *.jpg or part of a name
+např. *.jpg;*.png	e.g. *.jpg;*.png
+např. 1 GB	e.g. 1 GB
+např. 1. 1. 2025	e.g. 1 Jan 2025
+např. 10 MB	e.g. 10 MB
+např. 31. 12. 2025	e.g. 31 Dec 2025
 např. Dokumenty na zálohu	e.g. Documents for backup
 např. ftp.example.com	e.g. ftp.example.com
 název úložiště (písmena a číslice)	storage name (letters and digits)
@@ -664,6 +717,7 @@ složka, nebo rclone:název:/cesta	folder, or rclone:name:/path
 smazání {}	deleting {}
 smb://server/sdílená-složka	smb://server/shared-folder
 text v souboru (volitelné)	text in the file (optional)
+text v souboru (čte se jen první MB, nejvýše 300 souborů)	text in file (only the first MB is read, at most 300 files)
 ve frontě	queued
 ve frontě: {}	in queue: {}
 volitelné, např. ~/.ssh/id_rsa	optional, e.g. ~/.ssh/id_rsa

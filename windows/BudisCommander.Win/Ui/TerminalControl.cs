@@ -47,7 +47,7 @@ public sealed class TerminalControl : Control
         _pty.Output += text => { _queue.Add(text); if (!_pending) { _pending = true; Dispatcher.UIThread.Post(Flush, DispatcherPriority.Render); } };
         _pty.Exited += code => Dispatcher.UIThread.Post(() =>
         {
-            _buf.Write($"\r\n\x1b[2m[proces skončil, kód {code}; Restartovat v liště nahoře]\x1b[0m\r\n");
+            _buf.Write("\r\n\x1b[2m" + BudisCommander.Core.Tr.T($"[proces skončil, kód {code}; Restartovat v liště nahoře]") + "\x1b[0m\r\n");
             TitleOrStateChanged?.Invoke(); InvalidateVisual();
         });
     }

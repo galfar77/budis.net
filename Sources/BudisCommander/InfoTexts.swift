@@ -4,6 +4,9 @@ import Foundation
 enum InfoTexts {
     static let news: [String] = [
         L("# Nové"),
+        L("Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení."),
+        L("Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu."),
+        L("Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda)."),
         L("Správce procesů: přehled běžících programů, řazení a ukončení (menu Nástroje)."),
         L("Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat."),
         L("Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače."),
