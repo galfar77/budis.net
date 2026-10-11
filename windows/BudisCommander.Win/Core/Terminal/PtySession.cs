@@ -24,6 +24,7 @@ public sealed class PtySession : IDisposable
     private SafeFileHandle? _inWrite, _outRead;
     private int _cols = 80, _rows = 24;
     private volatile bool _disposed;
+    private int _exitRaised;
 
     public PtySession(string? executable = null)
     {
@@ -35,6 +36,7 @@ public sealed class PtySession : IDisposable
     public void Start(string workDir, int cols, int rows, string? args = null)
     {
         Stop();
+        _exitRaised = 0;
         _cols = Math.Max(2, cols); _rows = Math.Max(2, rows);
         if (!Directory.Exists(workDir)) workDir = Environment.CurrentDirectory;
         if (OperatingSystem.IsWindows()) StartConPty(workDir, args); else StartScript(workDir, args);
@@ -84,10 +86,18 @@ public sealed class PtySession : IDisposable
                 }
             }
             catch { /* roura se zavřela */ }
-            var wasRunning = Running; Running = false;
-            if (wasRunning && !_disposed) { try { Exited?.Invoke(exitCode()); } catch { } }
+            RaiseExited(exitCode);
         }) { IsBackground = true, Name = "pty-reader" };
         th.Start();
+    }
+
+    /// <summary>Ohlásí konec programu právě jednou (ve Windows ho zjistí čekání na proces, jinde konec výstupu).</summary>
+    private void RaiseExited(Func<int> exitCode)
+    {
+        if (Interlocked.Exchange(ref _exitRaised, 1) != 0) return;
+        Running = false;
+        if (_disposed) return;
+        try { Exited?.Invoke(exitCode()); } catch { }
     }
 
     // ---------------------------------------------------------------- mimo Windows (test, vývoj)
@@ -139,7 +149,15 @@ public sealed class PtySession : IDisposable
         _in = new FileStream(_inWrite, FileAccess.Write, 1, false);
         _out = new FileStream(_outRead, FileAccess.Read, 1, false);
         var ph = _procHandle;
-        Pump(_out, () => { try { WaitForSingleObject(ph, 2000); return GetExitCodeProcess(ph, out var code) ? code : -1; } catch { return -1; } });
+        int ExitCode() { try { return GetExitCodeProcess(ph, out var code) ? code : -1; } catch { return -1; } }
+        Pump(_out, ExitCode);
+        // ConPTY nezavře výstupní rouru, dokud se nezavře konzole, proto se na konec programu čeká přímo na proces
+        new Thread(() =>
+        {
+            WaitForSingleObject(ph, 0xFFFFFFFF);
+            Thread.Sleep(150);                                  // ať se doplní poslední výstup
+            RaiseExited(ExitCode);
+        }) { IsBackground = true, Name = "pty-wait" }.Start();
     }
 
     private const int PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;

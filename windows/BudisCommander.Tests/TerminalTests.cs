@@ -153,6 +153,7 @@ public class PtyTests
         var t = new TerminalBuffer(100, 30);
         using var pty = new PtySession();
         pty.Output += s => { lock (t) t.Write(s); };
+        t.Reply += pty.Write;                                    // ConPTY čeká na odpověď na dotaz na polohu kurzoru
         pty.Start(Path.GetTempPath(), 100, 30);
         await Task.Delay(500);
         pty.Write(OperatingSystem.IsWindows() ? "echo ahoj-pty-123\r" : "echo ahoj-pty-$((100+23))\r");
@@ -167,7 +168,9 @@ public class PtyTests
         using var pty = new PtySession();
         var done = new TaskCompletionSource<int>();
         pty.Exited += c => done.TrySetResult(c);
-        pty.Output += _ => { };
+        var t = new TerminalBuffer(80, 24);
+        t.Reply += pty.Write;
+        pty.Output += s => { lock (t) t.Write(s); };
         pty.Start(Path.GetTempPath(), 80, 24);
         await Task.Delay(500);
         pty.Write("exit\r");

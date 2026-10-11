@@ -20,7 +20,6 @@ public sealed class TerminalControl : Control
     private (int row, int col)? _selA, _selB;               // výběr: absolutní řádek a sloupec
     private bool _selecting;
     private string _workDir = Environment.CurrentDirectory;
-    private int _lastVersion = -1;
     private bool _pending;
     private readonly StringWriterQueue _queue = new();
 
