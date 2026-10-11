@@ -47,6 +47,7 @@ enum Rclone {
         let fm = FileManager.default
         let own = (custom as NSString).expandingTildeInPath
         if !own.isEmpty, fm.isExecutableFile(atPath: own) { return own }
+        if fm.isExecutableFile(atPath: RcloneSetup.installedExe) { return RcloneSetup.installedExe }
         var dirs = (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map(String.init)
         dirs += ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/usr/bin"]
         for d in dirs {
@@ -218,11 +219,17 @@ struct CloudSheet: View {
     @State private var selected = ""
     @State private var status = ""
     @State private var exe: String?
+    @State private var installing = false
+    @State private var providerID = CloudProvider.all[0].id
+    @State private var newName = CloudProvider.all[0].id
+    @State private var values: [String: String] = [:]
+
+    private var provider: CloudProvider { CloudProvider.all.first { $0.id == providerID } ?? CloudProvider.all[0] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(L("Cloudová úložiště (rclone)")).font(.headline)
-            Text(L("Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu."))
+            Text(L("Vyberte úložiště a připojte ho do aktivního panelu. Nové přidáte níže; program rclone si aplikace umí sama stáhnout."))
                 .font(.system(size: 12)).foregroundStyle(.secondary)
             if !remotes.isEmpty {
                 Picker(L("Úložiště"), selection: $selected) {
@@ -232,10 +239,14 @@ struct CloudSheet: View {
             if !status.isEmpty {
                 Text(status).font(.system(size: 12)).foregroundStyle(.secondary)
             }
-            TextField(L("cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)"), text: $settings.rclonePath)
-                .textFieldStyle(.roundedBorder)
+            if exe == nil {
+                HStack {
+                    Button(L("Nainstalovat rclone")) { Task { await install() } }
+                        .disabled(installing)
+                    if installing { ProgressView().controlSize(.small) }
+                }
+            }
             HStack {
-                Button(L("Nastavit úložiště…")) { openConfig() }.disabled(exe == nil)
                 Button(L("Obnovit")) { Task { await refresh() } }
                 Spacer()
                 Button(L("Zavřít")) { dismiss() }.keyboardShortcut(.cancelAction)
@@ -247,24 +258,96 @@ struct CloudSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(selected.isEmpty)
             }
+            Divider()
+            Text(L("Přidat úložiště")).font(.system(size: 13, weight: .semibold))
+            Picker(L("Služba"), selection: $providerID) {
+                ForEach(CloudProvider.all) { Text(L($0.title)).tag($0.id) }
+            }
+            .onChange(of: providerID) { _, new in
+                newName = new
+                values = Dictionary(uniqueKeysWithValues: provider.fields.map { ($0.key, $0.defaultValue) })
+            }
+            TextField(L("název úložiště (písmena a číslice)"), text: $newName).textFieldStyle(.roundedBorder)
+            if provider.browser {
+                Text(L("Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit."))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+            } else {
+                ForEach(provider.fields) { f in
+                    if f.secret {
+                        SecureField(L(f.label), text: binding(f.key)).textFieldStyle(.roundedBorder)
+                    } else {
+                        TextField(L(f.label), text: binding(f.key)).textFieldStyle(.roundedBorder)
+                    }
+                }
+            }
+            HStack {
+                Button(L("Přidat úložiště")) { Task { await add() } }.disabled(exe == nil)
+                Button(L("Pokročilé nastavení (rclone config)…")) { openConfig() }.disabled(exe == nil)
+                Spacer()
+            }
+            TextField(L("cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)"), text: $settings.rclonePath)
+                .textFieldStyle(.roundedBorder)
         }
         .padding(16)
-        .frame(width: 520)
+        .frame(width: 540)
         .task { await refresh() }
     }
 
-    private func refresh() async {
+    private func binding(_ key: String) -> Binding<String> {
+        Binding(get: { values[key] ?? provider.fields.first { $0.key == key }?.defaultValue ?? "" },
+                set: { values[key] = $0 })
+    }
+
+    private func install() async {
+        installing = true
+        status = L("Stahuji rclone z oficiálního webu rclone.org…")
+        do {
+            _ = try await RcloneSetup.install()
+        } catch {
+            status = L("Instalace se nezdařila: \(error.localizedDescription)")
+        }
+        installing = false
+        await refresh()
+    }
+
+    private func add() async {
+        guard let exe else { status = L("Nejdřív nainstalujte rclone."); return }
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        guard RcloneSetup.isValidName(name) else {
+            status = L("Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.")
+            return
+        }
+        if remotes.contains(name) { status = L("Úložiště „\(name)“ už existuje."); return }
+        do {
+            if provider.browser {
+                try RcloneSetup.addWithBrowser(exe: exe, name: name, provider: provider)
+                status = L("Dokončete přihlášení v Terminálu a prohlížeči, pak klikněte na Obnovit.")
+                return
+            }
+            var all = Dictionary(uniqueKeysWithValues: provider.fields.map { ($0.key, $0.defaultValue) })
+            for (k, v) in values { all[k] = v }
+            try await RcloneSetup.addWithFields(exe: exe, name: name, provider: provider, values: all)
+            status = L("Úložiště „\(name)“ přidáno.")
+        } catch {
+            status = error.localizedDescription
+        }
+        await refresh(keepStatus: true)
+    }
+
+    private func refresh(keepStatus: Bool = false) async {
         exe = Rclone.findExecutable(custom: settings.rclonePath)
         guard let exe else {
             remotes = []
             selected = ""
-            status = L("Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.")
+            status = L("Program rclone zatím není nainstalovaný. Klikněte na „Nainstalovat rclone“.")
             return
         }
         do {
             remotes = try await Rclone.listRemotes(exe)
             if !remotes.contains(selected) { selected = remotes.first ?? "" }
-            status = remotes.isEmpty ? L("Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“.") : "rclone: \(exe)"
+            if !keepStatus {
+                status = remotes.isEmpty ? L("Zatím není nastavené žádné úložiště. Přidejte ho níže.") : "rclone: \(exe)"
+            }
         } catch {
             status = error.localizedDescription
         }

@@ -27,7 +27,10 @@ struct ContentView: View {
             functionBar
             if settings.showButtonBar && !settings.userCommands.isEmpty { userBar }
         }
-        .background(WindowAccessor())
+        .background(WindowAccessor(glass: settings.glass))
+        .background {
+            if settings.glass { VisualEffectBackground().ignoresSafeArea() }
+        }
         .preferredColorScheme(settings.colorScheme)
         .focusable()
         .focusEffectDisabled()
@@ -299,11 +302,41 @@ struct PDFViewer: NSViewRepresentable {
 
 /// Zajistí, že si okno pamatuje svou polohu a velikost.
 struct WindowAccessor: NSViewRepresentable {
+    /// Průhledné okno ve stylu skla: okno je průhledné a pod obsahem je rozostřené pozadí (VisualEffectBackground).
+    var glass = false
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async { view.window?.setFrameAutosaveName("BudisCommanderMain") }
+        let glass = glass
+        DispatchQueue.main.async {
+            view.window?.setFrameAutosaveName("BudisCommanderMain")
+            Self.configure(view.window, glass: glass)
+        }
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {
+        let glass = glass
+        DispatchQueue.main.async { Self.configure(nsView.window, glass: glass) }
+    }
+
+    private static func configure(_ window: NSWindow?, glass: Bool) {
+        guard let window else { return }
+        window.isOpaque = !glass
+        window.backgroundColor = glass ? .clear : .windowBackgroundColor
+        window.titlebarAppearsTransparent = glass
+    }
+}
+
+/// Rozostřené pozadí okna (průhledné „sklo“ s náznakem plochy pod oknem).
+struct VisualEffectBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .underWindowBackground
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }

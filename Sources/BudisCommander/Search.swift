@@ -39,6 +39,74 @@ final class FileSearch: ObservableObject {
         }
     }
 
+    // MARK: Hledání přes Spotlight
+
+    private static func spotlightEscape(_ s: String) -> String {
+        s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+    }
+
+    /// Dotaz pro mdfind: názvy podle masek (oddělených středníkem) a případně text v obsahu.
+    static func spotlightQuery(mask: String, text: String) -> String {
+        let patterns = (mask.trimmingCharacters(in: .whitespaces).isEmpty ? "*" : mask)
+            .split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            .map { p -> String in (p.contains("*") || p.contains("?")) ? p : "*\(p)*" }
+        let names = patterns.map { "kMDItemFSName == \"\(spotlightEscape($0))\"c" }.joined(separator: " || ")
+        var query = "(" + (names.isEmpty ? "kMDItemFSName == \"*\"" : names) + ")"
+        let needle = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !needle.isEmpty { query += " && kMDItemTextContent == \"\(spotlightEscape(needle))\"cd" }
+        return query
+    }
+
+    private static func runSpotlight(_ query: String, root: String, flag: CancelFlag) -> [URL] {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/mdfind")
+        p.arguments = ["-onlyin", root, query]
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = FileHandle.nullDevice
+        do { try p.run() } catch { return [] }
+        var buffer = Data()
+        var urls: [URL] = []
+        let handle = out.fileHandleForReading
+        while !flag.isSet {
+            let chunk = handle.availableData
+            if chunk.isEmpty { break }
+            buffer.append(chunk)
+            while let nl = buffer.firstIndex(of: 10) {
+                let line = String(decoding: buffer[buffer.startIndex..<nl], as: UTF8.self)
+                buffer.removeSubrange(buffer.startIndex...nl)
+                if !line.isEmpty { urls.append(URL(fileURLWithPath: line)) }
+                if urls.count >= FileSearch.limit { p.terminate(); return urls }
+            }
+        }
+        if flag.isSet { p.terminate() }
+        p.waitUntilExit()
+        return urls
+    }
+
+    /// Nejdřív zkusí rychlý index Spotlight; když nic nenajde (složka není indexovaná), hledá procházením složek.
+    func startWithIndex(root: URL, mask: String, text: String, hidden: Bool) {
+        stop()
+        results = []
+        scanned = 0
+        running = true
+        let flag = CancelFlag()
+        self.flag = flag
+        let query = FileSearch.spotlightQuery(mask: mask, text: text)
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let hits = FileSearch.runSpotlight(query, root: root.path, flag: flag)
+            if flag.isSet { return }
+            DispatchQueue.main.async {
+                if !hits.isEmpty {
+                    self?.results = hits
+                    self?.running = false
+                } else {
+                    self?.start(root: root, mask: mask, text: text, hidden: hidden)
+                }
+            }
+        }
+    }
+
     /// Hledání podle názvu na serveru: prochází složky do šířky (nejvýš 3000 výpisů).
     func startRemote(conn: RemoteConnection, root: String, mask: String, hidden: Bool) {
         stop()
@@ -127,6 +195,7 @@ struct SearchSheet: View {
     @State private var mask = "*"
     @State private var text = ""
     @State private var hidden = false
+    @State private var useIndex = true
     @State private var conn: RemoteConnection?
 
     var body: some View {
@@ -143,6 +212,9 @@ struct SearchSheet: View {
             }
             .textFieldStyle(.roundedBorder)
             Toggle(L("Včetně skrytých souborů"), isOn: $hidden).font(.system(size: 12))
+            if conn == nil {
+                Toggle(L("Nejdřív zkusit rychlý index Spotlight (jen indexované složky)"), isOn: $useIndex).font(.system(size: 12))
+            }
 
             HStack {
                 if search.running {
@@ -194,7 +266,11 @@ struct SearchSheet: View {
             Dialogs.error(L("Složka „\(root)“ neexistuje."))
             return
         }
-        search.start(root: URL(fileURLWithPath: root), mask: mask, text: text, hidden: hidden)
+        if useIndex {
+            search.startWithIndex(root: URL(fileURLWithPath: root), mask: mask, text: text, hidden: hidden)
+        } else {
+            search.start(root: URL(fileURLWithPath: root), mask: mask, text: text, hidden: hidden)
+        }
     }
 
     private func relative(_ url: URL) -> String {

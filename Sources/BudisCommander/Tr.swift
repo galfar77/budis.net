@@ -124,7 +124,9 @@ enum Tr {
 # Servery a cloud	# Servers and cloud
 # Základy	# Basics
 (jen lokální složky)	(local folders only)
+Adresa (https://…)	Address (https://…)
 Adresa sdílení	Share address
+Adresa serveru (jen mimo AWS)	Server address (not for AWS)
 Adresář nelze otevřít:\n{}\n\n{}	The directory cannot be opened:\n{}\n\n{}
 Aktualizace funguje jen v aplikaci .app (ne při spuštění příkazem swift run).	Updates work only in the .app application (not when started with swift run).
 Aktualizace se nezdařila:\n\n{}	The update failed:\n\n{}
@@ -132,8 +134,10 @@ Aktualizace z GitHubu v menu Nápověda; při startu se jen oznámí nová verze
 Aktualizace z GitHubu: menu Nápověda → Aktualizovat aplikaci; při startu se jen oznámí nová verze.	Updates from GitHub: Help menu → Update application; at startup you are only told that a new version exists.
 Aktualizovat	Update
 Aktualizovat aplikaci…	Update application…
+Amazon S3 a kompatibilní	Amazon S3 and compatible
 Aplikace	Applications
 Aplikace neběží jako balíček .app (spuštěná příkazem swift run).	The application is not running as an .app bundle (started with swift run).
+Aplikační klíč	Application key
 Archiv	Archive
 Archiv je chráněný heslem	The archive is password protected
 Archiv je otevřený jen pro čtení, nelze do něj kopírovat.	The archive is open read-only, you cannot copy into it.
@@ -159,6 +163,7 @@ Binární soubory se liší.	The binary files differ.
 Budis Commander	Budis Commander
 Chcete existující položku přepsat?	Do you want to overwrite the existing item?
 Chyba	Error
+Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.	Cloud without manual setup: the application downloads rclone by itself and adds Google Drive, Dropbox, OneDrive, Box, S3, WebDAV or B2.
 Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.	Cloud storage (Dropbox, Google Drive, OneDrive…) through the rclone program.
 Cloudová úložiště (rclone)	Cloud storage (rclone)
 Cloudová úložiště (rclone)…	Cloud storage (rclone)…
@@ -175,8 +180,10 @@ Do koše: 	To Trash:
 Do koše: {}	To Trash: {}
 Do složky „{}“ nelze zapisovat. Přesuňte aplikaci třeba do složky Aplikace ve vašem domovském adresáři.	The folder "{}" is not writable. Move the application to, for example, the Applications folder in your home directory.
 Do: {}\nPodporováno: .zip, .tar.gz	To: {}\nSupported: .zip, .tar.gz
+Dokončete přihlášení v Terminálu a prohlížeči, pak klikněte na Obnovit.	Finish the login in Terminal and the browser, then click Refresh.
 Dokumenty	Documents
 Domů	Home
+Druh (nextcloud, owncloud, other)	Type (nextcloud, owncloud, other)
 Dva panely, Tab přepíná mezi nimi. Šipky, Enter a Backspace se pohybují po složkách.	Two panels, Tab switches between them. Arrows, Enter and Backspace move through folders.
 Dva panely, záložky, ovládání z klávesnice, F2 až F8, označování, rychlé hledání, vrácení operací.	Two panels, tabs, keyboard control, F2 to F8, marking, quick search, undo of operations.
 Dvoupanelový správce souborů	Two-panel file manager
@@ -192,6 +199,7 @@ Filtr podle typu souboru	File type filter
 Filtr podle typu souboru: tlačítko v panelu ukáže jen obrázky, dokumenty, hudbu, video nebo archivy.	File type filter: the button in the panel shows only images, documents, music, video or archives.
 Filtr „{}“: {} z {} položek (Esc zruší)	Filter "{}": {} of {} items (Esc cancels)
 GitHub vrátil kód {}.	GitHub returned code {}.
+Google Disk	Google Drive
 Heslo	Password
 Heslo archivu (volitelné)	Archive password (optional)
 Heslo klíče	Key password
@@ -207,6 +215,8 @@ Hledání souborů podle názvu a obsahu, hledání duplicit.	Searching files by
 Hotovo	Done
 Hromadné přejmenování	Batch rename
 Hromadné přejmenování ({} položek)	Batch rename ({} items)
+ID účtu nebo klíče	Account or key ID
+Instalace se nezdařila: {}	The installation failed: {}
 Jazyk (po restartu)	Language (after restart)
 Je dostupná nová verze	A new version is available
 Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from the Tools menu → Update application.
@@ -237,6 +247,7 @@ Maska	Mask
 Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.	Mask: [N] = name without extension, [E] = extension, [C] = counter.
 Mažu {}	Deleting {}
 Mažu: 	Deleting: 
+Microsoft OneDrive	Microsoft OneDrive
 Miniatury souborů	File thumbnails
 Miniatury souborů místo ikon	File thumbnails instead of icons
 Máte nejnovější verzi.	You have the latest version.
@@ -245,6 +256,7 @@ Nahrát	Upload
 Nahrát změny na server?	Upload changes to the server?
 Nahrávám změny „{}“ na server…	Uploading changes of "{}" to the server…
 Nahrávám: 	Uploading: 
+Nainstalovat rclone	Install rclone
 Nalezeno skupin: {}	Groups found: {}
 Nalezeno {}, prohledaných složek {}	Found {}, folders searched {}
 Nalezeno {}, prohledáno {}	Found {}, searched {}
@@ -257,6 +269,8 @@ Nastavit úložiště…	Set up storage…
 Nastavuji atributy…	Setting attributes…
 Nechte prázdné pro archiv bez hesla. Zip používá starší šifrování (dobré proti náhodnému nahlédnutí, ne proti útočníkovi); heslo je po dobu balení vidět v seznamu procesů.	Leave empty for an archive without a password. Zip uses older encryption (good against casual peeking, not against an attacker); the password is visible in the process list while packing.
 Nechte prázdné pro soubory bez hesla.	Leave empty for files without a password.
+Nejdřív nainstalujte rclone.	Install rclone first.
+Nejdřív zkusit rychlý index Spotlight (jen indexované složky)	Try the fast Spotlight index first (indexed folders only)
 Nejmenší velikost (kB)	Minimum size (kB)
 Není co vracet.	Nothing to undo.
 Není žádný přerušený přenos.	There is no interrupted transfer.
@@ -272,6 +286,7 @@ Nápověda	Help
 Nástroje	Tools
 Název	Name
 Název archivu musí končit na .zip, .tar.gz nebo .tgz.	The archive name must end with .zip, .tar.gz or .tgz.
+Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.	The name may only contain letters, digits, a hyphen and an underscore.
 O aplikaci	About
 O aplikaci…	About…
 Oblíbené	Favorites
@@ -282,6 +297,7 @@ Obsahuje	Contains
 Odebrat z oblíbených	Remove from favorites
 Odpojit od serveru	Disconnect from server
 Odznačit podle masky	Unmark by mask
+Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit.	Terminal with rclone and a browser with the service login will open. When done, click Refresh.
 Otevřít v aplikaci	Open in application
 Označeno {} z {}, {}	Marked {} of {}, {}
 Označit podle masky	Mark by mask
@@ -296,6 +312,7 @@ Podle systému	Follow system
 Podporované: smb://, afp://, nfs://. O přihlášení se postará systém.	Supported: smb://, afp://, nfs://. The system takes care of the login.
 Pokračovat	Resume
 Pokračovat v přerušeném přenosu	Resume interrupted transfer
+Pokročilé nastavení (rclone config)…	Advanced setup (rclone config)…
 Porovnat adresáře	Compare directories
 Porovnat adresáře podle obsahu	Compare directories by content
 Porovnat dva soubory (obsah)	Compare two files (content)
@@ -308,6 +325,7 @@ Porovnávám obsah ({}/{})…	Comparing content ({}/{})…
 Porovnávám obsah {} souborů…	Comparing the content of {} files…
 Porovnávám se serverem…	Comparing with the server…
 Porovnávám…	Comparing…
+Poskytovatel (AWS, Minio, Wasabi…)	Provider (AWS, Minio, Wasabi…)
 Postavte kurzor na první díl souboru (název končí na .001).	Place the cursor on the first part of the file (the name ends with .001).
 Postavte kurzor v obou panelech na soubor, který chcete porovnat.	Place the cursor on the file you want to compare in both panels.
 Použít	Apply
@@ -316,6 +334,7 @@ Počítám rozdíly…	Calculating differences…
 Procházím složky…	Browsing folders…
 Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone“ nebo zadejte jeho cestu.	rclone was not found. Install it with "brew install rclone" or enter its path.
 Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.	rclone was not found. Install it in Terminal with "brew install rclone" (or from rclone.org) and click Refresh.
+Program rclone zatím není nainstalovaný. Klikněte na „Nainstalovat rclone“.	rclone is not installed yet. Click "Install rclone".
 Prohledá se: 	Searched: 
 Prohledáno souborů: {}	Files searched: {}
 Projekt: {}	Project: {}
@@ -324,6 +343,8 @@ Práva	Permissions
 Práva zadejte osmičkově, např. 644.	Enter the permissions in octal, e.g. 644.
 Právě probíhá jiná operace.	Another operation is running.
 Prázdný soubor.	Empty file.
+Průhledné okno ve stylu skla	Glass-style translucent window
+Průhledné okno ve stylu skla (jde vypnout v Nastavení).	Glass-style translucent window (can be turned off in Settings).
 Písmena	Letters
 Přehled funkcí	Feature overview
 Přehled funkcí…	Feature overview…
@@ -343,6 +364,7 @@ Přidat aktuální složku	Add current folder
 Přidat do archivu v druhém panelu	Add to the archive in the other panel
 Přidat příkaz	Add command
 Přidat {} do „{}“?	Add {} to "{}"?
+Přidat úložiště	Add storage
 Přidáno do archivu: {}	Added to archive: {}
 Přidáno do fronty (ve frontě: {})	Added to the queue (in queue: {})
 Přidávám do {}…	Adding to {}…
@@ -358,6 +380,7 @@ Příkazový řádek	Command line
 Příkazy fungují jen v lokální složce.\n	Commands work only in a local folder.\n
 Přípona	Extension
 Quick Look funguje jen u lokálních souborů.	Quick Look works only for local files.
+Region (např. eu-central-1)	Region (e.g. eu-central-1)
 Regulární výraz (v náhradě lze použít $1, $2…)	Regular expression (use $1, $2… in the replacement)
 Rozbaleno do {}	Extracted to {}
 Rozbalení stažené aplikace selhalo.	Unpacking the downloaded application failed.
@@ -371,6 +394,7 @@ Rozdělit soubor na díly	Split file into parts
 Rozdělit „{}“	Split "{}"
 Rozměry/délka	Dimensions/duration
 Rychlé hledání psaním písmen, filtr názvů a filtr podle typu souboru (tlačítko v panelu).	Quick search by typing letters, a name filter and a file type filter (button in the panel).
+Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání.	Fast search through the index (Spotlight on Mac, Windows Search on Windows): just leave it ticked in the search window.
 Rychlý náhled	Quick view
 Rychlý náhled, hex, kontrolní součty, dělení a slepování souborů, příkazový řádek.	Quick view, hex, checksums, splitting and joining files, command line.
 Rychlý náhled, příkazový řádek a vlastní příkazy v menu.	Quick view, command line and your own commands in the menu.
@@ -400,6 +424,7 @@ Složka „{}“ neexistuje.	Folder "{}" does not exist.
 Složka: 	Folder: 
 Složka: {}	Folder: {}
 Složky jsou shodné, není co zrcadlit.	The folders are identical, there is nothing to mirror.
+Služba	Service
 Smazat	Delete
 Smazat na serveru: {}	Delete on server: {}
 Smazat sadu	Delete the set
@@ -414,6 +439,7 @@ Soubory jsou shodné.	The files are identical.
 Spočítat velikosti složek	Calculate folder sizes
 Stahuji aktualizaci…	Downloading the update…
 Stahuji náhled {}…	Downloading preview of {}…
+Stahuji rclone z oficiálního webu rclone.org…	Downloading rclone from the official rclone.org site…
 Stahuji {}…	Downloading {}…
 Stahuji: 	Downloading: 
 Stažené	Downloads
@@ -467,6 +493,7 @@ Vyberte aspoň jeden soubor.	Select at least one file.
 Vyberte lokální soubor s archivem (zip, tar, tar.gz, tar.bz2, 7z…).	Select a local archive file (zip, tar, tar.gz, tar.bz2, 7z…).
 Vyberte lokální soubor, který chcete rozdělit.	Select the local file you want to split.
 Vyberte soukromý SSH klíč	Select a private SSH key
+Vyberte úložiště a připojte ho do aktivního panelu. Nové přidáte níže; program rclone si aplikace umí sama stáhnout.	Pick a storage and connect it to the active panel. Add a new one below; the application can download rclone by itself.
 Vybrané duplicity půjde vrátit příkazem Vrátit poslední operaci.	Selected duplicates can be restored with Undo last operation.
 Vybrat přebytečné (ponechat nejstarší)	Select redundant (keep the oldest)
 Vybrat…	Choose…
@@ -483,6 +510,7 @@ Včetně skrytých	Including hidden
 Včetně skrytých souborů	Including hidden files
 Všechny podsložky najednou (Branch view)	All subfolders at once (Branch view)
 Všechny soubory	All files
+WebDAV (Nextcloud, ownCloud…)	WebDAV (Nextcloud, ownCloud…)
 Z archivu lze soubory jen kopírovat (F5), ne přesouvat.	Files can only be copied (F5) from an archive, not moved.
 Zabalit	Pack
 Zabalit do archivu	Pack into archive
@@ -491,6 +519,7 @@ Zapíše záložky obou panelů (záložky na serveru se vynechají).	Saves the 
 Zastaveno.	Stopped.
 Zastavit	Stop
 Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“.	No storage is configured yet. Click "Set up storage…".
+Zatím není nastavené žádné úložiště. Přidejte ho níže.	No storage is set up yet. Add one below.
 Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikněte na „Uložit aktuální…“.	No set is saved yet. Set up the tabs in both panels and click "Save current…".
 Zavřít	Close
 Zavřít záložku	Close tab
@@ -531,6 +560,7 @@ malá	lower
 na serveru jen podle názvu	on the server by name only
 např. *.jpg nebo část názvu	e.g. *.jpg or part of a name
 např. ftp.example.com	e.g. ftp.example.com
+název úložiště (písmena a číslice)	storage name (letters and digits)
 použito vícekrát	used more than once
 povinné	required
 prázdné = anonymní	empty = anonymous
@@ -553,6 +583,8 @@ vytvoření složky „{}“	creating folder "{}"
 {}: {} z {} položek	{}: {} of {} items
 Úložiště	Storage
 Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.	Storage is set up with the rclone program (the "rclone config" command). Here you just pick one and connect it to the active panel.
+Úložiště „{}“ přidáno.	Storage "{}" added.
+Úložiště „{}“ už existuje.	Storage "{}" already exists.
 Červeně označené názvy jsou prázdné, duplicitní nebo už existují.	Names marked in red are empty, duplicate or already exist.
 Čeština a angličtina (Nastavení, platí po restartu).	Czech and English (Settings, applies after a restart).
 Čeština a angličtina, světlý a tmavý vzhled, nastavení sloupců a písma.	Czech and English, light and dark appearance, column and font settings.

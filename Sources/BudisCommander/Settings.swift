@@ -135,6 +135,10 @@ final class Settings: ObservableObject {
     @Published var showButtonBar: Bool {
         didSet { UserDefaults.standard.set(showButtonBar, forKey: "showButtonBar") }
     }
+    /// Průhledné okno ve stylu skla.
+    @Published var glass: Bool {
+        didSet { UserDefaults.standard.set(glass, forKey: "glass") }
+    }
     /// Jazyk rozhraní: "cs" nebo "en" (změna se projeví po restartu aplikace).
     @Published var language: String {
         didSet { UserDefaults.standard.set(language, forKey: "language") }
@@ -178,6 +182,7 @@ final class Settings: ObservableObject {
         showTags = d.object(forKey: "showTags") as? Bool ?? true
         rclonePath = d.string(forKey: "rclonePath") ?? ""
         language = d.string(forKey: "language") ?? "cs"
+        glass = d.object(forKey: "glass") as? Bool ?? true
         autoCheckUpdates = d.object(forKey: "autoCheckUpdates") as? Bool ?? true
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
             // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
@@ -246,6 +251,7 @@ struct SettingsSheet: View {
             Toggle(L("Barevné štítky Finderu u názvů"), isOn: $settings.showTags)
             Toggle(L("Miniatury souborů místo ikon"), isOn: $settings.showThumbs)
             Toggle(L("Automaticky počítat velikosti složek (na pozadí, jen lokální složky)"), isOn: $settings.autoDirSizes)
+            Toggle(L("Průhledné okno ve stylu skla"), isOn: $settings.glass)
             Toggle(L("Tlačítková lišta uživatelských příkazů"), isOn: $settings.showButtonBar)
             Toggle(L("Při startu zkontrolovat, jestli je dostupná nová verze"), isOn: $settings.autoCheckUpdates)
 

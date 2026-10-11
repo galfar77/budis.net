@@ -4,6 +4,9 @@ import Foundation
 enum InfoTexts {
     static let news: [String] = [
         L("# Nové"),
+        L("Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání."),
+        L("Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2."),
+        L("Průhledné okno ve stylu skla (jde vypnout v Nastavení)."),
         L("Řazení podle typu souboru: klikněte na záhlaví Přípona nebo použijte menu."),
         L("Řazení se pamatuje zvlášť pro každou složku (např. fotky podle data, hudba podle názvu)."),
         L("Filtr podle typu souboru: tlačítko v panelu ukáže jen obrázky, dokumenty, hudbu, video nebo archivy."),

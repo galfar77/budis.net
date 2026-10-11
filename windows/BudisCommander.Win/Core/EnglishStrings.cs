@@ -510,5 +510,8 @@ Druh (nextcloud, owncloud, other)	Type (nextcloud, owncloud, other)
 ID účtu nebo klíče	Account or key ID
 Aplikační klíč	Application key
 Průhledné okno ve stylu skla (Mica / Acrylic)	Glass-style translucent window (Mica / Acrylic)
+Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání.	Fast search through the index (Spotlight on Mac, Windows Search on Windows): just leave it ticked in the search window.
+Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.	Cloud without manual setup: the application downloads rclone by itself and adds Google Drive, Dropbox, OneDrive, Box, S3, WebDAV or B2.
+Průhledné okno ve stylu skla (jde vypnout v Nastavení).	Glass-style translucent window (can be turned off in Settings).
 """;
 }
