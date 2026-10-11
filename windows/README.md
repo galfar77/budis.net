@@ -74,7 +74,7 @@ Nastavení a stav se ukládají do `%APPDATA%\BudisCommander\settings.json`.
 - **Rozšířené označování:** menu Označit/Nástroje → *Označit podle podmínek…* (maska, druh, velikost, datum změny), *Označit stejnou příponu*, *Převrátit označení*.
 - **Hledání v archivech a v obsahu na serveru:** v okně hledání volba *Hledat i uvnitř archivů*; na serveru a v cloudu jde hledat i text (čte se první MB nejvýše 300 souborů).
 - **Aktualizace:** volitelně se nová verze stáhne a nainstaluje sama (Nastavení); předchozí verzi vrátí menu Nápověda → *Vrátit předchozí verzi…*.
-- **Podepsání aplikací** (macOS Developer ID s notarizací, Windows Authenticode): zapne se po zadání certifikátů, návod v [docs/PODEPISOVANI.md](docs/PODEPISOVANI.md).
+- **Podepsání aplikací** (macOS Developer ID s notarizací, Windows Authenticode): zapne se po zadání certifikátů, návod v [docs/PODEPISOVANI.md](../docs/PODEPISOVANI.md).
 
 ## Vývoj a testy
 
