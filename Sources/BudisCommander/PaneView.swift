@@ -44,6 +44,7 @@ struct PaneView: View {
                                 .simultaneousGesture(TapGesture(count: 2).onEnded {
                                     onActivate(); pane.cursor = index; pane.enter()
                                 })
+                                .contextMenu { contextMenu(for: item, index: index) }
                         }
     }
 
@@ -114,6 +115,7 @@ struct PaneView: View {
                 .onChange(of: pane.cursor) { _, new in
                     if pane.items.indices.contains(new) { proxy.scrollTo(pane.items[new].id) }
                 }
+                .contextMenu { contextMenu(for: nil, index: nil) }
             }
 
             Text(pane.summary)
@@ -133,6 +135,40 @@ struct PaneView: View {
                 model.dropFiles(urls, onto: pane, folder: nil)
             }
             return true
+        }
+    }
+
+    /// Místní nabídka pro řádek (nebo pro prázdné místo v panelu, když je `item` nil).
+    @ViewBuilder
+    private func contextMenu(for item: FileItem?, index: Int?) -> some View {
+        let underMarked = item.map { pane.marked.contains($0.id) } ?? false
+        let kind = ContextMenus.kind(markedCount: pane.marked.count, underIsMarked: underMarked, under: item)
+        let entries = ContextMenus.entries(kind: kind, remote: pane.connection != nil)
+        ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+            switch entry {
+            case .divider:
+                Divider()
+            case .command(let command):
+                Button(command.title) { runContext(command, item: item, index: index) }
+            }
+        }
+    }
+
+    private func runContext(_ command: ContextCommand, item: FileItem?, index: Int?) {
+        onActivate()
+        // Pravé tlačítko mimo označené položky pracuje jen s položkou pod ukazatelem.
+        if let item, let index, !pane.marked.contains(item.id) { pane.cursor = index }
+        switch command {
+        case .open: pane.enter()
+        case .view: Task { await model.view() }
+        case .edit: Task { await model.edit() }
+        case .copy: model.startTransfer(move: false)
+        case .move: model.startTransfer(move: true)
+        case .rename: Task { await model.rename() }
+        case .delete: model.startDelete()
+        case .mkdir: Task { await model.makeDirectory() }
+        case .unmark: pane.marked = []
+        case .action(let action): model.perform(action)
         }
     }
 

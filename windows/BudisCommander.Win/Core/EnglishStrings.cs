@@ -672,5 +672,7 @@ Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top,
 Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.	Advanced marking: by mask, kind, size and modification date, same extension, invert marks.
 Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.	Search inside archives and in the contents of files on servers and in the cloud.
 Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda).	Automatic installation of updates (optional, in Settings) and going back to the previous version (Help menu).
+Zavřít ostatní záložky	Close other tabs
+Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).	Right-click menu: functions depend on what is under the pointer (file, folder, archive, several marked items, empty space).
 """;
 }

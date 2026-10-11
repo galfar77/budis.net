@@ -61,6 +61,7 @@ public sealed partial class MainWindow : Window
 
         _leftPanel = new PanelControl(_core, _core.Left, true);
         _rightPanel = new PanelControl(_core, _core.Right, false);
+        _leftPanel.RunAction = Run; _rightPanel.RunAction = Run;
         _leftPanel.Activated += () => SetActive(true);
         _rightPanel.Activated += () => SetActive(false);
 

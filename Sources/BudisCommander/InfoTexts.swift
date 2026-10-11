@@ -4,6 +4,7 @@ import Foundation
 enum InfoTexts {
     static let news: [String] = [
         L("# Nové"),
+        L("Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo)."),
         L("Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení."),
         L("Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu."),
         L("Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda)."),

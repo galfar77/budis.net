@@ -10,6 +10,7 @@ public static class InfoTexts
             var list = new List<string>
             {
         "# Nové",
+            "Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).",
             "Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top, ssh a další celoobrazovkové programy.",
             "Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.",
             "Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.",

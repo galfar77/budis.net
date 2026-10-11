@@ -58,3 +58,52 @@ public class SelectionTests
         Assert.Single(p.Marked);
     }
 }
+
+public class ContextMenuTests
+{
+    private static FileEntry E(string name, bool dir = false, bool parent = false) => new() { Name = name, FullPath = "/x/" + name, IsDirectory = dir, IsParent = parent };
+
+    [Fact]
+    public void KindDependsOnWhatIsUnderThePointer()
+    {
+        Assert.Equal(ContextKind.Empty, ContextMenus.KindOf(0, false, null));
+        Assert.Equal(ContextKind.Empty, ContextMenus.KindOf(0, false, E("..", true, true)));
+        Assert.Equal(ContextKind.File, ContextMenus.KindOf(0, false, E("a.txt")));
+        Assert.Equal(ContextKind.Folder, ContextMenus.KindOf(0, false, E("dir", true)));
+        Assert.Equal(ContextKind.Archive, ContextMenus.KindOf(0, false, E("a.zip")));
+        Assert.Equal(ContextKind.Multiple, ContextMenus.KindOf(3, true, E("a.txt")));
+        Assert.Equal(ContextKind.File, ContextMenus.KindOf(3, false, E("a.txt")));    // pravý klik mimo výběr ho přebije
+    }
+
+    [Fact]
+    public void FileMenuHasOpenCopyAndDeleteAndNoDoubleSeparators()
+    {
+        var m = ContextMenus.For(ContextKind.File, remote: false);
+        Assert.Contains("open", m); Assert.Contains("view", m); Assert.Contains("copy", m); Assert.Contains("delete", m); Assert.Contains("checksum", m);
+        Assert.NotEqual(ContextMenus.Separator, m[0]); Assert.NotEqual(ContextMenus.Separator, m[^1]);
+        for (var i = 1; i < m.Count; i++) Assert.False(m[i] == ContextMenus.Separator && m[i - 1] == ContextMenus.Separator);
+    }
+
+    [Fact]
+    public void RemoteMenuOmitsLocalOnlyActions()
+    {
+        foreach (var kind in Enum.GetValues<ContextKind>())
+        {
+            var m = ContextMenus.For(kind, remote: true);
+            foreach (var local in new[] { "pack", "unpack", "checksum", "attributes", "copyFiles", "cutFiles", "pasteFiles", "terminal", "dirSizes", "batchRename" })
+                Assert.DoesNotContain(local, m);
+        }
+        Assert.Contains("mkdir", ContextMenus.For(ContextKind.Empty, true));
+    }
+
+    [Fact]
+    public void ArchiveMenuOffersUnpackAndEveryIdIsAKnownAction()
+    {
+        Assert.Contains("unpack", ContextMenus.For(ContextKind.Archive, false));
+        var known = BudisCommander.Ui.Actions.All.Select(a => a.Id).ToHashSet();
+        foreach (var kind in Enum.GetValues<ContextKind>())
+            foreach (var remote in new[] { false, true })
+                foreach (var id in ContextMenus.For(kind, remote).Where(i => i != ContextMenus.Separator))
+                    Assert.Contains(id, known);
+    }
+}

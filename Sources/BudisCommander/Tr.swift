@@ -268,6 +268,7 @@ Kontrolní součty se počítají jen z lokálních souborů.	Checksums are calc
 Kopírovat	Copy
 Kopírovat cestu	Copy path
 Kopírovat cestu složky	Copy folder path
+Kopírovat do druhého panelu	Copy to the other panel
 Kopírovat nebo přepsat: {} souborů ({})\nVytvořit složek: {}\n	Copy or overwrite: {} files ({})\nCreate folders: {}\n
 Kopírovat název	Copy name
 Kopírovat soubory do schránky	Copy files to clipboard
@@ -317,6 +318,7 @@ Neshoduje se	Does not match
 Nic k zobrazení.	Nothing to show.
 Novou verzi stáhnout a nainstalovat automaticky (projeví se po restartu)	Download and install new versions automatically (takes effect after a restart)
 Novou verzi stáhnout a nainstalovat automaticky (při ukončení aplikace)	Download and install new versions automatically (when the app quits)
+Nová složka	New folder
 Nová synchronizace	New sync
 Nová verze je nainstalovaná, projeví se po restartu aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is installed and takes effect after the app restarts. You can go back to the previous one in the Help menu.
 Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is downloaded and will be installed when the app quits. You can go back to the previous one in the Help menu.
@@ -348,6 +350,7 @@ Odznačit	Unmark
 Odznačit podle masky	Unmark by mask
 Operace	Operation
 Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit.	Terminal with rclone and a browser with the service login will open. When done, click Refresh.
+Otevřít	Open
 Otevřít v aplikaci	Open in application
 Označeno {} z {}, {}	Marked {} of {}, {}
 Označeno: 	Marked: 
@@ -387,6 +390,7 @@ Postavte kurzor v obou panelech na soubor, který chcete porovnat.	Place the cur
 Použít	Apply
 Počítače v síti (SMB)	Computers on the network (SMB)
 Počítám rozdíly…	Calculating differences…
+Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).	Right-click menu: functions depend on what is under the pointer (file, folder, archive, several marked items, empty space).
 Proces bude okamžitě ukončen. Neuložená práce se ztratí.	The process will be ended immediately. Unsaved work will be lost.
 Procesu se pošle požadavek na ukončení.	The process is asked to quit.
 Procházím složky…	Browsing folders…
@@ -422,6 +426,7 @@ Přeskočit	Skip
 Přesun	Move
 Přesun: {} → {}	Move: {} → {}
 Přesunout	Move
+Přesunout do druhého panelu	Move to the other panel
 Přesunout do koše (jen v cíli): {}	Move to Trash (destination only): {}
 Přesunout {} do koše?	Move {} to the Trash?
 Přesunout {} souborů do koše?	Move {} files to the Trash?
@@ -642,6 +647,7 @@ Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikn
 Zatím není žádná úloha. Klikněte na „Přidat…“.	There is no task yet. Click "Add…".
 Zatím žádné přenosy.	No transfers yet.
 Zavřít	Close
+Zavřít ostatní záložky	Close other tabs
 Zavřít záložku	Close tab
 Začít v	Start at
 Zdroj	Source
@@ -674,6 +680,7 @@ Zrcadlit adresář do druhého panelu	Mirror the directory to the other panel
 Zrcadlit „{}“ do „{}“?	Mirror "{}" to "{}"?
 Zrušit	Cancel
 Zrušit filtr (Esc)	Clear filter (Esc)
+Zrušit označení	Clear marks
 Zrušit výběr	Clear selection
 Zrušit vše	Cancel all
 Záložky v každém panelu a sady záložek, které si pamatují rozložení obou panelů.	Tabs in each panel and tab sets that remember the layout of both panels.

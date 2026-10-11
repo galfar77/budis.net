@@ -46,6 +46,8 @@ public sealed class PanelControl : UserControl
     private bool _driveUpdating;
 
     public event Action? Activated;
+    /// <summary>Provede akci podle identifikátoru (nastavuje hlavní okno); používá ji místní nabídka.</summary>
+    public Func<string, Task>? RunAction { get; set; }
     public PaneState Pane => _group.Current;
     public ListBox List => _list;
 
@@ -285,7 +287,11 @@ public sealed class PanelControl : UserControl
                 Background = new SolidColorBrush(Color.FromArgb(i == _group.Selected ? (byte)90 : (byte)30, 100, 140, 255)),
                 Child = row,
             };
-            border.PointerPressed += (_, e) => { Activated?.Invoke(); _group.Select(index); };
+            border.PointerPressed += (_, e) =>
+            {
+                Activated?.Invoke(); _group.Select(index);
+                if (e.GetCurrentPoint(border).Properties.IsRightButtonPressed) { e.Handled = true; ShowTabMenu(index, border); }
+            };
             _tabs.Children.Add(border);
         }
         var plus = new Button { Content = "+", Padding = new Thickness(8, 1) };
@@ -408,8 +414,54 @@ public sealed class PanelControl : UserControl
     private void OnListPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         Activated?.Invoke();
+        if (e.GetCurrentPoint(_list).Properties.IsRightButtonPressed)
+        {
+            e.Handled = true;
+            ShowContextMenu((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>()?.DataContext as FileEntry);
+            return;
+        }
         if (e.GetCurrentPoint(_list).Properties.IsLeftButtonPressed && (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>() != null)
             _dragStart = e.GetPosition(_list);
+    }
+
+    private void ShowTabMenu(int index, Control anchor)
+    {
+        var menu = new ContextMenu();
+        var add = new MenuItem { Header = Tr.T("Nová záložka") };
+        add.Click += (_, _) => _group.NewTab();
+        var close = new MenuItem { Header = Tr.T("Zavřít záložku"), IsEnabled = _group.Tabs.Count > 1 };
+        close.Click += (_, _) => _group.Close(index);
+        var others = new MenuItem { Header = Tr.T("Zavřít ostatní záložky"), IsEnabled = _group.Tabs.Count > 1 };
+        others.Click += (_, _) => { for (var i = _group.Tabs.Count - 1; i >= 0; i--) if (i != index) _group.Close(i); };
+        menu.Items.Add(add); menu.Items.Add(new Separator()); menu.Items.Add(close); menu.Items.Add(others);
+        menu.Open(anchor);
+    }
+
+    /// <summary>Místní nabídka (pravé tlačítko): nad položkou funkce pro soubor, složku nebo označené, jinde pro celý panel.</summary>
+    private void ShowContextMenu(FileEntry? under)
+    {
+        if (_pane == null || RunAction == null) return;
+        var underIsMarked = under != null && under.IsMarked;
+        if (under != null && !under.IsParent && !underIsMarked)
+        {
+            var idx = _pane.Items.IndexOf(under);
+            if (idx >= 0) { _pane.SetCursorSilently(idx); _list.SelectedIndex = idx; }
+        }
+        var kind = ContextMenus.KindOf(_pane.Marked.Count(), underIsMarked, under);
+        var settings = _core.Settings;
+        var menu = new ContextMenu();
+        foreach (var id in ContextMenus.For(kind, _pane.IsRemote))
+        {
+            if (id == ContextMenus.Separator) { menu.Items.Add(new Separator()); continue; }
+            var def = Actions.All.FirstOrDefault(a => a.Id == id);
+            if (def == null) continue;
+            var item = new MenuItem { Header = Tr.T(def.Title) };
+            if (Actions.GestureFor(def, settings) is { } g) item.InputGesture = g;
+            var captured = id;
+            item.Click += async (_, _) => { Activated?.Invoke(); await RunAction(captured); };
+            menu.Items.Add(item);
+        }
+        menu.Open(_list);
     }
 
     private async void OnListPointerMoved(object? sender, PointerEventArgs e)
