@@ -66,6 +66,7 @@ public static class Actions
         new("whatsNew", "Co je nového…", null, Help),
         new("features", "Přehled funkcí…", null, Help),
         new("update", "Aktualizovat aplikaci…", null, Help),
+        new("rollbackVersion", "Vrátit předchozí verzi…", null, Help),
         new("about", "O aplikaci…", null, Help),
         new("settings", "Nastavení…", "Ctrl+OemComma", Tools),
 

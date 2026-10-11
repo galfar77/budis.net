@@ -239,9 +239,50 @@ public class UpdaterTests
         var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
         Assert.True(await core.UpdateAsync(http, "1111111222222", exe, t.Combine("work")));
         Assert.Equal("NOVA", File.ReadAllText(exe));
-        Assert.Equal("STARA", File.ReadAllText(exe + ".old"));
+        Assert.Equal("STARA", File.ReadAllText(Updater.PreviousPath(exe)));
         Updater.CleanupOld(exe);
-        Assert.False(File.Exists(exe + ".old"));
+        Assert.True(Updater.CanRollBack(exe));                     // předchozí verze zůstává pro návrat zpět
+    }
+
+    [Fact]
+    public async Task RollBackSwapsVersionsBackAndForth()
+    {
+        using var t = new TempDir();
+        var exe = t.File("BudisCommander.exe", "STARA");
+        var h = new FakeHandler { Commit = "abcdef1234567890", Zip = MakeZip("NOVA") };
+        using var http = new HttpClient(h);
+        var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
+        Assert.False(Updater.CanRollBack(exe));
+        Assert.True(await core.UpdateAsync(http, "1111111222222", exe, t.Combine("work")));
+        Updater.RollBack(exe);
+        Assert.Equal("STARA", File.ReadAllText(exe));
+        Assert.Equal("NOVA", File.ReadAllText(Updater.PreviousPath(exe)));
+        Updater.RollBack(exe);
+        Assert.Equal("NOVA", File.ReadAllText(exe));
+        Assert.Equal("STARA", File.ReadAllText(Updater.PreviousPath(exe)));
+        Assert.Throws<FileNotFoundException>(() => { File.Delete(Updater.PreviousPath(exe)); Updater.RollBack(exe); });
+    }
+
+    [Fact]
+    public async Task AutoInstallDownloadsAndAppliesWhenEnabled()
+    {
+        using var t = new TempDir();
+        var exe = t.File("BudisCommander.exe", "STARA");
+        var h = new FakeHandler { Commit = "abcdef1234567890", Zip = MakeZip("NOVA") };
+        using var http = new HttpClient(h);
+        var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
+        core.Settings.AutoCheckUpdates = true; core.Settings.LastUpdateCheck = DateTime.MinValue;
+
+        core.Settings.AutoInstallUpdates = false;                  // vypnuto: jen oznámení
+        await core.AutoCheckUpdateAsync(http, "1111111222222", exe);
+        Assert.Equal("STARA", File.ReadAllText(exe));
+        Assert.Contains("nová verze", core.Notice ?? "");
+
+        core.Settings.AutoInstallUpdates = true; core.Settings.LastUpdateCheck = DateTime.MinValue;
+        await core.AutoCheckUpdateAsync(http, "1111111222222", exe);
+        Assert.Equal("NOVA", File.ReadAllText(exe));
+        Assert.Equal("STARA", File.ReadAllText(Updater.PreviousPath(exe)));
+        Assert.Contains("nainstalovaná", core.Notice ?? "");
     }
 
     [Fact]

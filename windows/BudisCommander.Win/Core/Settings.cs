@@ -80,6 +80,8 @@ public sealed class AppSettings
     public bool ShowHidden { get; set; }
     /// <summary>Při startu se zeptat GitHubu na novou verzi (nejvýš jednou denně).</summary>
     public bool AutoCheckUpdates { get; set; } = true;
+    /// <summary>Novou verzi stáhnout a nainstalovat sama (platí po restartu aplikace).</summary>
+    public bool AutoInstallUpdates { get; set; }
     public DateTime LastUpdateCheck { get; set; }
     public bool ShowButtonBar { get; set; } = true;
     public List<string> Favorites { get; set; } = new();

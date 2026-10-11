@@ -74,7 +74,10 @@ public static class Updater
         return zip;
     }
 
-    /// <summary>Vymění soubor aplikace za novou verzi ze ZIPu. Běžící .exe se dá přejmenovat, ne přepsat, proto starý zůstane jako .old.</summary>
+    /// <summary>Cesta, kde zůstává předchozí verze po výměně (slouží k návratu zpět).</summary>
+    public static string PreviousPath(string exePath) => exePath + ".previous";
+
+    /// <summary>Vymění soubor aplikace za novou verzi ze ZIPu. Běžící .exe se dá přejmenovat, ne přepsat, proto starý zůstane jako .previous (návrat zpět).</summary>
     public static void Apply(string zipPath, string exePath)
     {
         var tmp = Path.Combine(Path.GetDirectoryName(zipPath)!, "extract");
@@ -82,17 +85,35 @@ public static class Updater
         ZipFile.ExtractToDirectory(zipPath, tmp);
         var fresh = Directory.EnumerateFiles(tmp, Path.GetFileName(exePath), SearchOption.AllDirectories).FirstOrDefault()
                     ?? throw new FileNotFoundException("ZIP neobsahuje " + Path.GetFileName(exePath));
-        var old = exePath + ".old";
-        if (File.Exists(old)) File.Delete(old);
-        File.Move(exePath, old);
+        if (new FileInfo(fresh).Length == 0) throw new InvalidDataException("Stažená aplikace je prázdná.");
+        var previous = PreviousPath(exePath);
+        if (File.Exists(previous)) File.Delete(previous);
+        File.Move(exePath, previous);
         try { File.Copy(fresh, exePath); }
-        catch { File.Move(old, exePath); throw; }
+        catch { File.Move(previous, exePath); throw; }
     }
 
-    /// <summary>Po restartu smaže zbytek staré verze.</summary>
+    /// <summary>Jestli je k dispozici předchozí verze, na kterou jde přejít zpět.</summary>
+    public static bool CanRollBack(string exePath) => File.Exists(PreviousPath(exePath));
+
+    /// <summary>Vrátí předchozí verzi; aktuální se uloží jako .previous, takže jde přepínat tam a zpět. Projeví se po restartu.</summary>
+    public static void RollBack(string exePath)
+    {
+        var previous = PreviousPath(exePath);
+        if (!File.Exists(previous)) throw new FileNotFoundException("Předchozí verze není k dispozici.");
+        var swap = exePath + ".swap";
+        if (File.Exists(swap)) File.Delete(swap);
+        File.Move(exePath, swap);
+        try { File.Move(previous, exePath); }
+        catch { File.Move(swap, exePath); throw; }
+        File.Move(swap, previous);
+    }
+
+    /// <summary>Po restartu smaže zbytky z dřívějších verzí aplikace (soubor .old).</summary>
     public static void CleanupOld(string exePath)
     {
         try { var old = exePath + ".old"; if (File.Exists(old)) File.Delete(old); } catch { }
+        try { var swap = exePath + ".swap"; if (File.Exists(swap)) File.Delete(swap); } catch { }
     }
 
     /// <summary>Jestli jde aplikaci vyměnit za sebe samu (běží jako samostatný BudisCommander.exe).</summary>

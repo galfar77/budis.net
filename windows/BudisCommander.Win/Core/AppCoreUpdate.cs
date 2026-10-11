@@ -5,7 +5,7 @@ public sealed partial class AppCore
     // --- aktualizace aplikace ----------------------------------------------------------------
 
     /// <summary>Tiše zjistí, jestli je venku nová verze (při startu, nejvýš jednou denně) a jen to oznámí ve stavovém řádku.</summary>
-    public async Task AutoCheckUpdateAsync(HttpClient? http = null, string? currentCommit = null)
+    public async Task AutoCheckUpdateAsync(HttpClient? http = null, string? currentCommit = null, string? exePath = null)
     {
         if (!Settings.AutoCheckUpdates || (DateTime.UtcNow - Settings.LastUpdateCheck).TotalHours < 20) return;
         currentCommit ??= Updater.CurrentCommit;
@@ -16,9 +16,35 @@ public sealed partial class AppCore
             var info = await Updater.CheckAsync(http ?? own!, currentCommit, Updater.AssetNameForThisMachine);
             Settings.LastUpdateCheck = DateTime.UtcNow;
             Settings.Save(_settingsPath);
-            if (info != null) ShowNotice("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.");
+            if (info == null) return;
+            var exe = exePath ?? Updater.SelfExePath();
+            if (Settings.AutoInstallUpdates && exe != null)
+            {
+                var client = http ?? own!;
+                var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "budis-update-" + Guid.NewGuid().ToString("N"));
+                try
+                {
+                    var zip = await Updater.DownloadAsync(client, info, dir, null);
+                    Updater.Apply(zip, exe);
+                    ShowNotice("Nová verze je nainstalovaná, projeví se po restartu aplikace. Předchozí verzi vrátíte v menu Nápověda.");
+                }
+                finally { try { Directory.Delete(dir, true); } catch { } }
+                return;
+            }
+            ShowNotice("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci.");
         }
         catch { /* bez internetu se nic neděje */ }
+    }
+
+    /// <summary>Vrátí předchozí verzi aplikace. Vrací true, když se výměna povedla (je potřeba restart).</summary>
+    public async Task<bool> RollBackAsync(string? exePath = null)
+    {
+        exePath ??= Updater.SelfExePath();
+        if (exePath == null) { await Ui.ShowErrorAsync("Tuto aplikaci nelze vyměnit za sebe samu (nespustili jste samostatný BudisCommander.exe)."); return false; }
+        if (!Updater.CanRollBack(exePath)) { await Ui.ShowErrorAsync("Předchozí verze není k dispozici. Uloží se při příští aktualizaci."); return false; }
+        if (!await Ui.ConfirmAsync("Vrátit předchozí verzi?", "Teď nainstalovaná verze se uloží a půjde na ni přepnout zpět stejným příkazem.", "Vrátit")) return false;
+        try { Updater.RollBack(exePath); return true; }
+        catch (Exception e) { await Ui.ShowErrorAsync("Návrat se nezdařil:\n\n" + e.Message); return false; }
     }
 
     /// <summary>Zeptá se na novou verzi, stáhne ji a vymění .exe. Vrací true, když je potřeba aplikaci restartovat.</summary>

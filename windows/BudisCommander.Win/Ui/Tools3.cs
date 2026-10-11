@@ -128,6 +128,7 @@ public sealed class SettingsWindow : Window
         var colorTheme = new ComboBox { ItemsSource = ColorThemes.All.Select(t => t.Title).ToList(), SelectedIndex = Math.Max(0, Array.FindIndex(ColorThemes.All, t => t.Id == s.ColorTheme)) };
         var glass = new CheckBox { Content = "Průhledné okno ve stylu skla (Mica / Acrylic)", IsChecked = s.Glass };
         var updates = new CheckBox { Content = "Při startu zkontrolovat, jestli je dostupná nová verze", IsChecked = s.AutoCheckUpdates };
+        var autoInstall = new CheckBox { Content = "Novou verzi stáhnout a nainstalovat automaticky (projeví se po restartu)", IsChecked = s.AutoInstallUpdates };
         var font = new NumericUpDown { Value = (decimal)s.FontSize, Minimum = 9, Maximum = 24, Increment = 1, FormatString = "0" };
         var ext = new CheckBox { Content = "Samostatný sloupec s příponou", IsChecked = s.ShowExtColumn };
         var attr = new CheckBox { Content = "Sloupec Atributy (R H S A)", IsChecked = s.ShowAttrColumn };
@@ -167,6 +168,7 @@ public sealed class SettingsWindow : Window
             s.FontSize = (double)(font.Value ?? 13);
             s.Language = language.SelectedIndex == 1 ? "en" : "cs";
             s.AutoCheckUpdates = updates.IsChecked == true;
+            s.AutoInstallUpdates = autoInstall.IsChecked == true;
             s.Glass = glass.IsChecked == true;
             s.ColorTheme = ColorThemes.All[Math.Max(0, colorTheme.SelectedIndex)].Id;
             s.ShowExtColumn = ext.IsChecked == true; s.ShowAttrColumn = attr.IsChecked == true;
@@ -179,7 +181,7 @@ public sealed class SettingsWindow : Window
         Row(0, "Vzhled", theme); Row(1, "Velikost písma", font); Row(2, "Jazyk (po restartu)", language); Row(3, "Barevné téma", colorTheme);
 
         var dock = new DockPanel { Margin = new Thickness(16) };
-        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, glass, ext, attr, auto, bar, updates,
+        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, glass, ext, attr, auto, bar, updates, autoInstall,
             UiKit.Label("Klávesové zkratky (např. Ctrl+Shift+K; prázdné = žádná)", dim: true));
         var bottom = UiKit.VStack(6, error, UiKit.HStack(8, reset, new Border { Width = 30 }, UiKit.Button("Zrušit", Close), save));
         DockPanel.SetDock(top, Dock.Top); DockPanel.SetDock(bottom, Dock.Bottom);

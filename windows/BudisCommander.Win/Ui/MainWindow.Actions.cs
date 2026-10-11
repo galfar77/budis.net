@@ -109,6 +109,14 @@ public sealed partial class MainWindow
             if (exe != null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
             Close();
         });
+        H("rollbackVersion", async () =>
+        {
+            if (!await _core.RollBackAsync()) return;
+            if (!await _ui.ConfirmAsync("Předchozí verze je připravená", "Aplikace se teď restartuje.", "Restartovat")) return;
+            var exe = Updater.SelfExePath();
+            if (exe != null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
+            Close();
+        });
         H("settings", async () => { await ShowToolAsync(new SettingsWindow(_settings)); ApplySettings(); _settings.Save(); });
 
         H("refresh", () => Pane.ReloadAsync());
