@@ -27,7 +27,7 @@ public sealed class FileEntry : INotifyPropertyChanged
     public static IBrush MarkBrush { get; set; } = Brushes.Red;
     public static IBrush DirBrush { get; set; } = Brushes.SteelBlue;
     /// <summary>Zvýrazňovací barva aktuálního barevného tématu.</summary>
-    public static IBrush AccentBrush { get; set; } = new SolidColorBrush(Color.FromRgb(0x2B, 0x7C, 0xD3));
+    public static IBrush AccentBrush { get; set; } = new Avalonia.Media.Immutable.ImmutableSolidColorBrush(Color.FromRgb(0x2B, 0x7C, 0xD3));
 
     public string DisplayName
     {
