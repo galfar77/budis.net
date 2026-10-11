@@ -27,6 +27,7 @@ struct ContentView: View {
             functionBar
             if settings.showButtonBar && !settings.userCommands.isEmpty { userBar }
         }
+        .id(settings.colorTheme)
         .background(WindowAccessor(glass: settings.glass))
         .background {
             if settings.glass { VisualEffectBackground().ignoresSafeArea() }
@@ -61,6 +62,7 @@ struct ContentView: View {
             case .whatsNew: InfoSheet(title: L("Co je nového"), lines: InfoTexts.news)
             case .features: InfoSheet(title: L("Přehled funkcí"), lines: InfoTexts.features)
             case .about: AboutSheet(model: model)
+            case .processes: ProcessSheet()
             case .cloud: CloudSheet(model: model)
             }
         }
@@ -129,7 +131,7 @@ struct ContentView: View {
             focused = true
         } label: {
             HStack(spacing: 4) {
-                Text(key).fontWeight(.bold).foregroundStyle(Color.accentColor)
+                Text(key).fontWeight(.bold).foregroundStyle(Palette.accent)
                 Text(title)
             }
             .font(.system(size: 12))

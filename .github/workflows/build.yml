@@ -12,12 +12,21 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Testy
+        run: swift test
       - name: Build BudisCommander.app
         run: ./scripts/make-app.sh
       - uses: actions/upload-artifact@v4
         with:
           name: BudisCommander-macOS
           path: build/BudisCommander.zip
+
+      - name: Smazat staré vydání, aby nové mělo správné datum (jen z větve main)
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete macos-latest --cleanup-tag --yes || true
 
       - name: Vydání ke stažení (jen z větve main)
         if: github.ref == 'refs/heads/main'

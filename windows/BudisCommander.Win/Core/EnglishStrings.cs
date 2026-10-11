@@ -513,5 +513,22 @@ Průhledné okno ve stylu skla (Mica / Acrylic)	Glass-style translucent window (
 Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání.	Fast search through the index (Spotlight on Mac, Windows Search on Windows): just leave it ticked in the search window.
 Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.	Cloud without manual setup: the application downloads rclone by itself and adds Google Drive, Dropbox, OneDrive, Box, S3, WebDAV or B2.
 Průhledné okno ve stylu skla (jde vypnout v Nastavení).	Glass-style translucent window (can be turned off in Settings).
+Správce procesů…	Process manager…
+Správce procesů	Process manager
+hledat podle názvu, titulku okna nebo PID	search by name, window title or PID
+Řadit podle paměti	Sort by memory
+{} z {} procesů	{} of {} processes
+Ukončit „{}“ (PID {})?	End "{}" (PID {})?
+Proces i všechny jeho podřízené procesy budou okamžitě ukončeny. Neuložená práce se ztratí.	The process and all its child processes will be ended immediately. Unsaved work will be lost.
+Procesu se nejdřív pošle požadavek na zavření okna.	The process is first asked to close its window.
+Vynutit ukončení	Force quit
+Ukončit	End
+Barevné téma	Color theme
+Výchozí (modrá)	Default (blue)
+Oceán	Ocean
+Les	Forest
+Západ slunce	Sunset
+Fialová	Violet
+Grafit	Graphite
 """;
 }

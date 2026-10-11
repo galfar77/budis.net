@@ -8,7 +8,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case split, combine, symlink, userMenu, resumeTransfer, thumbnails
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
-    case tabSets, cloud, checkUpdate, sortByType
+    case tabSets, cloud, checkUpdate, sortByType, processes
 
     var id: String { rawValue }
 
@@ -61,6 +61,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .cloud: return L("Cloudová úložiště (rclone)…")
         case .checkUpdate: return L("Aktualizovat aplikaci…")
         case .sortByType: return L("Třídit podle typu souboru")
+        case .processes: return L("Správce procesů…")
         }
     }
 
@@ -95,7 +96,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .compareContent, .split, .combine, .symlink, .userMenu, .resumeTransfer, .thumbnails: return ""
         case .copyFiles, .cutFiles, .pasteFiles, .copyPath, .copyName, .copyDirPath: return ""
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
-        case .tabSets, .cloud, .checkUpdate, .sortByType: return ""
+        case .tabSets, .cloud, .checkUpdate, .sortByType, .processes: return ""
         }
     }
 }
@@ -139,6 +140,11 @@ final class Settings: ObservableObject {
     @Published var glass: Bool {
         didSet { UserDefaults.standard.set(glass, forKey: "glass") }
     }
+    /// Barevné téma (id z ColorTheme.all).
+    @Published var colorTheme: String {
+        didSet { UserDefaults.standard.set(colorTheme, forKey: "colorTheme") }
+    }
+    var palette: ColorTheme { ColorTheme.get(colorTheme) }
     /// Jazyk rozhraní: "cs" nebo "en" (změna se projeví po restartu aplikace).
     @Published var language: String {
         didSet { UserDefaults.standard.set(language, forKey: "language") }
@@ -183,6 +189,7 @@ final class Settings: ObservableObject {
         rclonePath = d.string(forKey: "rclonePath") ?? ""
         language = d.string(forKey: "language") ?? "cs"
         glass = d.object(forKey: "glass") as? Bool ?? true
+        colorTheme = d.string(forKey: "colorTheme") ?? "default"
         autoCheckUpdates = d.object(forKey: "autoCheckUpdates") as? Bool ?? true
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
             // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
@@ -236,6 +243,10 @@ struct SettingsSheet: View {
                 Text(L("Tmavý")).tag("dark")
             }
             .pickerStyle(.segmented)
+
+            Picker(L("Barevné téma"), selection: $settings.colorTheme) {
+                ForEach(ColorTheme.all) { Text(L($0.title)).tag($0.id) }
+            }
 
             Picker(L("Jazyk (po restartu)"), selection: $settings.language) {
                 Text("Čeština").tag("cs")

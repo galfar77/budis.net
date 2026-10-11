@@ -124,6 +124,7 @@ public sealed class SettingsWindow : Window
 
         var theme = new ComboBox { ItemsSource = new[] { "Podle systému", "Světlý", "Tmavý" }, SelectedIndex = s.Theme switch { "light" => 1, "dark" => 2, _ => 0 } };
         var language = new ComboBox { ItemsSource = new[] { "Čeština", "English" }, SelectedIndex = s.Language == "en" ? 1 : 0 };
+        var colorTheme = new ComboBox { ItemsSource = ColorThemes.All.Select(t => t.Title).ToList(), SelectedIndex = Math.Max(0, Array.FindIndex(ColorThemes.All, t => t.Id == s.ColorTheme)) };
         var glass = new CheckBox { Content = "Průhledné okno ve stylu skla (Mica / Acrylic)", IsChecked = s.Glass };
         var updates = new CheckBox { Content = "Při startu zkontrolovat, jestli je dostupná nová verze", IsChecked = s.AutoCheckUpdates };
         var font = new NumericUpDown { Value = (decimal)s.FontSize, Minimum = 9, Maximum = 24, Increment = 1, FormatString = "0" };
@@ -166,14 +167,15 @@ public sealed class SettingsWindow : Window
             s.Language = language.SelectedIndex == 1 ? "en" : "cs";
             s.AutoCheckUpdates = updates.IsChecked == true;
             s.Glass = glass.IsChecked == true;
+            s.ColorTheme = ColorThemes.All[Math.Max(0, colorTheme.SelectedIndex)].Id;
             s.ShowExtColumn = ext.IsChecked == true; s.ShowAttrColumn = attr.IsChecked == true;
             s.AutoDirSizes = auto.IsChecked == true; s.ShowButtonBar = bar.IsChecked == true;
             Close();
         }, true);
 
-        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("140,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), RowSpacing = 6 };
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("140,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"), RowSpacing = 6 };
         void Row(int r, string label, Control c) { var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center }; Grid.SetRow(l, r); Grid.SetRow(c, r); Grid.SetColumn(c, 1); form.Children.Add(l); form.Children.Add(c); }
-        Row(0, "Vzhled", theme); Row(1, "Velikost písma", font); Row(2, "Jazyk (po restartu)", language);
+        Row(0, "Vzhled", theme); Row(1, "Velikost písma", font); Row(2, "Jazyk (po restartu)", language); Row(3, "Barevné téma", colorTheme);
 
         var dock = new DockPanel { Margin = new Thickness(16) };
         var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, glass, ext, attr, auto, bar, updates,
@@ -392,5 +394,66 @@ public sealed class InfoWindow : Window
         dock.Children.Add(new ScrollViewer { Content = stack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto });
         Content = dock;
         this.CloseOnEscape();
+    }
+}
+
+/// <summary>Správce procesů: seznam, hledání a ukončení procesů.</summary>
+public sealed class ProcessWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly TextBox _search = new() { Watermark = "hledat podle názvu, titulku okna nebo PID" };
+    private readonly ListBox _list = new() { Height = 380, FontFamily = new FontFamily("Cascadia Mono, Consolas, Menlo, monospace"), FontSize = 12 };
+    private readonly TextBlock _status = new() { Opacity = 0.7 };
+    private List<ProcInfo> _all = new();
+    private List<ProcInfo> _shown = new();
+    private bool _byMemory;
+
+    public ProcessWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Správce procesů";
+        Width = 680; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        _search.TextChanged += (_, _) => Fill();
+        var sort = UiKit.Button("Řadit podle paměti", () => { _byMemory = !_byMemory; Fill(); });
+        var refresh = UiKit.Button("Obnovit", Reload);
+        var end = UiKit.Button("Ukončit", async () => await KillSelectedAsync(false), true);
+        var force = UiKit.Button("Vynutit ukončení", async () => await KillSelectedAsync(true));
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Správce procesů", 15, true), _search, UiKit.Frame(_list),
+                UiKit.HStack(8, end, force, refresh, sort, UiKit.Button("Zavřít", Close)), _status),
+        };
+        this.CloseOnEscape();
+        Opened += (_, _) => { Reload(); _search.Focus(); };
+    }
+
+    private void Reload()
+    {
+        _all = ProcessList.Snapshot();
+        Fill();
+    }
+
+    private void Fill()
+    {
+        _shown = ProcessList.Filter(_all, _search.Text ?? "", _byMemory).ToList();
+        _list.ItemsSource = _shown.Select(p => $"{p.Pid,7}  {Trunc(p.Name, 30),-30} {Formatting.Size(p.MemoryBytes),10}  {p.Threads,4} {Trunc(p.Title, 24)}").ToList().Select(s => s).ToList();
+        _status.Text = $"{_shown.Count} z {_all.Count} procesů";
+    }
+
+    private static string Trunc(string s, int n) => s.Length <= n ? s : s[..(n - 1)] + "…";
+
+    private async Task KillSelectedAsync(bool tree)
+    {
+        var i = _list.SelectedIndex;
+        if (i < 0 || i >= _shown.Count) return;
+        var p = _shown[i];
+        var info = tree ? "Proces i všechny jeho podřízené procesy budou okamžitě ukončeny. Neuložená práce se ztratí." : "Procesu se nejdřív pošle požadavek na zavření okna.";
+        if (!await _core.Ui.ConfirmAsync($"Ukončit „{p.Name}“ (PID {p.Pid})?", info, tree ? "Vynutit ukončení" : "Ukončit")) return;
+        var error = ProcessList.Kill(p.Pid, tree);
+        if (error != null) await _core.Ui.ShowErrorAsync(error);
+        await Task.Delay(300);
+        Reload();
     }
 }

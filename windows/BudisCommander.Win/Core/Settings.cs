@@ -75,6 +75,8 @@ public sealed class AppSettings
     public string Language { get; set; } = "cs";
     /// <summary>Průhledné okno ve stylu skla (Mica nebo Acrylic podle verze Windows).</summary>
     public bool Glass { get; set; } = true;
+    /// <summary>Barevné téma (id z ColorThemes).</summary>
+    public string ColorTheme { get; set; } = "default";
     public bool ShowHidden { get; set; }
     /// <summary>Při startu se zeptat GitHubu na novou verzi (nejvýš jednou denně).</summary>
     public bool AutoCheckUpdates { get; set; } = true;

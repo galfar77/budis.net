@@ -381,7 +381,7 @@ public sealed class PanelControl : UserControl
 
     public void SetActive(bool active)
     {
-        _frame.BorderBrush = active ? new SolidColorBrush(Color.FromRgb(0x2B, 0x7C, 0xD3)) : Brushes.Transparent;
+        _frame.BorderBrush = active ? FileEntry.AccentBrush : Brushes.Transparent;
     }
 
     public void ShowFilter()

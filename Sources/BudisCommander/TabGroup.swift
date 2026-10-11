@@ -103,7 +103,7 @@ struct TabButton: View {
         }
         .padding(.horizontal, 8)
         .frame(height: 22)
-        .background(selected ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.12))
+        .background(selected ? Palette.accent.opacity(0.3) : Color.secondary.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)

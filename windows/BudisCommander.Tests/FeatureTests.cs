@@ -499,3 +499,53 @@ public class GlassTests
         w.Close();
     }
 }
+
+public class ProcessAndThemeTests
+{
+    [Fact]
+    public void SnapshotContainsThisProcessAndFilters()
+    {
+        var all = ProcessList.Snapshot();
+        Assert.Contains(all, p => p.Pid == Environment.ProcessId);
+        var me = all.First(p => p.Pid == Environment.ProcessId);
+        Assert.Contains(ProcessList.Filter(all, me.Pid.ToString(), false), p => p.Pid == me.Pid);
+        var byMem = ProcessList.Filter(all, "", true).ToList();
+        for (int i = 1; i < Math.Min(byMem.Count, 20); i++) Assert.True(byMem[i - 1].MemoryBytes >= byMem[i].MemoryBytes);
+    }
+
+    [Fact]
+    public void KillStopsAChildProcess()
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsWindows()) return;
+        var psi = OperatingSystem.IsWindows()
+            ? new System.Diagnostics.ProcessStartInfo("ping", "-n 30 127.0.0.1") { CreateNoWindow = true, UseShellExecute = false }
+            : new System.Diagnostics.ProcessStartInfo("sleep", "30") { UseShellExecute = false };
+        using var child = System.Diagnostics.Process.Start(psi)!;
+        Assert.Null(ProcessList.Kill(child.Id, true));
+        Assert.True(child.WaitForExit(5000));
+        Assert.NotNull(ProcessList.Kill(int.MaxValue - 3, false));      // neexistující proces = chyba
+    }
+
+    [Fact]
+    public void ThemesHaveUniqueIdsAndValidColors()
+    {
+        Assert.Equal(ColorThemes.All.Length, ColorThemes.All.Select(t => t.Id).Distinct().Count());
+        foreach (var t in ColorThemes.All) { _ = t.AccentColor; _ = Avalonia.Media.Color.Parse(t.DirLight); _ = Avalonia.Media.Color.Parse(t.DirDark); }
+        Assert.Equal("default", ColorThemes.Get("nesmysl").Id);
+    }
+
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public void ThemeChangesAccentAndFolderBrush()
+    {
+        using var t = new TempDir();
+        var settings = new AppSettings { ColorTheme = "forest" };
+        settings.Session = new SessionState { Left = new() { t.Dir("l") }, Right = new() { t.Dir("r") }, ActiveLeft = true };
+        var w = new BudisCommander.Ui.MainWindow(settings, t.Combine("s.json"), new FakeUi());
+        var forest = ColorThemes.Get("forest").AccentColor;
+        Assert.Equal(forest, ((Avalonia.Media.SolidColorBrush)FileEntry.AccentBrush).Color);
+        settings.ColorTheme = "sunset";
+        w.ApplySettings();
+        Assert.Equal(ColorThemes.Get("sunset").AccentColor, ((Avalonia.Media.SolidColorBrush)FileEntry.AccentBrush).Color);
+        w.Close();
+    }
+}

@@ -34,6 +34,7 @@ public sealed partial class MainWindow : Window
     private readonly Border _userBarHost = new();
     private readonly Menu _menu = new();
     private readonly Border _glass = new();
+    private readonly List<TextBlock> _fnKeys = new();
     private bool _quickView;
     private QuickViewControl? _quickViewControl;
     private readonly Dictionary<string, Func<Task>> _handlers = new();
@@ -144,7 +145,9 @@ public sealed partial class MainWindow : Window
             grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
             var (key, title, action) = items[i];
             var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center };
-            content.Children.Add(new TextBlock { Text = key, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(Color.FromRgb(0x2B, 0x7C, 0xD3)) });
+            var keyText = new TextBlock { Text = key, FontWeight = FontWeight.Bold, Foreground = FileEntry.AccentBrush };
+            _fnKeys.Add(keyText);
+            content.Children.Add(keyText);
             content.Children.Add(new TextBlock { Text = title });
             var b = new Button { Content = content, HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(1), Focusable = false };
             var captured = action;
@@ -197,7 +200,15 @@ public sealed partial class MainWindow : Window
         app.RequestedThemeVariant = _settings.Theme switch { "light" => ThemeVariant.Light, "dark" => ThemeVariant.Dark, _ => ThemeVariant.Default };
         var dark = _settings.Theme == "dark" || (_settings.Theme == "system" && app.ActualThemeVariant == ThemeVariant.Dark);
         FileEntry.NormalBrush = dark ? new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xE6)) : new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20));
-        FileEntry.DirBrush = dark ? new SolidColorBrush(Color.FromRgb(0x7F, 0xB5, 0xFF)) : new SolidColorBrush(Color.FromRgb(0x1B, 0x5E, 0xB5));
+        var theme = ColorThemes.Get(_settings.ColorTheme);
+        FileEntry.DirBrush = new SolidColorBrush(Color.Parse(dark ? theme.DirDark : theme.DirLight));
+        FileEntry.AccentBrush = new SolidColorBrush(theme.AccentColor);
+        foreach (var t in _fnKeys) t.Foreground = FileEntry.AccentBrush;
+        if (app.Styles.OfType<Avalonia.Themes.Fluent.FluentTheme>().FirstOrDefault() is { } fluent)
+        {
+            fluent.Palettes[ThemeVariant.Light] = new Avalonia.Themes.Fluent.ColorPaletteResources { Accent = theme.AccentColor };
+            fluent.Palettes[ThemeVariant.Dark] = new Avalonia.Themes.Fluent.ColorPaletteResources { Accent = theme.AccentColor };
+        }
         FileEntry.MarkBrush = dark ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)) : new SolidColorBrush(Color.FromRgb(0xC6, 0x1A, 0x1A));
         FileEntry.SplitExtension = _settings.ShowExtColumn;
         _isDark = dark;

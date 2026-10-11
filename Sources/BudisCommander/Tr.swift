@@ -156,11 +156,13 @@ Atributy nastaveny.	Attributes set.
 Automaticky počítat velikosti složek (na pozadí, jen lokální složky)	Calculate folder sizes automatically (in the background, local folders only)
 Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5).	Packing works only on a local disk. Copy the files from the server first (F5).
 Balím {}…	Packing {}…
+Barevné téma	Color theme
 Barevné štítky Finderu u názvů	Colored Finder tags next to names
 Beze změny	No change
 Binární soubory jsou shodné.	The binary files are identical.
 Binární soubory se liší.	The binary files differ.
 Budis Commander	Budis Commander
+CPU	CPU
 Chcete existující položku přepsat?	Do you want to overwrite the existing item?
 Chyba	Error
 Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.	Cloud without manual setup: the application downloads rclone by itself and adds Google Drive, Dropbox, OneDrive, Box, S3, WebDAV or B2.
@@ -195,11 +197,13 @@ Editovat	Edit
 F3 zobrazí soubor, F4 ho upraví (na serveru se změny po uložení nahrají zpět).	F3 views a file, F4 edits it (on a server the changes are uploaded back after saving).
 F5 a F6 kopírují a přesouvají do druhého panelu, F7 vytvoří složku, F8 smaže do koše.	F5 and F6 copy and move to the other panel, F7 creates a folder, F8 deletes to the trash.
 FTP, FTP+TLS a SFTP (heslo i klíč), síťové disky a sdílené složky.	FTP, FTP+TLS and SFTP (password or key), network drives and shared folders.
+Fialová	Violet
 Filtr podle typu souboru	File type filter
 Filtr podle typu souboru: tlačítko v panelu ukáže jen obrázky, dokumenty, hudbu, video nebo archivy.	File type filter: the button in the panel shows only images, documents, music, video or archives.
 Filtr „{}“: {} z {} položek (Esc zruší)	Filter "{}": {} of {} items (Esc cancels)
 GitHub vrátil kód {}.	GitHub returned code {}.
 Google Disk	Google Drive
+Grafit	Graphite
 Heslo	Password
 Heslo archivu (volitelné)	Archive password (optional)
 Heslo klíče	Key password
@@ -243,6 +247,7 @@ Kopírovat název	Copy name
 Kopírovat soubory do schránky	Copy files to clipboard
 Kopírovat vše	Copy all
 Kopíruji: {}	Copying: {}
+Les	Forest
 Maska	Mask
 Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.	Mask: [N] = name without extension, [E] = extension, [C] = counter.
 Mažu {}	Deleting {}
@@ -294,6 +299,7 @@ Oblíbené a poslední složky	Favorites and recent folders
 Obnovit	Refresh
 Obnovit výchozí zkratky	Restore default shortcuts
 Obsahuje	Contains
+Oceán	Ocean
 Odebrat z oblíbených	Remove from favorites
 Odpojit od serveru	Disconnect from server
 Odznačit podle masky	Unmark by mask
@@ -305,6 +311,7 @@ Označit vše	Mark all
 Označování souborů, označení podle masky a vrácení posledních operací.	Marking files, marking by mask and undo of the last operations.
 Označte soubory v aktivním panelu a v druhém panelu postavte kurzor na archiv .zip.	Mark files in the active panel and place the cursor on a .zip archive in the other panel.
 Očekávaný součet (vložte pro ověření)	Expected sum (paste to verify)
+Paměť	Memory
 Panel rychlého náhledu	Quick view panel
 Panely mezitím přešly do jiných složek. Vraťte je do původních a pokračujte z menu Nástroje.	The panels have moved to other folders in the meantime. Return them to the original ones and continue from the Tools menu.
 Plocha	Desktop
@@ -331,6 +338,8 @@ Postavte kurzor v obou panelech na soubor, který chcete porovnat.	Place the cur
 Použít	Apply
 Počítače v síti (SMB)	Computers on the network (SMB)
 Počítám rozdíly…	Calculating differences…
+Proces bude okamžitě ukončen. Neuložená práce se ztratí.	The process will be ended immediately. Unsaved work will be lost.
+Procesu se pošle požadavek na ukončení.	The process is asked to quit.
 Procházím složky…	Browsing folders…
 Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone“ nebo zadejte jeho cestu.	rclone was not found. Install it with "brew install rclone" or enter its path.
 Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.	rclone was not found. Install it in Terminal with "brew install rclone" (or from rclone.org) and click Refresh.
@@ -437,6 +446,8 @@ Soubory jsou příliš velké pro porovnání po řádcích (nad 3 MB nebo 8000 
 Soubory jsou příliš velké pro porovnání po řádcích, ale jsou shodné.	The files are too large for a line comparison, but they are identical.
 Soubory jsou shodné.	The files are identical.
 Spočítat velikosti složek	Calculate folder sizes
+Správce procesů	Process manager
+Správce procesů…	Process manager…
 Stahuji aktualizaci…	Downloading the update…
 Stahuji náhled {}…	Downloading preview of {}…
 Stahuji rclone z oficiálního webu rclone.org…	Downloading rclone from the official rclone.org site…
@@ -463,6 +474,8 @@ Trvale smazat {} ze serveru?	Delete {} from the server permanently?
 Tuto akci nelze vrátit zpět.	This action cannot be undone.
 Třídit podle typu souboru	Sort by file type
 U SFTP lze zadat soukromý klíč (RSA/ECDSA); heslo je pak heslem ke klíči.	For SFTP you can enter a private key (RSA/ECDSA); the password is then the key's passphrase.
+Ukončit	End
+Ukončit „{}“ (PID {})?	End "{}" (PID {})?
 Ukázat	Show
 Ukázat ve Finderu	Show in Finder
 Uloženo na server: {}	Saved to server: {}
@@ -499,11 +512,13 @@ Vybrat přebytečné (ponechat nejstarší)	Select redundant (keep the oldest)
 Vybrat…	Choose…
 Vyjmout soubory do schránky	Cut files to clipboard
 Vyjmuto: {} položek. Vložte klávesou ⌘V.	Cut: {} items. Paste with ⌘V.
+Vynutit ukončení	Force quit
 Vytvořit	Create
 Vytvořit symbolický odkaz	Create symbolic link
 Vytvoří se v {}	It will be created in {}
 Vzhled	Appearance
 Výchozí	Default
+Výchozí (modrá)	Default (blue)
 Vývojové sestavení (bez označení verze)	Development build (no version mark)
 Včetně obsahu složek	Including folder contents
 Včetně skrytých	Including hidden
@@ -551,9 +566,11 @@ Zrušit filtr (Esc)	Clear filter (Esc)
 Zrušit výběr	Clear selection
 Zrušit vše	Cancel all
 Záložky v každém panelu a sady záložek, které si pamatují rozložení obou panelů.	Tabs in each panel and tab sets that remember the layout of both panels.
+Západ slunce	Sunset
 Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek.	Placeholders: %f file under the cursor, %n its name, %d panel folder, %o other panel folder, %F marked files (or the file under the cursor), %% a percent sign. Paths are quoted automatically.
 cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)	path to rclone (optional, otherwise PATH and Homebrew are searched)
 curl skončil s kódem {}	curl finished with code {}
+hledat podle názvu nebo PID	search by name or PID
 kopírovat	copy
 kopírování	copying
 malá	lower
@@ -578,6 +595,7 @@ volitelné, např. ~/.ssh/id_rsa	optional, e.g. ~/.ssh/id_rsa
 vytvoření složky „{}“	creating folder "{}"
 {} položek	{} items
 {} položek, {}	{} items, {}
+{} z {} procesů	{} of {} processes
 {} {} položek	{} {} items
 {}: nelze {} adresář do sebe sama	{}: cannot {} a directory into itself
 {}: {} z {} položek	{}: {} of {} items

@@ -119,7 +119,7 @@ struct ThumbView: View {
                 Image(nsImage: image).resizable().scaledToFit()
             } else {
                 Image(systemName: item.isParent ? "arrow.turn.left.up" : (item.isDirectory ? "folder.fill" : "doc"))
-                    .foregroundStyle(item.isDirectory ? Color.blue : Color.secondary)
+                    .foregroundStyle(item.isDirectory ? Palette.folder : Color.secondary)
             }
         }
         .frame(width: side, height: side)

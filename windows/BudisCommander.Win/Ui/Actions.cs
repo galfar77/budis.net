@@ -49,6 +49,7 @@ public static class Actions
         new("copyName", "Kopírovat název", null, Mark),
         new("copyDirPath", "Kopírovat cestu složky", null, Mark),
 
+        new("processes", "Správce procesů…", null, Tools),
         new("search", "Hledat soubory…", "Alt+F7", Tools),
         new("duplicates", "Hledat duplicity…", null, Tools),
         new("batchRename", "Hromadné přejmenování…", "Ctrl+M", Tools),

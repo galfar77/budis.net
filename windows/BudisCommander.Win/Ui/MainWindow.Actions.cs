@@ -66,6 +66,7 @@ public sealed partial class MainWindow
         H("copyName", () => CopyTextAsync(string.Join("\n", Pane.Targets().Select(t => t.Name))));
         H("copyDirPath", () => CopyTextAsync(Pane.IsRemote ? Pane.Title : Pane.PersistentPath));
 
+        H("processes", () => ShowToolAsync(new ProcessWindow(_core)));
         H("search", () => ShowToolAsync(new SearchWindow(_core)));
         H("duplicates", () => ShowToolAsync(new DuplicatesWindow(_core)));
         H("batchRename", ShowBatchRenameAsync);

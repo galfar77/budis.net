@@ -82,7 +82,7 @@ struct PaneView: View {
             }
             .padding(.horizontal, 8)
             .frame(height: 24)
-            .background(isActive ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.15))
+            .background(isActive ? Palette.accent.opacity(0.35) : Color.secondary.opacity(0.15))
             .liquidGlass(cornerRadius: 6)
 
             if !pane.filter.isEmpty {
@@ -124,7 +124,7 @@ struct PaneView: View {
                 .frame(height: 20)
                 .background(Color.secondary.opacity(0.1))
         }
-        .overlay(Rectangle().stroke(isActive ? Color.accentColor : .clear, lineWidth: 1))
+        .overlay(Rectangle().stroke(isActive ? Palette.accent : .clear, lineWidth: 1))
         .overlay(Rectangle().stroke(Color.green, lineWidth: paneDropTargeted ? 3 : 0))
         .onDrop(of: [.fileURL], isTargeted: $paneDropTargeted) { providers in
             onActivate()
@@ -192,7 +192,7 @@ struct PaneView: View {
                 ThumbView(item: item, side: 28)
             } else {
                 Image(systemName: item.isParent ? "arrow.turn.left.up" : (item.isDirectory ? "folder.fill" : "doc"))
-                    .foregroundStyle(item.isDirectory ? Color.blue : Color.secondary)
+                    .foregroundStyle(item.isDirectory ? Palette.folder : Color.secondary)
                     .frame(width: 16)
             }
             Text(shownName)
@@ -220,7 +220,7 @@ struct PaneView: View {
         .padding(.horizontal, 8)
         .frame(height: rowHeight)
         .background(dropRow == item.id ? Color.green.opacity(0.35)
-                    : (isCursor ? (isActive ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.3)) : .clear))
+                    : (isCursor ? (isActive ? Palette.accent.opacity(0.4) : Color.secondary.opacity(0.3)) : .clear))
     }
 }
 
