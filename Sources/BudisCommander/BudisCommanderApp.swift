@@ -4,6 +4,10 @@ import AppKit
 /// Zavření okna ukončí aplikaci (jediné okno nejde jinak znovu otevřít).
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        MainActor.assumeIsolated { MenuLocalizer.install() }
+    }
 }
 
 @main
