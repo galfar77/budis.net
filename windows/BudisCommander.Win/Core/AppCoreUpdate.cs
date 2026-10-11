@@ -2,12 +2,21 @@ namespace BudisCommander.Core;
 
 public sealed partial class AppCore
 {
+    private string _stagedCommit = "";
+    private Timer? _updateTimer;
+
+    /// <summary>Při běhu aplikace hledá novou verzi každé 3 hodiny (s automatickou instalací i ji nainstaluje).</summary>
+    public void StartUpdateTimer() =>
+        _updateTimer ??= new Timer(_ => _ = AutoCheckUpdateAsync(), null, TimeSpan.FromHours(3), TimeSpan.FromHours(3));
+
     // --- aktualizace aplikace ----------------------------------------------------------------
 
     /// <summary>Tiše zjistí, jestli je venku nová verze (při startu, nejvýš jednou denně) a jen to oznámí ve stavovém řádku.</summary>
     public async Task AutoCheckUpdateAsync(HttpClient? http = null, string? currentCommit = null, string? exePath = null)
     {
-        if (!Settings.AutoCheckUpdates || (DateTime.UtcNow - Settings.LastUpdateCheck).TotalHours < 20) return;
+        // S automatickou instalací se kontroluje častěji (nejvýš jednou za hodinu), jinak jednou za 20 hodin.
+        var interval = Settings.AutoInstallUpdates ? 1 : 20;
+        if (!Settings.AutoCheckUpdates || (DateTime.UtcNow - Settings.LastUpdateCheck).TotalHours < interval) return;
         currentCommit ??= Updater.CurrentCommit;
         if (currentCommit.Length == 0) return;                    // vývojové sestavení
         try
@@ -20,14 +29,17 @@ public sealed partial class AppCore
             var exe = exePath ?? Updater.SelfExePath();
             if (Settings.AutoInstallUpdates && exe != null)
             {
+                if (_stagedCommit == info.Commit) return;           // tahle verze už je nainstalovaná a čeká na restart
                 var client = http ?? own!;
                 var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "budis-update-" + Guid.NewGuid().ToString("N"));
                 try
                 {
                     var zip = await Updater.DownloadAsync(client, info, dir, null);
                     Updater.Apply(zip, exe);
+                    _stagedCommit = info.Commit;
                     ShowNotice("Nová verze je nainstalovaná, projeví se po restartu aplikace. Předchozí verzi vrátíte v menu Nápověda.");
                 }
+                catch (Exception e) { ShowNotice("Automatická instalace aktualizace se nezdařila: " + e.Message); }
                 finally { try { Directory.Delete(dir, true); } catch { } }
                 return;
             }

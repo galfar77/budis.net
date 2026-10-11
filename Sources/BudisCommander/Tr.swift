@@ -159,6 +159,7 @@ Atributy a časy ({} položek)	Attributes and times ({} items)
 Atributy lze měnit jen u souborů na lokálním disku.	Attributes can only be changed for files on a local disk.
 Atributy nastaveny.	Attributes set.
 Automaticky počítat velikosti složek (na pozadí, jen lokální složky)	Calculate folder sizes automatically (in the background, local folders only)
+Automatická instalace aktualizace se nezdařila: {}	Automatic update installation failed: {}
 Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda).	Automatic installation of updates (optional, in Settings) and going back to the previous version (Help menu).
 Balení funguje jen na lokálním disku. Soubory ze serveru nejdřív zkopírujte (F5).	Packing works only on a local disk. Copy the files from the server first (F5).
 Balím {}…	Packing {}…

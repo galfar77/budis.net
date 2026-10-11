@@ -82,6 +82,9 @@ enum Updater {
         return base.appendingPathComponent("BudisCommander/Previous/BudisCommander.app")
     }
 
+    /// Commit verze, která je už stažená a čeká na ukončení aplikace (ať se nestahuje znovu).
+    @MainActor static var stagedCommit = ""
+
     static var canRollBack: Bool { FileManager.default.fileExists(atPath: previousApp.path) }
 
     /// Skript pro výměnu aplikace: počká na konec této aplikace, starou uloží jako předchozí verzi a nahradí ji novou.
@@ -213,21 +216,30 @@ extension AppModel {
     /// Tiše zjistí, jestli je venku nová verze (při startu, nejvýš jednou za 20 hodin), a jen to oznámí.
     func autoCheckForUpdate() async {
         let settings = Settings.shared
+        // S automatickou instalací se kontroluje častěji (nejvýš jednou za hodinu), jinak jednou za 20 hodin.
+        let interval: Double = settings.autoInstallUpdates ? 3600 : 20 * 3600
         guard settings.autoCheckUpdates, Updater.isAppBundle, !Updater.currentCommit.isEmpty,
-              Date().timeIntervalSince1970 - settings.lastUpdateCheck > 20 * 3600 else { return }
+              Date().timeIntervalSince1970 - settings.lastUpdateCheck > interval else { return }
+        let info: UpdateInfo?
         do {
-            let info = try await Updater.check(current: Updater.currentCommit)
+            info = try await Updater.check(current: Updater.currentCommit)
             settings.lastUpdateCheck = Date().timeIntervalSince1970
-            guard info != nil else { return }
-            if settings.autoInstallUpdates, let info {
-                let newApp = try await Updater.downloadAndUnpack(info)
-                try Updater.installOnNextQuit(newApp)
-                showNotice(L("Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda."))
-            } else {
-                showNotice(L("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci."))
-            }
         } catch {
-            // bez internetu se nic neděje
+            return      // bez internetu se nic neděje
+        }
+        guard let info else { return }
+        guard settings.autoInstallUpdates else {
+            showNotice(L("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci."))
+            return
+        }
+        if Updater.stagedCommit == info.commit { return }       // tahle verze už je stažená a čeká na ukončení aplikace
+        do {
+            let newApp = try await Updater.downloadAndUnpack(info)
+            try Updater.installOnNextQuit(newApp)
+            Updater.stagedCommit = info.commit
+            showNotice(L("Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda."))
+        } catch {
+            showNotice(L("Automatická instalace aktualizace se nezdařila: \(error.localizedDescription)"))
         }
     }
 }

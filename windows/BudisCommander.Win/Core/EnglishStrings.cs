@@ -674,5 +674,6 @@ Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.	Search ins
 Automatická instalace aktualizací (volitelně v Nastavení) a návrat na předchozí verzi (menu Nápověda).	Automatic installation of updates (optional, in Settings) and going back to the previous version (Help menu).
 Zavřít ostatní záložky	Close other tabs
 Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).	Right-click menu: functions depend on what is under the pointer (file, folder, archive, several marked items, empty space).
+Automatická instalace aktualizace se nezdařila: {}	Automatic update installation failed: {}
 """;
 }

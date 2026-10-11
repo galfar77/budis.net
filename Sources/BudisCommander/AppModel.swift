@@ -92,6 +92,13 @@ final class AppModel: ObservableObject {
             await self.autoCheckForUpdate()
             self.startSyncScheduler()
         }
+        // Při běhu se nová verze hledá i každé 3 hodiny (platí hlavně s automatickou instalací).
+        Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 3 * 3600 * 1_000_000_000)
+                await self.autoCheckForUpdate()
+            }
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { _ in
             try? FileManager.default.removeItem(at: PaneState.archiveBase)
