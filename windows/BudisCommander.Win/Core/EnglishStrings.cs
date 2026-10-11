@@ -597,5 +597,23 @@ zkopírováno {} souborů ({}), smazáno {}	copied {} files ({}), deleted {}
 Chyba: {}	Error: {}
 Zdrojová složka „{}“ neexistuje.	The source folder "{}" does not exist.
 Program rclone není nainstalovaný.	rclone is not installed.
+Terminál…	Terminal…
+Terminál	Terminal
+příkaz (Enter spustí, šipky nahoru a dolů listují historií)	command (Enter runs, up and down arrows browse the history)
+Přejít do složky panelu	Go to the panel folder
+Restartovat	Restart
+Vyčistit	Clear
+\n[příkazový řádek skončil, klikněte na Restartovat]\n	\n[the command line has ended, click Restart]\n
+Nepodařilo se spustit příkazový řádek: {}	The command line could not be started: {}
+Telefon (Android)…	Phone (Android)…
+Telefon (Android)	Phone (Android)
+Nainstalovat adb	Install adb
+V telefonu zapněte Nastavení → Možnosti pro vývojáře → Ladění přes USB, připojte ho kabelem a potvrďte v telefonu dotaz na povolení. Soubory telefonu se pak otevřou v aktivním panelu.	On the phone turn on Settings → Developer options → USB debugging, connect it with a cable and confirm the permission prompt on the phone. The phone files then open in the active panel.
+Program adb zatím není nainstalovaný. Klikněte na „Nainstalovat adb“ (stáhne se od Googlu).	adb is not installed yet. Click "Install adb" (it is downloaded from Google).
+Žádný telefon nenalezen. Zkontrolujte kabel a ladění přes USB.	No phone found. Check the cable and USB debugging.
+Stahuji Android platform-tools z dl.google.com…	Downloading Android platform-tools from dl.google.com…
+iPhone a iPad: Apple neumožňuje přímý přístup k souborům přes kabel, použijte AirDrop nebo iCloud.	iPhone and iPad: Apple does not allow direct file access over a cable, use AirDrop or iCloud.
+Program adb nebyl nalezen. Nainstalujte ho v okně Telefon.	adb was not found. Install it in the Phone window.
+Připojení k telefonu se nezdařilo:\n\n{}	Connecting to the phone failed:\n\n{}
 """;
 }

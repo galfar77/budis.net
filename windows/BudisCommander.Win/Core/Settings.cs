@@ -91,6 +91,8 @@ public sealed class AppSettings
     public SessionState Session { get; set; } = new();
     /// <summary>Volitelná cesta k programu rclone (jinak se hledá v PATH).</summary>
     public string RclonePath { get; set; } = "";
+    /// <summary>Volitelná cesta k programu adb (Android).</summary>
+    public string AdbPath { get; set; } = "";
     /// <summary>Řazení pamatované zvlášť pro každou místní složku (jen složky, kde se liší od výchozího).</summary>
     public Dictionary<string, FolderView> FolderViews { get; set; } = new();
     /// <summary>Úlohy synchronizace na pozadí.</summary>

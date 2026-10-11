@@ -636,3 +636,149 @@ public sealed class SyncTasksWindow : Window
         if (_core.Settings.SyncTasks.Count > 0 && _list.SelectedIndex < 0) _list.SelectedIndex = 0;
     }
 }
+
+/// <summary>Jednoduchý vestavěný terminál: trvale běžící příkazový řádek, příkazy po řádcích.</summary>
+public sealed class TerminalWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly ShellSession _shell = new();
+    private readonly TextBox _output = UiKit.Mono("");
+    private readonly TextBox _input = new() { FontFamily = new FontFamily("Cascadia Mono, Consolas, Menlo, monospace"), Watermark = "příkaz (Enter spustí, šipky nahoru a dolů listují historií)" };
+    private readonly List<string> _history = new();
+    private int _historyIndex;
+
+    public TerminalWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Terminál";
+        Width = 820; Height = 520;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        _output.Height = double.NaN;
+        _output.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
+        _shell.Output += text => Dispatcher.UIThread.Post(() => Append(text));
+        _shell.Exited += _ => Dispatcher.UIThread.Post(() => Append("\n[příkazový řádek skončil, klikněte na Restartovat]\n"));
+        _input.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter) { e.Handled = true; Submit(); }
+            else if (e.Key == Key.Up && _history.Count > 0) { e.Handled = true; _historyIndex = Math.Max(0, _historyIndex - 1); _input.Text = _history[_historyIndex]; _input.CaretIndex = _input.Text!.Length; }
+            else if (e.Key == Key.Down && _history.Count > 0) { e.Handled = true; _historyIndex = Math.Min(_history.Count, _historyIndex + 1); _input.Text = _historyIndex < _history.Count ? _history[_historyIndex] : ""; _input.CaretIndex = _input.Text!.Length; }
+        };
+        var cd = UiKit.Button("Přejít do složky panelu", () => SendCommand(OperatingSystem.IsWindows() ? $"cd /d \"{CurrentDir()}\"" : $"cd '{CurrentDir()}'"));
+        var restart = UiKit.Button("Restartovat", () => { _output.Text = ""; StartShell(); });
+        var clear = UiKit.Button("Vyčistit", () => _output.Text = "");
+        var bar = UiKit.HStack(8, cd, restart, clear, UiKit.Button("Zavřít", Close));
+        var dock = new DockPanel { Margin = new Thickness(12) };
+        var bottom = UiKit.VStack(6, _input, bar);
+        DockPanel.SetDock(bottom, Dock.Bottom);
+        dock.Children.Add(bottom);
+        dock.Children.Add(_output);
+        Content = dock;
+        Opened += (_, _) => { StartShell(); _input.Focus(); };
+        Closed += (_, _) => _shell.Dispose();
+        this.CloseOnEscape();
+    }
+
+    private string CurrentDir() => _core.Active.IsRemote ? Environment.CurrentDirectory : _core.Active.PersistentPath;
+
+    private void StartShell()
+    {
+        try { _shell.Start(CurrentDir()); Append($"[{_shell.Executable}] "); }
+        catch (Exception e) { Append("Nepodařilo se spustit příkazový řádek: " + e.Message + "\n"); }
+    }
+
+    private void Append(string text)
+    {
+        var t = (_output.Text ?? "") + text;
+        if (t.Length > 200_000) t = t[^200_000..];
+        _output.Text = t;
+        _output.CaretIndex = t.Length;
+    }
+
+    private void Submit()
+    {
+        var cmd = _input.Text ?? "";
+        _input.Text = "";
+        if (cmd.Trim().Length > 0) { _history.Add(cmd); }
+        _historyIndex = _history.Count;
+        SendCommand(cmd);
+    }
+
+    private void SendCommand(string cmd)
+    {
+        if (!_shell.Running) { StartShell(); }
+        Append(cmd + "\n");
+        _shell.Send(cmd);
+    }
+}
+
+/// <summary>Telefon (Android přes adb): seznam připojených telefonů, instalace adb a připojení do panelu.</summary>
+public sealed class PhoneWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly ListBox _list = new() { Height = 150 };
+    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.85 };
+    private readonly Button _install = UiKit.Button("Nainstalovat adb", () => { }, true);
+    private readonly ProgressBar _bar = new() { Maximum = 1, Height = 6, IsVisible = false };
+    private List<AdbDevice> _devices = new();
+    private string _exe = "";
+
+    public PhoneWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Telefon (Android)";
+        Width = 560; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        _install.Click += async (_, _) => await InstallAsync();
+        _list.DoubleTapped += async (_, _) => await ConnectAsync();
+        var connect = UiKit.Button("Připojit", async () => await ConnectAsync(), true);
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Telefon (Android)", 15, true),
+                UiKit.Label("V telefonu zapněte Nastavení → Možnosti pro vývojáře → Ladění přes USB, připojte ho kabelem a potvrďte v telefonu dotaz na povolení. Soubory telefonu se pak otevřou v aktivním panelu.", dim: true),
+                UiKit.Frame(_list), _status, _install, _bar,
+                UiKit.HStack(8, connect, UiKit.Button("Obnovit", async () => await Fill()), UiKit.Button("Zavřít", Close)),
+                UiKit.Label("iPhone a iPad: Apple neumožňuje přímý přístup k souborům přes kabel, použijte AirDrop nebo iCloud.", dim: true)),
+        };
+        this.CloseOnEscape();
+        Opened += async (_, _) => await Fill();
+    }
+
+    private async Task Fill()
+    {
+        _exe = Adb.FindExe(_core.Settings.AdbPath);
+        _install.IsVisible = _exe.Length == 0;
+        if (_exe.Length == 0) { _list.ItemsSource = new List<string>(); _status.Text = "Program adb zatím není nainstalovaný. Klikněte na „Nainstalovat adb“ (stáhne se od Googlu)."; return; }
+        try
+        {
+            _devices = await Adb.ListDevicesAsync(_exe);
+            _list.ItemsSource = _devices.Select(d => d.Title).ToList();
+            if (_devices.Count > 0) _list.SelectedIndex = 0;
+            _status.Text = _devices.Count == 0 ? "Žádný telefon nenalezen. Zkontrolujte kabel a ladění přes USB." : "";
+        }
+        catch (Exception e) { _status.Text = e.Message; }
+    }
+
+    private async Task InstallAsync()
+    {
+        _install.IsEnabled = false; _bar.IsVisible = true; _bar.Value = 0;
+        _status.Text = "Stahuji Android platform-tools z dl.google.com…";
+        try
+        {
+            using var http = Updater.NewClient();
+            await Adb.InstallAsync(http, Adb.InstallDir, OperatingSystem.IsWindows() ? "windows" : "darwin", Adb.DefaultBaseUrl, new Progress<double>(f => _bar.Value = f));
+        }
+        catch (Exception e) { _status.Text = "Instalace se nezdařila: " + e.Message; }
+        finally { _bar.IsVisible = false; _install.IsEnabled = true; }
+        await Fill();
+    }
+
+    private async Task ConnectAsync()
+    {
+        var i = _list.SelectedIndex;
+        if (i < 0 || i >= _devices.Count) return;
+        var d = _devices[i];
+        Close();
+        await _core.ConnectPhoneAsync(d);
+    }
+}

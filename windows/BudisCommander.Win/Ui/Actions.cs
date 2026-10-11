@@ -49,6 +49,7 @@ public static class Actions
         new("copyName", "Kopírovat název", null, Mark),
         new("copyDirPath", "Kopírovat cestu složky", null, Mark),
 
+        new("terminal", "Terminál…", "Ctrl+OemTilde", Tools),
         new("syncTasks", "Synchronizace na pozadí…", null, Tools),
         new("transfers", "Správce přenosů…", null, Tools),
         new("processes", "Správce procesů…", null, Tools),
@@ -92,6 +93,7 @@ public static class Actions
         new("focusPath", "Přejít do pole s cestou", "Alt+D", View),
 
         new("connect", "Připojit k serveru FTP/SFTP…", "Ctrl+N", Servers),
+        new("phone", "Telefon (Android)…", null, Servers),
         new("cloud", "Cloudová úložiště (rclone)…", null, Servers),
         new("network", "Síť a disky…", "Ctrl+Shift+N", Servers),
     };

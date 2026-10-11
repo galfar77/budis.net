@@ -66,6 +66,12 @@ public sealed partial class MainWindow
         H("copyName", () => CopyTextAsync(string.Join("\n", Pane.Targets().Select(t => t.Name))));
         H("copyDirPath", () => CopyTextAsync(Pane.IsRemote ? Pane.Title : Pane.PersistentPath));
 
+        S("terminal", () =>
+        {
+            if (_terminal is { IsVisible: true }) { _terminal.Activate(); return; }
+            _terminal = new TerminalWindow(_core);
+            _terminal.Show(this);
+        });
         H("syncTasks", () => ShowToolAsync(new SyncTasksWindow(_core)));
         H("transfers", () => ShowToolAsync(new TransfersWindow(_core)));
         H("processes", () => ShowToolAsync(new ProcessWindow(_core)));
@@ -146,6 +152,7 @@ public sealed partial class MainWindow
         S("focusPath", () => ActivePanel.FocusPathBox());
 
         H("connect", () => ShowToolAsync(new ConnectWindow(_core)));
+        H("phone", () => ShowToolAsync(new PhoneWindow(_core)));
         H("cloud", () => ShowToolAsync(new CloudWindow(_core)));
         H("network", () => ShowToolAsync(new NetworkWindow(_core)));
     }

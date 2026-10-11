@@ -701,3 +701,164 @@ public class BackgroundSyncTests
         finally { using var s = new RcloneSession(exe, remote); try { await s.DeleteAsync(path, true, CancellationToken.None); } catch { } }
     }
 }
+
+public class ShellSessionTests
+{
+    [Fact]
+    public void CleanOutputStripsAnsiAndCarriageReturns()
+    {
+        Assert.Equal("ahoj\nsvěte", ShellSession.CleanOutput("\u001b[31mahoj\u001b[0m\r\nsvěte\r"));
+        Assert.Equal("titul", ShellSession.CleanOutput("\u001b]0;okno\u0007titul"));
+    }
+
+    [Fact]
+    public async Task RunsCommandsInOneLongLivedShell()
+    {
+        if (OperatingSystem.IsWindows()) return;                    // na Windows se používá cmd.exe, jiný zápis příkazů
+        using var t = new TempDir();
+        using var shell = new ShellSession("/bin/sh");
+        var text = new System.Text.StringBuilder();
+        shell.Output += s => { lock (text) text.Append(s); };
+        shell.Start(t.Path);
+        shell.Send("echo prvni=$((1+1))");
+        shell.Send("cd /tmp");
+        shell.Send("pwd");
+        shell.Send("echo $0 >/dev/null; echo chyba >&2");
+        for (int i = 0; i < 100 && !(Snapshot(text).Contains("/tmp") && Snapshot(text).Contains("chyba")); i++) await Task.Delay(50);
+        var all = Snapshot(text);
+        Assert.Contains("prvni=2", all);
+        Assert.Contains("/tmp", all);          // druhý příkaz ukazuje, že shell je stejný (cd platí dál)
+        Assert.Contains("chyba", all);         // chybový výstup se zobrazuje taky
+        shell.Send("exit");
+        for (int i = 0; i < 100 && shell.Running; i++) await Task.Delay(50);
+        Assert.False(shell.Running);
+    }
+
+    private static string Snapshot(System.Text.StringBuilder sb) { lock (sb) return sb.ToString(); }
+}
+
+public class AdbTests
+{
+    [Fact]
+    public void ParsesDevicesAndToyboxListing()
+    {
+        var devices = Adb.ParseDevices("List of devices attached\nR58M123  device usb:1-1 product:x model:Pixel_7 device:panther transport_id:3\nABCD  unauthorized transport_id:4\n* daemon started\n");
+        Assert.Equal(2, devices.Count);
+        Assert.True(devices[0].Ready);
+        Assert.Equal("Pixel_7", devices[0].Model);
+        Assert.False(devices[1].Ready);
+
+        var list = Adb.ParseListing("total 24\ndrwxrwx--x  4 root sdcard_rw  4096 2024-05-01 10:00 DCIM\n-rw-rw----  1 root sdcard_rw 12345 2024-05-02 11:30 Moje fotka (1).jpg\nlrwxrwxrwx  1 root root 21 2024-01-01 00:00 sdcard -> /storage/self/primary\ncrw-rw-rw-  1 root root 1, 3 2024-01-01 00:00 null\n", "/sdcard");
+        Assert.Equal(3, list.Count);
+        Assert.True(list[0].IsDirectory);
+        Assert.Equal("Moje fotka (1).jpg", list[1].Name);
+        Assert.Equal(12345, list[1].Size);
+        Assert.Equal("/sdcard/Moje fotka (1).jpg", list[1].FullPath);
+        Assert.True(list[2].IsDirectory);            // odkaz na složku
+        Assert.Equal("sdcard", list[2].Name);
+        Assert.Equal("'a'\\''b'", Adb.Quote("a'b"));
+    }
+
+    private static string MakeFakeAdb(TempDir t, string root)
+    {
+        var path = t.Combine("bin", "adb");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, $$"""
+            #!/bin/bash
+            ROOT="{{root}}"
+            export TIME_STYLE=long-iso
+            if [ "$1" = "-s" ]; then shift 2; fi
+            cmd="$1"; shift
+            case "$cmd" in
+              devices) echo "List of devices attached"; echo "FAKE123  device product:fake model:Fake_Phone device:fake transport_id:1";;
+              get-state) echo device;;
+              shell) c="$*"; c="${c//\'\//\'$ROOT/}"; cd "$ROOT" && sh -c "$c";;
+              pull) mkdir -p "$(dirname "$2")"; cp -r "$ROOT$1" "$2"; echo "[100%] $1";;
+              push) cp -r "$1" "$ROOT$2"; echo "[100%] $2";;
+            esac
+            """.Replace("\r", ""));
+        File.SetUnixFileMode(path, (UnixFileMode)0b111_101_101);
+        return path;
+    }
+
+    [Fact]
+    public async Task BrowsesAndTransfersThroughAFakeAdb()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        using var t = new TempDir();
+        var root = t.Dir("phone");
+        t.File("phone/sdcard/DCIM/foto.jpg", "JPG"); t.File("phone/sdcard/poznamka.txt", "Ahoj");
+        var exe = MakeFakeAdb(t, root);
+
+        var devices = await Adb.ListDevicesAsync(exe);
+        Assert.Equal("FAKE123", Assert.Single(devices).Serial);
+
+        using var s = new AdbSession(exe, "FAKE123", "Fake_Phone");
+        await s.ConnectAsync(CancellationToken.None);
+        Assert.Equal("phone Fake Phone", s.DisplayName);
+        var list = await s.ListAsync("/sdcard", CancellationToken.None);
+        Assert.Contains(list, e => e.Name == "DCIM" && e.IsDirectory);
+        Assert.Contains(list, e => e.Name == "poznamka.txt" && e.Size == 4);
+
+        // stažení souboru a celé složky
+        await s.DownloadAsync("/sdcard/poznamka.txt", false, 4, t.Combine("down", "poznamka.txt"), null, CancellationToken.None);
+        Assert.Equal("Ahoj", File.ReadAllText(t.Combine("down", "poznamka.txt")));
+        await s.DownloadAsync("/sdcard/DCIM", true, 0, t.Combine("down", "DCIM"), null, CancellationToken.None);
+        Assert.Equal("JPG", File.ReadAllText(t.Combine("down", "DCIM", "foto.jpg")));
+
+        // nahrání, nová složka, přejmenování, náhled a smazání
+        var up = t.File("up.txt", "Nahrano");
+        await s.UploadAsync(up, "/sdcard/up.txt", null, CancellationToken.None);
+        Assert.Equal("Nahrano", File.ReadAllText(Path.Combine(root, "sdcard", "up.txt")));
+        await s.MkdirAsync("/sdcard/Nová složka", CancellationToken.None);
+        Assert.True(Directory.Exists(Path.Combine(root, "sdcard", "Nová složka")));
+        await s.RenameAsync("/sdcard/up.txt", "/sdcard/Nová složka/up2.txt", CancellationToken.None);
+        Assert.True(File.Exists(Path.Combine(root, "sdcard", "Nová složka", "up2.txt")));
+        Assert.Equal("Nahr", System.Text.Encoding.UTF8.GetString(await s.ReadHeadAsync("/sdcard/Nová složka/up2.txt", 4, CancellationToken.None)));
+        await s.DeleteAsync("/sdcard/Nová složka", true, CancellationToken.None);
+        Assert.False(Directory.Exists(Path.Combine(root, "sdcard", "Nová složka")));
+    }
+
+    [Fact]
+    public async Task ShowsHelpfulMessageForUnauthorizedPhone()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        using var t = new TempDir();
+        var path = t.Combine("adb");
+        File.WriteAllText(path, "#!/bin/bash\nif [ \"$1\" = \"-s\" ]; then shift 2; fi\necho unauthorized\nexit 1\n");
+        File.SetUnixFileMode(path, (UnixFileMode)0b111_101_101);
+        using var s = new AdbSession(path, "X");
+        var ex = await Assert.ThrowsAsync<IOException>(() => s.ConnectAsync(CancellationToken.None));
+        Assert.Contains("Povolit ladění", ex.Message);
+    }
+
+    [Fact]
+    public async Task InstallsPlatformToolsFromZip()
+    {
+        using var t = new TempDir();
+        using var ms = new MemoryStream();
+        using (var z = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            using (var w = new StreamWriter(z.CreateEntry("platform-tools/" + Adb.ExeName).Open())) w.Write("ADB");
+            using (var w = new StreamWriter(z.CreateEntry("platform-tools/lib64/libc++.so").Open())) w.Write("LIB");
+        }
+        var handler = new FakeZipHandler(ms.ToArray());
+        using var http = new HttpClient(handler);
+        var exe = await Adb.InstallAsync(http, t.Combine("pt"), "darwin", "https://example.test");
+        Assert.Equal("ADB", File.ReadAllText(exe));
+        Assert.Equal("LIB", File.ReadAllText(t.Combine("pt", "lib64", "libc++.so")));
+        Assert.EndsWith("platform-tools-latest-darwin.zip", handler.LastUrl);
+    }
+
+    private sealed class FakeZipHandler : HttpMessageHandler
+    {
+        private readonly byte[] _zip;
+        public string LastUrl = "";
+        public FakeZipHandler(byte[] zip) => _zip = zip;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            LastUrl = request.RequestUri!.ToString();
+            return Task.FromResult(new HttpResponseMessage { Content = new ByteArrayContent(_zip) });
+        }
+    }
+}

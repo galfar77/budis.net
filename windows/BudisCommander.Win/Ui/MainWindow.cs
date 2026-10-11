@@ -35,6 +35,7 @@ public sealed partial class MainWindow : Window
     private readonly Menu _menu = new();
     private readonly Border _glass = new();
     private readonly List<TextBlock> _fnKeys = new();
+    private TerminalWindow? _terminal;
     private bool _quickView;
     private QuickViewControl? _quickViewControl;
     private readonly Dictionary<string, Func<Task>> _handlers = new();
