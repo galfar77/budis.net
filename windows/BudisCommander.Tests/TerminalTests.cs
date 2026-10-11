@@ -181,6 +181,9 @@ public class PtyTests
         })
         {
             using var pty = new PtySession(exe);
+            var exitInfo = "";
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            pty.Exited += c => exitInfo = $"exit=0x{c:X} after {sw.ElapsedMilliseconds} ms";
             var raw = new System.Text.StringBuilder();
             pty.Output += s => { lock (raw) raw.Append(s); };
             var t = new TerminalBuffer(100, 30);
@@ -192,7 +195,7 @@ public class PtyTests
             var ok = await WaitFor(t, s => s.Contains("marker-A-1"), 6000);
             anyOk |= ok;
             string rawText; lock (raw) rawText = raw.ToString();
-            report.Append($"[{name}] ok={ok} running={pty.Running} err={pty.LastError} raw={Esc(rawText)}\n");
+            report.Append($"[{name}] ok={ok} running={pty.Running} {exitInfo} err={pty.LastError} raw={Esc(rawText)}\n");
         }
         Assert.True(anyOk, report.ToString());
     }
