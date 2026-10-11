@@ -152,8 +152,8 @@ public sealed class PtySession : IDisposable
         }
         finally { DeleteProcThreadAttributeList(attrs); Marshal.FreeHGlobal(attrs); }
 
-        _in = new FileStream(_inWrite, FileAccess.Write, 1, false);
-        _out = new FileStream(_outRead, FileAccess.Read, 1, false);
+        _in = new HandleStream(_inWrite, false);
+        _out = new HandleStream(_outRead, true);
         var ph = _procHandle;
         int ExitCode() { try { return GetExitCodeProcess(ph, out var code) ? code : -1; } catch { return -1; } }
         Pump(_out, ExitCode);
@@ -164,6 +164,42 @@ public sealed class PtySession : IDisposable
             Thread.Sleep(150);                                  // ať se doplní poslední výstup
             RaiseExited(ExitCode);
         }) { IsBackground = true, Name = "pty-wait" }.Start();
+    }
+
+    /// <summary>Čtení a zápis do roury přímo přes ReadFile a WriteFile (FileStream si s rourami od ConPTY nerozumí spolehlivě).</summary>
+    private sealed class HandleStream : Stream
+    {
+        private readonly SafeFileHandle _h; private readonly bool _canRead;
+        public HandleStream(SafeFileHandle h, bool canRead) { _h = h; _canRead = canRead; }
+        public override bool CanRead => _canRead;
+        public override bool CanWrite => !_canRead;
+        public override bool CanSeek => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override unsafe int Read(byte[] buffer, int offset, int count)
+        {
+            fixed (byte* p = &buffer[offset])
+            {
+                if (!ReadFile(_h, p, count, out var n, IntPtr.Zero)) return 0;       // roura se zavřela
+                return n;
+            }
+        }
+        public override unsafe void Write(byte[] buffer, int offset, int count)
+        {
+            fixed (byte* p = &buffer[offset])
+            {
+                var done = 0;
+                while (done < count)
+                {
+                    if (!WriteFile(_h, p + done, count - done, out var n, IntPtr.Zero)) throw new IOException("Zápis do terminálu se nezdařil.");
+                    done += n;
+                }
+            }
+        }
+        protected override void Dispose(bool disposing) { if (disposing) _h.Dispose(); base.Dispose(disposing); }
     }
 
     private const int PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
@@ -190,6 +226,8 @@ public sealed class PtySession : IDisposable
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern bool CreateProcessW(string? app, StringBuilder cmd, IntPtr pa, IntPtr ta, bool inherit, uint flags, IntPtr env, string? dir, ref STARTUPINFOEX si, out PROCESS_INFORMATION pi);
     [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern unsafe bool ReadFile(SafeFileHandle h, byte* buffer, int count, out int read, IntPtr overlapped);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern unsafe bool WriteFile(SafeFileHandle h, byte* buffer, int count, out int written, IntPtr overlapped);
     [DllImport("kernel32.dll")] private static extern bool TerminateProcess(IntPtr h, uint code);
     [DllImport("kernel32.dll")] private static extern uint WaitForSingleObject(IntPtr h, uint ms);
     [DllImport("kernel32.dll")] private static extern bool GetExitCodeProcess(IntPtr h, out int code);

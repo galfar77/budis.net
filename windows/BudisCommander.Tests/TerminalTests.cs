@@ -164,6 +164,20 @@ public class PtyTests
     }
 
     [Fact]
+    public async Task OneShotCommandOutputArrives()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var t = new TerminalBuffer(100, 30);
+        using var pty = new PtySession();
+        var raw = new System.Text.StringBuilder();
+        pty.Output += s => { lock (t) { raw.Append(s); t.Write(s); } };
+        t.Reply += pty.Write;
+        pty.Start(Path.GetTempPath(), 100, 30, "/c echo ahoj-oneshot-77");
+        Assert.True(await WaitFor(t, s => s.Contains("ahoj-oneshot-77")),
+                    "Výstup se neobjevil:\n" + t.GetScreenText() + "\n--- chyba: " + pty.LastError + "\n--- surový výstup: " + raw.ToString().Replace("\x1b", "<ESC>").Replace("\r", "<CR>").Replace("\n", "<LF>\n"));
+    }
+
+    [Fact]
     public async Task ExitedEventIsRaisedWhenShellEnds()
     {
         if (!OperatingSystem.IsWindows() && !File.Exists("/usr/bin/script") && !File.Exists("/bin/script")) return;
