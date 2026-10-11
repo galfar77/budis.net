@@ -637,78 +637,38 @@ public sealed class SyncTasksWindow : Window
     }
 }
 
-/// <summary>Jednoduchý vestavěný terminál: trvale běžící příkazový řádek, příkazy po řádcích.</summary>
+/// <summary>Vestavěný terminál: skutečný pseudoterminál (ConPTY), takže fungují i vim, top, ssh a další celoobrazovkové programy.</summary>
 public sealed class TerminalWindow : Window
 {
     private readonly AppCore _core;
-    private readonly ShellSession _shell = new();
-    private readonly TextBox _output = UiKit.Mono("");
-    private readonly TextBox _input = new() { FontFamily = new FontFamily("Cascadia Mono, Consolas, Menlo, monospace"), Watermark = "příkaz (Enter spustí, šipky nahoru a dolů listují historií)" };
-    private readonly List<string> _history = new();
-    private int _historyIndex;
+    private readonly BudisCommander.Ui.TerminalControl _term = new();
 
     public TerminalWindow(AppCore core)
     {
         _core = core;
         Title = "Terminál";
-        Width = 820; Height = 520;
+        Width = 900; Height = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        _output.Height = double.NaN;
-        _output.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
-        _shell.Output += text => Dispatcher.UIThread.Post(() => Append(text));
-        _shell.Exited += _ => Dispatcher.UIThread.Post(() => Append("\n[příkazový řádek skončil, klikněte na Restartovat]\n"));
-        _input.KeyDown += (_, e) =>
+        var cd = UiKit.Button("Přejít do složky panelu", () =>
         {
-            if (e.Key == Key.Enter) { e.Handled = true; Submit(); }
-            else if (e.Key == Key.Up && _history.Count > 0) { e.Handled = true; _historyIndex = Math.Max(0, _historyIndex - 1); _input.Text = _history[_historyIndex]; _input.CaretIndex = _input.Text!.Length; }
-            else if (e.Key == Key.Down && _history.Count > 0) { e.Handled = true; _historyIndex = Math.Min(_history.Count, _historyIndex + 1); _input.Text = _historyIndex < _history.Count ? _history[_historyIndex] : ""; _input.CaretIndex = _input.Text!.Length; }
-        };
-        var cd = UiKit.Button("Přejít do složky panelu", () => SendCommand(OperatingSystem.IsWindows() ? $"cd /d \"{CurrentDir()}\"" : $"cd '{CurrentDir()}'"));
-        var restart = UiKit.Button("Restartovat", () => { _output.Text = ""; StartShell(); });
-        var clear = UiKit.Button("Vyčistit", () => _output.Text = "");
-        var bar = UiKit.HStack(8, cd, restart, clear, UiKit.Button("Zavřít", Close));
-        var dock = new DockPanel { Margin = new Thickness(12) };
-        var bottom = UiKit.VStack(6, _input, bar);
-        DockPanel.SetDock(bottom, Dock.Bottom);
-        dock.Children.Add(bottom);
-        dock.Children.Add(_output);
+            var dir = CurrentDir();
+            _term.SendText(OperatingSystem.IsWindows() ? $"cd /d \"{dir}\"\r" : $"cd '{dir}'\r");
+            _term.Focus();
+        });
+        var restart = UiKit.Button("Restartovat", () => { _term.Restart(); _term.Focus(); });
+        var bar = UiKit.HStack(8, cd, restart, UiKit.Button("Zavřít", Close));
+        bar.Margin = new Thickness(8, 6);
+        var dock = new DockPanel();
+        DockPanel.SetDock(bar, Dock.Top);
+        dock.Children.Add(bar);
+        dock.Children.Add(_term);
         Content = dock;
-        Opened += (_, _) => { StartShell(); _input.Focus(); };
-        Closed += (_, _) => _shell.Dispose();
-        this.CloseOnEscape();
+        _term.TitleOrStateChanged += () => Title = _term.Title.Length > 0 ? "Terminál – " + _term.Title : "Terminál";
+        Opened += (_, _) => { _term.Start(CurrentDir()); _term.Focus(); };
+        Closed += (_, _) => _term.Stop();
     }
 
     private string CurrentDir() => _core.Active.IsRemote ? Environment.CurrentDirectory : _core.Active.PersistentPath;
-
-    private void StartShell()
-    {
-        try { _shell.Start(CurrentDir()); Append($"[{_shell.Executable}] "); }
-        catch (Exception e) { Append("Nepodařilo se spustit příkazový řádek: " + e.Message + "\n"); }
-    }
-
-    private void Append(string text)
-    {
-        var t = (_output.Text ?? "") + text;
-        if (t.Length > 200_000) t = t[^200_000..];
-        _output.Text = t;
-        _output.CaretIndex = t.Length;
-    }
-
-    private void Submit()
-    {
-        var cmd = _input.Text ?? "";
-        _input.Text = "";
-        if (cmd.Trim().Length > 0) { _history.Add(cmd); }
-        _historyIndex = _history.Count;
-        SendCommand(cmd);
-    }
-
-    private void SendCommand(string cmd)
-    {
-        if (!_shell.Running) { StartShell(); }
-        Append(cmd + "\n");
-        _shell.Send(cmd);
-    }
 }
 
 /// <summary>Telefon (Android přes adb): seznam připojených telefonů, instalace adb a připojení do panelu.</summary>
