@@ -15,6 +15,7 @@ public sealed class SearchWindow : Window
     private readonly AppCore _core;
     private readonly TextBox _root = new(), _mask = new() { Text = "*" }, _text = new() { Watermark = "text v souboru (volitelné)" };
     private readonly CheckBox _hidden = new() { Content = "Včetně skrytých" };
+    private readonly CheckBox _inArchives = new() { Content = "Hledat i uvnitř archivů (zip, tar, 7z, rar…)" };
     private readonly CheckBox _useIndex = new() { Content = "Nejdřív zkusit rychlý index Windows Search (jen indexované složky)", IsChecked = true };
     private readonly ListBox _results = new() { Height = 260 };
     private readonly TextBlock _status = new() { Opacity = 0.7 };
@@ -32,7 +33,7 @@ public sealed class SearchWindow : Window
         _conn = pane.Connection;
         _root.Text = pane.IsRemote ? pane.RemotePath : pane.PersistentPath;
         _rootBase = _root.Text!;
-        if (pane.IsRemote) { _text.IsEnabled = false; _useIndex.IsVisible = false; }
+        if (pane.IsRemote) { _useIndex.IsVisible = false; _inArchives.IsVisible = false; _text.Watermark = "text v souboru (čte se jen první MB, nejvýše 300 souborů)"; }
         if (!OperatingSystem.IsWindows()) _useIndex.IsVisible = false;
         Title = "Hledat soubory";
         Width = 640; SizeToContent = SizeToContent.Height;
@@ -47,7 +48,7 @@ public sealed class SearchWindow : Window
         Content = new Border
         {
             Padding = new Thickness(16),
-            Child = UiKit.VStack(8, UiKit.Label("Hledat soubory", 15, true), form, _hidden, _useIndex,
+            Child = UiKit.VStack(8, UiKit.Label("Hledat soubory", 15, true), form, _hidden, _inArchives, _useIndex,
                 UiKit.HStack(8, _go, _status), UiKit.Frame(_results),
                 UiKit.Label("Dvojklikem se v aktivním panelu otevře složka souboru.", dim: true),
                 UiKit.ButtonRow(UiKit.Button("Zavřít", Close))),
@@ -60,6 +61,8 @@ public sealed class SearchWindow : Window
     private async Task OpenSelected()
     {
         if (_results.SelectedItem is not string rel) return;
+        var inArchive = rel.IndexOf(ArchiveSearch.Separator, StringComparison.Ordinal);
+        if (inArchive >= 0) rel = rel[..inArchive];
         var path = _conn != null ? rel : Path.Combine(_searchedRoot, rel);
         Close();
         await _core.RevealAsync(path);
@@ -72,7 +75,7 @@ public sealed class SearchWindow : Window
         _found.Clear(); _results.ItemsSource = null;
         var cts = _cts = new CancellationTokenSource();
         _go.Content = "Zastavit";
-        var mask = _mask.Text ?? "*"; var text = _text.Text ?? ""; bool hidden = _hidden.IsChecked == true;
+        var mask = _mask.Text ?? "*"; var text = _text.Text ?? ""; bool hidden = _hidden.IsChecked == true; bool inArchives = _inArchives.IsChecked == true;
         var root = _root.Text ?? "";
         _searchedRoot = root;
         int scanned = 0;
@@ -81,12 +84,12 @@ public sealed class SearchWindow : Window
         {
             if (_conn != null)
             {
-                await SearchRemoteAsync(_conn, root, mask, hidden, cts.Token);
+                await SearchRemoteAsync(_conn, root, mask, text, hidden, cts.Token);
             }
             else
             {
                 if (!Directory.Exists(root)) { await _core.Ui.ShowErrorAsync($"Složka „{root}“ neexistuje."); return; }
-                if (_useIndex.IsChecked == true && _useIndex.IsVisible)
+                if (_useIndex.IsChecked == true && _useIndex.IsVisible && !inArchives)
                 {
                     _status.Text = "Hledám v indexu…";
                     try
@@ -113,10 +116,15 @@ public sealed class SearchWindow : Window
                     {
                         cts.Token.ThrowIfCancellationRequested();
                         scanned++;
+                        var relName = fi.FullName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? fi.FullName[prefix.Length..] : fi.FullName;
                         if (Formatting.MatchesMask(fi.Name, mask) && (text.Length == 0 || FileContains(fi, text)))
                         {
-                            var rel = fi.FullName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? fi.FullName[prefix.Length..] : fi.FullName;
-                            lock (batch) batch.Add(rel);
+                            lock (batch) batch.Add(relName);
+                        }
+                        if (inArchives && fi is FileInfo && ArchiveService.IsArchive(fi.Name))
+                        {
+                            foreach (var inner in ArchiveSearch.Search(fi.FullName, mask, text, 500, cts.Token))
+                                lock (batch) batch.Add(relName + ArchiveSearch.Separator + inner);
                         }
                         if (scanned % 300 == 0)
                         {
@@ -147,26 +155,14 @@ public sealed class SearchWindow : Window
         catch { return false; }
     }
 
-    private async Task SearchRemoteAsync(RemoteSession conn, string root, string mask, bool hidden, CancellationToken ct)
+    private async Task SearchRemoteAsync(RemoteSession conn, string root, string mask, string text, bool hidden, CancellationToken ct)
     {
-        var queue = new Queue<string>(); queue.Enqueue(root);
-        var found = new List<string>();
-        int listed = 0;
-        while (queue.Count > 0 && listed < 3000 && found.Count < 5000)
+        var found = await RemoteSearch.SearchAsync(conn, root, mask, text, hidden, (list, p) =>
         {
-            ct.ThrowIfCancellationRequested();
-            var dir = queue.Dequeue(); listed++;
-            List<FileEntry> items;
-            try { items = await conn.ListAsync(dir, ct); } catch (OperationCanceledException) { throw; } catch { continue; }
-            foreach (var i in items)
-            {
-                if (!hidden && i.Name.StartsWith('.')) continue;
-                if (i.IsDirectory) queue.Enqueue(i.FullPath);
-                if (Formatting.MatchesMask(i.Name, mask)) found.Add(i.FullPath);
-            }
-            _results.ItemsSource = found.ToArray();
-            _status.Text = $"Nalezeno {found.Count}, prohledaných složek {listed}";
-        }
+            _results.ItemsSource = list.ToArray();
+            _status.Text = $"Nalezeno {p.Found}, prohledaných složek {p.Folders}" + (text.Length > 0 ? $", přečteno souborů {p.FilesRead}" + (p.ReadLimitReached ? " (další se kvůli limitu nečetly)" : "") : "");
+        }, ct);
+        _results.ItemsSource = found.ToArray();
     }
 }
 

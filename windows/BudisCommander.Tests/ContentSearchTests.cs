@@ -1,0 +1,100 @@
+using BudisCommander.Core;
+using BudisCommander.Remote;
+using Xunit;
+
+namespace BudisCommander.Tests;
+
+public class ContentSearchTests
+{
+    [Fact]
+    public void FindsEntriesInsideZipByNameAndContent()
+    {
+        using var t = new TempDir();
+        t.File("src/readme.txt", "Ahoj světe, tajné slovo je pomeranč");
+        t.File("src/data.bin", "x"); File.WriteAllBytes(t.Combine("src/blob.dat"), new byte[] { 0, 1, 2, 3, 0, 5 });
+        t.File("src/sub/note.txt", "nic zajímavého");
+        var zip = t.Combine("balik.zip");
+        ArchiveService.Create(zip, t.Combine("src"), new[] { t.Combine("src/readme.txt"), t.Combine("src/data.bin"), t.Combine("src/blob.dat"), t.Combine("src/sub") }, null, CancellationToken.None);
+
+        var byName = ArchiveSearch.Search(zip, "*.txt", "", 100, CancellationToken.None);
+        Assert.Contains("readme.txt", byName); Assert.Contains("sub/note.txt", byName); Assert.DoesNotContain("data.bin", byName);
+
+        var byText = ArchiveSearch.Search(zip, "*", "POMERANČ", 100, CancellationToken.None);
+        Assert.Equal(new[] { "readme.txt" }, byText);
+        Assert.Empty(ArchiveSearch.Search(zip, "*", "banán", 100, CancellationToken.None));
+    }
+
+    [Fact]
+    public void BrokenOrMissingArchiveGivesNoResults()
+    {
+        using var t = new TempDir();
+        var bad = t.File("rozbity.zip", "tohle není zip");
+        Assert.Empty(ArchiveSearch.Search(bad, "*", "", 10, CancellationToken.None));
+        Assert.Empty(ArchiveSearch.Search(t.Combine("neexistuje.zip"), "*", "", 10, CancellationToken.None));
+    }
+
+    private sealed class LocalBackedRemote : RemoteSession
+    {
+        private readonly string _root; public int Reads;
+        public LocalBackedRemote(string root) { _root = root; }
+        private string L(string p) => Path.Combine(_root, p.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        public override string DisplayName => "test";
+        public override string StartPath => "/";
+        public override Task ConnectAsync(CancellationToken ct) => Task.CompletedTask;
+        public override Task<List<FileEntry>> ListAsync(string path, CancellationToken ct)
+        {
+            var d = new DirectoryInfo(L(path));
+            var list = d.EnumerateFileSystemInfos().Select(i => new FileEntry
+            {
+                Name = i.Name, FullPath = RemotePath.Child(path, i.Name), IsDirectory = i is DirectoryInfo,
+                Size = i is FileInfo f ? f.Length : 0, Modified = i.LastWriteTime,
+            }).ToList();
+            return Task.FromResult(list);
+        }
+        public override Task<byte[]> ReadHeadAsync(string path, int maxBytes, CancellationToken ct)
+        {
+            Reads++;
+            var data = File.ReadAllBytes(L(path));
+            return Task.FromResult(data.Length > maxBytes ? data[..maxBytes] : data);
+        }
+        protected override Task DownloadFileAsync(string remote, string local, long size, Action<double>? progress, CancellationToken ct) => Task.CompletedTask;
+        protected override Task UploadFileAsync(string local, string remote, Action<double>? progress, CancellationToken ct) => Task.CompletedTask;
+        protected override Task DeleteFileAsync(string path, CancellationToken ct) => Task.CompletedTask;
+        protected override Task DeleteEmptyDirectoryAsync(string path, CancellationToken ct) => Task.CompletedTask;
+        public override Task MkdirAsync(string path, CancellationToken ct) => Task.CompletedTask;
+        public override Task RenameAsync(string from, string to, CancellationToken ct) => Task.CompletedTask;
+        public override void Dispose() { }
+    }
+
+    [Fact]
+    public async Task RemoteSearchByNameAndByContent()
+    {
+        using var t = new TempDir();
+        t.File("a.txt", "klíčové slovo tady"); t.File("b.txt", "nic"); t.File("sub/c.txt", "jiné KLÍČOVÉ slovo"); t.File("sub/.skryty.txt", "klíčové");
+        File.WriteAllBytes(t.Combine("bin.dat"), new byte[] { 0, 0, 1 });
+        var remote = new LocalBackedRemote(t.Path);
+
+        var names = await RemoteSearch.SearchAsync(remote, "/", "*.txt", "", false, null, CancellationToken.None);
+        Assert.Equal(new[] { "/a.txt", "/b.txt", "/sub/c.txt" }, names.OrderBy(x => x));
+        Assert.Equal(0, remote.Reads);
+
+        var hits = await RemoteSearch.SearchAsync(remote, "/", "*", "klíčové", false, null, CancellationToken.None);
+        Assert.Equal(new[] { "/a.txt", "/sub/c.txt" }, hits.OrderBy(x => x));
+        Assert.True(remote.Reads >= 3);
+
+        var withHidden = await RemoteSearch.SearchAsync(remote, "/", "*.txt", "klíčové", true, null, CancellationToken.None);
+        Assert.Contains("/sub/.skryty.txt", withHidden);
+    }
+
+    [Fact]
+    public async Task RemoteContentSearchStopsReadingAfterLimit()
+    {
+        using var t = new TempDir();
+        for (var i = 0; i < RemoteSearch.MaxFilesRead + 20; i++) t.File($"f{i:D4}.txt", "nic");
+        var remote = new LocalBackedRemote(t.Path);
+        RemoteSearch.Progress? last = null;
+        await RemoteSearch.SearchAsync(remote, "/", "*", "slovo", false, (_, p) => last = p, CancellationToken.None);
+        Assert.Equal(RemoteSearch.MaxFilesRead, remote.Reads);
+        Assert.True(last!.ReadLimitReached);
+    }
+}
