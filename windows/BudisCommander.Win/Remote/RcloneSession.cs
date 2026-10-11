@@ -14,6 +14,7 @@ public static class Rclone
     public static string? FindExe(string? custom)
     {
         if (!string.IsNullOrWhiteSpace(custom) && File.Exists(custom)) return custom;
+        if (File.Exists(RcloneSetup.InstalledExe)) return RcloneSetup.InstalledExe;
         var dirs = new List<string>((Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
         if (OperatingSystem.IsWindows())
         {

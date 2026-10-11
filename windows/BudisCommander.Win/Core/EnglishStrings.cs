@@ -478,5 +478,37 @@ Vývojové sestavení (bez označení verze)	Development build (no version mark)
 Dvoupanelový správce souborů	Two-panel file manager
 Projekt: {}	Project: {}
 Zkontrolovat aktualizace	Check for updates
+Nejdřív zkusit rychlý index Windows Search (jen indexované složky)	Try the fast Windows Search index first (indexed folders only)
+Hledám v indexu…	Searching the index…
+Nalezeno {} (index)	Found {} (index)
+Index nic nenašel, hledám procházením složek…	The index found nothing, searching by walking the folders…
+Index není dostupný, hledám procházením složek…	The index is not available, searching by walking the folders…
+Nainstalovat rclone	Install rclone
+název úložiště (písmena a číslice)	storage name (letters and digits)
+Vyberte úložiště a připojte ho do aktivního panelu. Nové přidáte níže; program rclone si aplikace umí sama stáhnout.	Pick a storage and connect it to the active panel. Add a new one below; the application can download rclone by itself.
+Přidat úložiště	Add storage
+Pokročilé nastavení (rclone config)…	Advanced setup (rclone config)…
+Otevře se okno programu rclone a prohlížeč s přihlášením ke službě. Po dokončení zavřete okno a klikněte na Obnovit.	A rclone window and a browser with the service login will open. When done, close the window and click Refresh.
+Stahuji rclone z oficiálního webu rclone.org…	Downloading rclone from the official rclone.org site…
+Instalace se nezdařila: {}	The installation failed: {}
+Nejdřív nainstalujte rclone.	Install rclone first.
+Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.	The name may only contain letters, digits, a hyphen and an underscore.
+Úložiště „{}“ už existuje.	Storage "{}" already exists.
+Dokončete přihlášení v okně rclone a prohlížeči, pak klikněte na Obnovit.	Finish the login in the rclone window and the browser, then click Refresh.
+Úložiště „{}“ přidáno.	Storage "{}" added.
+Program rclone zatím není nainstalovaný. Klikněte na „Nainstalovat rclone“.	rclone is not installed yet. Click "Install rclone".
+Zatím není nastavené žádné úložiště. Přidejte ho níže.	No storage is set up yet. Add one below.
+Google Disk	Google Drive
+Microsoft OneDrive	Microsoft OneDrive
+Amazon S3 a kompatibilní	Amazon S3 and compatible
+WebDAV (Nextcloud, ownCloud…)	WebDAV (Nextcloud, ownCloud…)
+Poskytovatel (AWS, Minio, Wasabi…)	Provider (AWS, Minio, Wasabi…)
+Region (např. eu-central-1)	Region (e.g. eu-central-1)
+Adresa serveru (jen mimo AWS)	Server address (not for AWS)
+Adresa (https://…)	Address (https://…)
+Druh (nextcloud, owncloud, other)	Type (nextcloud, owncloud, other)
+ID účtu nebo klíče	Account or key ID
+Aplikační klíč	Application key
+Průhledné okno ve stylu skla (Mica / Acrylic)	Glass-style translucent window (Mica / Acrylic)
 """;
 }

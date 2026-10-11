@@ -127,6 +127,7 @@ public class ServerSyncTests
     }
 }
 
+[Collection("Env")]
 public class RcloneTests
 {
     /// <summary>Běží jen když je v BUDIS_TEST_RCLONE název úložiště (a rclone je nainstalovaný).</summary>
@@ -354,5 +355,147 @@ public class InfoTextsTests
             Assert.Empty(czech);
         }
         finally { Tr.SetLanguage("cs"); }
+    }
+}
+
+public class IndexSearchTests
+{
+    [Fact]
+    public void BuildsQueryWithScopeMaskAndContent()
+    {
+        var sql = IndexSearch.BuildQuery(@"C:\Users\Já\Doc's\", "*.jpg;report", "text \"x\"", 100);
+        Assert.StartsWith("SELECT TOP 100 System.ItemPathDisplay FROM SystemIndex WHERE SCOPE='file:C:\\Users\\Já\\Doc''s'", sql);
+        Assert.Contains("(System.FileName LIKE '%.jpg' OR System.FileName LIKE '%report%')", sql);
+        Assert.Contains("CONTAINS('\"text x\"')", sql);
+    }
+
+    [Fact]
+    public void SingleWordMaskBecomesContains()
+    {
+        Assert.Equal("System.FileName LIKE '%abc%'", IndexSearch.NameCondition("abc"));
+        Assert.Equal("System.FileName LIKE '%'", IndexSearch.NameCondition("*"));
+        Assert.Equal("System.FileName LIKE 'a_c.txt'", IndexSearch.NameCondition("a?c.txt"));
+    }
+
+    [Fact]
+    public void QueryFailsCleanlyOffWindows()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        Assert.Throws<PlatformNotSupportedException>(() => IndexSearch.Query("SELECT 1"));
+    }
+
+    [Fact]
+    public void IndexQueryRunsOnWindowsIfServiceIsAvailable()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        try
+        {
+            var r = IndexSearch.Query("SELECT TOP 1 System.ItemPathDisplay FROM SystemIndex");
+            Assert.NotNull(r);
+        }
+        catch (Exception e) when (e is not Xunit.Sdk.XunitException)
+        {
+            // služba Windows Search nemusí na sestavovacím stroji běžet; aplikace pak hledá procházením
+        }
+    }
+}
+
+[Collection("Env")]
+public class RcloneSetupTests
+{
+    private sealed class FakeRcloneSite : HttpMessageHandler
+    {
+        public byte[] Zip = Array.Empty<byte>();
+        public string Hash = "";
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var url = request.RequestUri!.AbsolutePath;
+            if (url.EndsWith("version.txt")) return Task.FromResult(new HttpResponseMessage { Content = new StringContent("rclone v1.2.3\n") });
+            if (url.EndsWith("SHA256SUMS")) return Task.FromResult(new HttpResponseMessage { Content = new StringContent($"{Hash}  rclone-v1.2.3-windows-amd64.zip\n0000  rclone-v1.2.3-linux-amd64.zip\n") });
+            return Task.FromResult(new HttpResponseMessage { Content = new ByteArrayContent(Zip) });
+        }
+    }
+
+    private static byte[] MakeZip()
+    {
+        using var ms = new MemoryStream();
+        using (var z = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            using (var w = new StreamWriter(z.CreateEntry("rclone-v1.2.3-windows-amd64/rclone.exe").Open())) w.Write("EXE");
+            using (var d = new StreamWriter(z.CreateEntry("rclone-v1.2.3-windows-amd64/README.txt").Open())) d.Write("x");
+        }
+        return ms.ToArray();
+    }
+
+    [Fact]
+    public async Task InstallsVerifiesChecksumAndExtractsExe()
+    {
+        using var t = new TempDir();
+        var zip = MakeZip();
+        var site = new FakeRcloneSite { Zip = zip, Hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(zip)).ToLowerInvariant() };
+        using var http = new HttpClient(site);
+        var exe = await RcloneSetup.InstallAsync(http, t.Combine("inst"), "windows-amd64", "https://example.test");
+        Assert.Equal("EXE", File.ReadAllText(exe));
+        Assert.Equal(t.Combine("inst", "rclone.exe"), exe);
+    }
+
+    [Fact]
+    public async Task WrongChecksumAbortsInstall()
+    {
+        using var t = new TempDir();
+        var site = new FakeRcloneSite { Zip = MakeZip(), Hash = new string('a', 64) };
+        using var http = new HttpClient(site);
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => RcloneSetup.InstallAsync(http, t.Combine("inst"), "windows-amd64", "https://example.test"));
+        Assert.Contains("kontrolním součtem", ex.Message);
+        Assert.False(File.Exists(t.Combine("inst", "rclone.exe")));
+    }
+
+    [Theory]
+    [InlineData("moje-uloziste_1", true)]
+    [InlineData("s mezerou", false)]
+    [InlineData("a:b", false)]
+    [InlineData("", false)]
+    public void ValidatesRemoteNames(string name, bool ok) => Assert.Equal(ok, RcloneSetup.IsValidName(name));
+
+    [Fact]
+    public async Task AddsWebDavRemoteWithObscuredPassword()
+    {
+        var exe = Rclone.FindExe(null);
+        if (exe == null || Environment.GetEnvironmentVariable("BUDIS_TEST_RCLONE") == null) return;
+        using var t = new TempDir();
+        var conf = t.Combine("rclone.conf");
+        var old = Environment.GetEnvironmentVariable("RCLONE_CONFIG");
+        Environment.SetEnvironmentVariable("RCLONE_CONFIG", conf);
+        try
+        {
+            var p = RcloneSetup.Providers.First(x => x.Id == "webdav");
+            await RcloneSetup.AddWithFieldsAsync(exe, "mujwebdav", p, new Dictionary<string, string>
+            { ["url"] = "http://localhost:1/dav", ["vendor"] = "other", ["user"] = "u", ["pass"] = "tajneheslo" });
+            Assert.Contains("mujwebdav", await Rclone.ListRemotesAsync(exe));
+            var text = File.ReadAllText(conf);
+            Assert.Contains("type = webdav", text);
+            Assert.DoesNotContain("tajneheslo", text);
+        }
+        finally { Environment.SetEnvironmentVariable("RCLONE_CONFIG", old); }
+    }
+}
+
+[CollectionDefinition("Env", DisableParallelization = true)]
+public class EnvCollection { }
+
+public class GlassTests
+{
+    [Avalonia.Headless.XUnit.AvaloniaFact]
+    public void GlassSettingSetsTransparencyAndCanBeSwitchedOff()
+    {
+        using var t = new TempDir();
+        var settings = new AppSettings { Glass = true };
+        settings.Session = new SessionState { Left = new() { t.Dir("l") }, Right = new() { t.Dir("r") }, ActiveLeft = true };
+        var w = new BudisCommander.Ui.MainWindow(settings, t.Combine("s.json"), new FakeUi());
+        Assert.Contains(Avalonia.Controls.WindowTransparencyLevel.Mica, w.TransparencyLevelHint);
+        settings.Glass = false;
+        w.ApplyGlass();
+        Assert.Equal(new[] { Avalonia.Controls.WindowTransparencyLevel.None }, w.TransparencyLevelHint.ToArray());
+        w.Close();
     }
 }

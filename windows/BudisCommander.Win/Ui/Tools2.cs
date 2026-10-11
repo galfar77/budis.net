@@ -15,6 +15,7 @@ public sealed class SearchWindow : Window
     private readonly AppCore _core;
     private readonly TextBox _root = new(), _mask = new() { Text = "*" }, _text = new() { Watermark = "text v souboru (volitelné)" };
     private readonly CheckBox _hidden = new() { Content = "Včetně skrytých" };
+    private readonly CheckBox _useIndex = new() { Content = "Nejdřív zkusit rychlý index Windows Search (jen indexované složky)", IsChecked = true };
     private readonly ListBox _results = new() { Height = 260 };
     private readonly TextBlock _status = new() { Opacity = 0.7 };
     private readonly Button _go = new() { Content = "Hledat" };
@@ -31,7 +32,8 @@ public sealed class SearchWindow : Window
         _conn = pane.Connection;
         _root.Text = pane.IsRemote ? pane.RemotePath : pane.PersistentPath;
         _rootBase = _root.Text!;
-        if (pane.IsRemote) _text.IsEnabled = false;
+        if (pane.IsRemote) { _text.IsEnabled = false; _useIndex.IsVisible = false; }
+        if (!OperatingSystem.IsWindows()) _useIndex.IsVisible = false;
         Title = "Hledat soubory";
         Width = 640; SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -45,7 +47,7 @@ public sealed class SearchWindow : Window
         Content = new Border
         {
             Padding = new Thickness(16),
-            Child = UiKit.VStack(8, UiKit.Label("Hledat soubory", 15, true), form, _hidden,
+            Child = UiKit.VStack(8, UiKit.Label("Hledat soubory", 15, true), form, _hidden, _useIndex,
                 UiKit.HStack(8, _go, _status), UiKit.Frame(_results),
                 UiKit.Label("Dvojklikem se v aktivním panelu otevře složka souboru.", dim: true),
                 UiKit.ButtonRow(UiKit.Button("Zavřít", Close))),
@@ -84,6 +86,24 @@ public sealed class SearchWindow : Window
             else
             {
                 if (!Directory.Exists(root)) { await _core.Ui.ShowErrorAsync($"Složka „{root}“ neexistuje."); return; }
+                if (_useIndex.IsChecked == true && _useIndex.IsVisible)
+                {
+                    _status.Text = "Hledám v indexu…";
+                    try
+                    {
+                        var hits = await IndexSearch.SearchAsync(root, mask, text, 5000, cts.Token);
+                        if (hits.Count > 0)
+                        {
+                            var pfx = root.EndsWith(Path.DirectorySeparatorChar) ? root : root + Path.DirectorySeparatorChar;
+                            _results.ItemsSource = hits.Select(h => h.StartsWith(pfx, StringComparison.OrdinalIgnoreCase) ? h[pfx.Length..] : h).ToArray();
+                            _status.Text = $"Nalezeno {hits.Count} (index)";
+                            return;
+                        }
+                        _status.Text = "Index nic nenašel, hledám procházením složek…";
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch { _status.Text = "Index není dostupný, hledám procházením složek…"; }
+                }
                 var batch = new List<string>();
                 await Task.Run(() =>
                 {

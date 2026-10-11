@@ -73,6 +73,8 @@ public sealed class AppSettings
     public bool AutoDirSizes { get; set; }
     /// <summary>Jazyk rozhraní: cs nebo en (změna se projeví po restartu).</summary>
     public string Language { get; set; } = "cs";
+    /// <summary>Průhledné okno ve stylu skla (Mica nebo Acrylic podle verze Windows).</summary>
+    public bool Glass { get; set; } = true;
     public bool ShowHidden { get; set; }
     /// <summary>Při startu se zeptat GitHubu na novou verzi (nejvýš jednou denně).</summary>
     public bool AutoCheckUpdates { get; set; } = true;

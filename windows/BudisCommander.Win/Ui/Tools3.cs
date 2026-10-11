@@ -124,6 +124,7 @@ public sealed class SettingsWindow : Window
 
         var theme = new ComboBox { ItemsSource = new[] { "Podle systému", "Světlý", "Tmavý" }, SelectedIndex = s.Theme switch { "light" => 1, "dark" => 2, _ => 0 } };
         var language = new ComboBox { ItemsSource = new[] { "Čeština", "English" }, SelectedIndex = s.Language == "en" ? 1 : 0 };
+        var glass = new CheckBox { Content = "Průhledné okno ve stylu skla (Mica / Acrylic)", IsChecked = s.Glass };
         var updates = new CheckBox { Content = "Při startu zkontrolovat, jestli je dostupná nová verze", IsChecked = s.AutoCheckUpdates };
         var font = new NumericUpDown { Value = (decimal)s.FontSize, Minimum = 9, Maximum = 24, Increment = 1, FormatString = "0" };
         var ext = new CheckBox { Content = "Samostatný sloupec s příponou", IsChecked = s.ShowExtColumn };
@@ -164,6 +165,7 @@ public sealed class SettingsWindow : Window
             s.FontSize = (double)(font.Value ?? 13);
             s.Language = language.SelectedIndex == 1 ? "en" : "cs";
             s.AutoCheckUpdates = updates.IsChecked == true;
+            s.Glass = glass.IsChecked == true;
             s.ShowExtColumn = ext.IsChecked == true; s.ShowAttrColumn = attr.IsChecked == true;
             s.AutoDirSizes = auto.IsChecked == true; s.ShowButtonBar = bar.IsChecked == true;
             Close();
@@ -174,7 +176,7 @@ public sealed class SettingsWindow : Window
         Row(0, "Vzhled", theme); Row(1, "Velikost písma", font); Row(2, "Jazyk (po restartu)", language);
 
         var dock = new DockPanel { Margin = new Thickness(16) };
-        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, ext, attr, auto, bar, updates,
+        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, glass, ext, attr, auto, bar, updates,
             UiKit.Label("Klávesové zkratky (např. Ctrl+Shift+K; prázdné = žádná)", dim: true));
         var bottom = UiKit.VStack(6, error, UiKit.HStack(8, reset, new Border { Width = 30 }, UiKit.Button("Zrušit", Close), save));
         DockPanel.SetDock(top, Dock.Top); DockPanel.SetDock(bottom, Dock.Bottom);
@@ -238,48 +240,116 @@ public sealed class CloudWindow : Window
     private readonly AppCore _core;
     private readonly ComboBox _remotes = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
-    private readonly TextBox _path = new() { Watermark = "cesta k rclone (volitelné, jinak se hledá v PATH)" };
+    private readonly Button _install = UiKit.Button("Nainstalovat rclone", () => { }, true);
+    private readonly ComboBox _provider = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+    private readonly TextBox _name = new() { Watermark = "název úložiště (písmena a číslice)" };
+    private readonly StackPanel _fields = new() { Spacing = 4 };
+    private readonly Dictionary<string, TextBox> _fieldBoxes = new();
+    private readonly ProgressBar _bar = new() { Maximum = 1, Height = 6, IsVisible = false };
+    private readonly Button _connect = UiKit.Button("Připojit", () => { }, true);
+    private readonly Button _add = UiKit.Button("Přidat úložiště", () => { });
     private string? _exe;
 
     public CloudWindow(AppCore core)
     {
         _core = core;
         Title = "Cloudová úložiště (rclone)";
-        Width = 540; SizeToContent = SizeToContent.Height;
+        Width = 560; SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        _path.Text = core.Settings.RclonePath;
-        var connect = UiKit.Button("Připojit", async () =>
+
+        _connect.Click += async (_, _) =>
         {
             if (_remotes.SelectedItem is not string remote) return;
             Close();
             await _core.ConnectCloudAsync(remote);
-        }, true);
-        var configure = UiKit.Button("Nastavit úložiště…", () =>
+        };
+        _install.Click += async (_, _) => await InstallAsync();
+        _add.Click += async (_, _) => await AddAsync();
+        _provider.ItemsSource = RcloneSetup.Providers.Select(p => p.Title).ToList();
+        _provider.SelectionChanged += (_, _) => BuildFields();
+        _provider.SelectedIndex = 0;
+
+        var refresh = UiKit.Button("Obnovit", async () => await Fill());
+        var advanced = UiKit.Button("Pokročilé nastavení (rclone config)…", () =>
         {
             if (_exe == null) return;
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_exe, "config") { UseShellExecute = true }); }
             catch (Exception e) { _status.Text = e.Message; }
         });
-        var refresh = UiKit.Button("Obnovit", async () => { _core.Settings.RclonePath = (_path.Text ?? "").Trim(); await Fill(); });
         Content = new Border
         {
             Padding = new Thickness(16),
             Child = UiKit.VStack(8, UiKit.Label("Cloudová úložiště", 15, true),
-                UiKit.Label("Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.", dim: true),
-                _remotes, _status, _path,
-                UiKit.HStack(8, connect, configure, refresh, UiKit.Button("Zavřít", Close))),
+                UiKit.Label("Vyberte úložiště a připojte ho do aktivního panelu. Nové přidáte níže; program rclone si aplikace umí sama stáhnout.", dim: true),
+                _remotes, _status, _install, _bar,
+                UiKit.HStack(8, _connect, refresh, UiKit.Button("Zavřít", Close)),
+                new Border { Height = 1, Background = new SolidColorBrush(Color.FromArgb(60, 128, 128, 128)), Margin = new Thickness(0, 6) },
+                UiKit.Label("Přidat úložiště", 13, true), _provider, _name, _fields,
+                UiKit.HStack(8, _add, advanced)),
         };
         this.CloseOnEscape();
         Opened += async (_, _) => await Fill();
     }
 
+    private void BuildFields()
+    {
+        _fields.Children.Clear(); _fieldBoxes.Clear();
+        var p = RcloneSetup.Providers[Math.Max(0, _provider.SelectedIndex)];
+        _name.Text = p.Id;
+        if (p.Browser)
+        {
+            _fields.Children.Add(UiKit.Label("Otevře se okno programu rclone a prohlížeč s přihlášením ke službě. Po dokončení zavřete okno a klikněte na Obnovit.", dim: true));
+            return;
+        }
+        foreach (var f in p.Fields)
+        {
+            var box = new TextBox { Watermark = f.Label, Text = f.Default, PasswordChar = f.Secret ? '•' : '\0' };
+            _fieldBoxes[f.Key] = box;
+            _fields.Children.Add(box);
+        }
+    }
+
+    private async Task InstallAsync()
+    {
+        _install.IsEnabled = false; _bar.IsVisible = true; _bar.Value = 0;
+        _status.Text = "Stahuji rclone z oficiálního webu rclone.org…";
+        try
+        {
+            using var http = Updater.NewClient();
+            var progress = new Progress<double>(f => _bar.Value = f);
+            await RcloneSetup.InstallAsync(http, RcloneSetup.InstallDir, RcloneSetup.PlatformSuffix, RcloneSetup.DefaultBaseUrl, progress);
+        }
+        catch (Exception e) { _status.Text = "Instalace se nezdařila: " + e.Message; }
+        finally { _bar.IsVisible = false; _install.IsEnabled = true; }
+        await Fill();
+    }
+
+    private async Task AddAsync()
+    {
+        if (_exe == null) { _status.Text = "Nejdřív nainstalujte rclone."; return; }
+        var p = RcloneSetup.Providers[Math.Max(0, _provider.SelectedIndex)];
+        var name = (_name.Text ?? "").Trim();
+        if (!RcloneSetup.IsValidName(name)) { _status.Text = "Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko."; return; }
+        if (_remotes.ItemsSource is IEnumerable<string> existing && existing.Contains(name)) { _status.Text = $"Úložiště „{name}“ už existuje."; return; }
+        try
+        {
+            if (p.Browser) { RcloneSetup.AddWithBrowser(_exe, name, p); _status.Text = "Dokončete přihlášení v okně rclone a prohlížeči, pak klikněte na Obnovit."; return; }
+            await RcloneSetup.AddWithFieldsAsync(_exe, name, p, _fieldBoxes.ToDictionary(kv => kv.Key, kv => kv.Value.Text ?? ""));
+            _status.Text = $"Úložiště „{name}“ přidáno.";
+        }
+        catch (Exception e) { _status.Text = e.Message; }
+        await Fill();
+    }
+
     private async Task Fill()
     {
         _exe = Rclone.FindExe(_core.Settings.RclonePath);
+        _install.IsVisible = _exe == null;
+        _connect.IsEnabled = _exe != null;
         if (_exe == null)
         {
             _remotes.ItemsSource = new List<string>();
-            _status.Text = "Program rclone nebyl nalezen. Nainstalujte ho příkazem „winget install Rclone.Rclone“ (nebo z rclone.org), pak klikněte na Obnovit.";
+            _status.Text = "Program rclone zatím není nainstalovaný. Klikněte na „Nainstalovat rclone“.";
             return;
         }
         try
@@ -287,7 +357,8 @@ public sealed class CloudWindow : Window
             var list = await Rclone.ListRemotesAsync(_exe);
             _remotes.ItemsSource = list;
             if (list.Count > 0) _remotes.SelectedIndex = 0;
-            _status.Text = list.Count == 0 ? "Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“." : $"rclone: {_exe}";
+            _connect.IsEnabled = list.Count > 0;
+            _status.Text = list.Count == 0 ? "Zatím není nastavené žádné úložiště. Přidejte ho níže." : $"rclone: {_exe}";
         }
         catch (Exception e) { _status.Text = e.Message; }
     }

@@ -33,6 +33,7 @@ public sealed partial class MainWindow : Window
     private readonly StackPanel _userBar = new() { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(4, 2) };
     private readonly Border _userBarHost = new();
     private readonly Menu _menu = new();
+    private readonly Border _glass = new();
     private bool _quickView;
     private QuickViewControl? _quickViewControl;
     private readonly Dictionary<string, Func<Task>> _handlers = new();
@@ -63,7 +64,9 @@ public sealed partial class MainWindow : Window
 
         RegisterHandlers();
         BuildMenu();
-        Content = BuildLayout();
+        _glass.Child = BuildLayout();
+        Content = _glass;
+        ApplyGlass();
         _core.StatusChanged += () => Dispatcher.UIThread.Post(UpdateStatus);
         _core.SessionChanged += () => Dispatcher.UIThread.Post(() => { });
 
@@ -197,6 +200,27 @@ public sealed partial class MainWindow : Window
         FileEntry.DirBrush = dark ? new SolidColorBrush(Color.FromRgb(0x7F, 0xB5, 0xFF)) : new SolidColorBrush(Color.FromRgb(0x1B, 0x5E, 0xB5));
         FileEntry.MarkBrush = dark ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)) : new SolidColorBrush(Color.FromRgb(0xC6, 0x1A, 0x1A));
         FileEntry.SplitExtension = _settings.ShowExtColumn;
+        _isDark = dark;
+        ApplyGlass();
+    }
+
+    private bool _isDark;
+
+    /// <summary>Zapne nebo vypne průhledné okno (Mica na Windows 11, Acrylic na Windows 10); text zůstává čitelný díky jemnému zákalu.</summary>
+    public void ApplyGlass()
+    {
+        if (_settings.Glass)
+        {
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.Mica, WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Blur };
+            Background = Brushes.Transparent;
+            _glass.Background = _isDark ? new SolidColorBrush(Color.FromArgb(0xB0, 0x20, 0x20, 0x20)) : new SolidColorBrush(Color.FromArgb(0xA8, 0xF7, 0xF7, 0xF7));
+        }
+        else
+        {
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
+            ClearValue(BackgroundProperty);
+            _glass.Background = null;
+        }
     }
 
     public void ApplySettings()
