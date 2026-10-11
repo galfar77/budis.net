@@ -42,7 +42,7 @@ final class AdbIntegrationTests: XCTestCase {
           devices) echo "List of devices attached"; echo "FAKE123  device product:fake model:Fake_Phone device:fake transport_id:1";;
           get-state) echo device;;
           shell)
-            c="$*"; c="${c//\'\//\'$ROOT/}"
+            c=$(printf '%s' "$*" | sed "s#'/#'$ROOT/#g")
             pre=""
             if [ "$(uname)" = "Darwin" ]; then pre="ls() { command ls -D '%Y-%m-%d %H:%M' \"\$@\"; };"; fi
             cd "$ROOT" && sh -c "$pre $c";;
