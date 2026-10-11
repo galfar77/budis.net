@@ -63,6 +63,8 @@ struct ContentView: View {
             case .features: InfoSheet(title: L("Přehled funkcí"), lines: InfoTexts.features)
             case .about: AboutSheet(model: model)
             case .processes: ProcessSheet()
+            case .transfers: TransfersSheet(model: model)
+            case .syncTasks: SyncTasksSheet(model: model)
             case .cloud: CloudSheet(model: model)
             }
         }

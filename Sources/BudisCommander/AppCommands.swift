@@ -76,6 +76,8 @@ struct AppCommands: Commands {
             Divider()
             item(.sortByType)
             item(.processes)
+            item(.transfers)
+            item(.syncTasks)
             Menu(L("Filtr podle typu souboru")) {
                 Button(L("Všechny soubory")) { model.active.setTypeFilter(nil) }
                 Divider()

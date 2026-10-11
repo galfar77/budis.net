@@ -8,7 +8,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case split, combine, symlink, userMenu, resumeTransfer, thumbnails
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
-    case tabSets, cloud, checkUpdate, sortByType, processes
+    case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks
 
     var id: String { rawValue }
 
@@ -62,6 +62,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .checkUpdate: return L("Aktualizovat aplikaci…")
         case .sortByType: return L("Třídit podle typu souboru")
         case .processes: return L("Správce procesů…")
+        case .transfers: return L("Správce přenosů…")
+        case .syncTasks: return L("Synchronizace na pozadí…")
         }
     }
 
@@ -96,7 +98,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .compareContent, .split, .combine, .symlink, .userMenu, .resumeTransfer, .thumbnails: return ""
         case .copyFiles, .cutFiles, .pasteFiles, .copyPath, .copyName, .copyDirPath: return ""
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
-        case .tabSets, .cloud, .checkUpdate, .sortByType, .processes: return ""
+        case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks: return ""
         }
     }
 }

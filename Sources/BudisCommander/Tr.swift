@@ -124,6 +124,8 @@ enum Tr {
 # Servery a cloud	# Servers and cloud
 # Základy	# Basics
 (jen lokální složky)	(local folders only)
+, chyb {}: {}	, errors {}: {}
+, smazáno {}	, deleted {}
 Adresa (https://…)	Address (https://…)
 Adresa sdílení	Share address
 Adresa serveru (jen mimo AWS)	Server address (not for AWS)
@@ -165,6 +167,7 @@ Budis Commander	Budis Commander
 CPU	CPU
 Chcete existující položku přepsat?	Do you want to overwrite the existing item?
 Chyba	Error
+Chyba: {}	Error: {}
 Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.	Cloud without manual setup: the application downloads rclone by itself and adds Google Drive, Dropbox, OneDrive, Box, S3, WebDAV or B2.
 Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.	Cloud storage (Dropbox, Google Drive, OneDrive…) through the rclone program.
 Cloudová úložiště (rclone)	Cloud storage (rclone)
@@ -172,6 +175,8 @@ Cloudová úložiště (rclone)…	Cloud storage (rclone)…
 Co je nového	What's new
 Co je nového…	What's new…
 Co udělat s {}?	What to do with {}?
+Cíl	Target
+Cíl v cloudu zapište jako rclone:název:/cesta.	Write a cloud target as rclone:name:/path.
 Cíl: {}	Destination: {}
 Další štítky (oddělené čárkou)	Other tags (comma separated)
 Disk se nepodařilo připojit:\n{}	The disk could not be connected:\n{}
@@ -189,6 +194,7 @@ Druh (nextcloud, owncloud, other)	Type (nextcloud, owncloud, other)
 Dva panely, Tab přepíná mezi nimi. Šipky, Enter a Backspace se pohybují po složkách.	Two panels, Tab switches between them. Arrows, Enter and Backspace move through folders.
 Dva panely, záložky, ovládání z klávesnice, F2 až F8, označování, rychlé hledání, vrácení operací.	Two panels, tabs, keyboard control, F2 to F8, marking, quick search, undo of operations.
 Dvoupanelový správce souborů	Two-panel file manager
+Dělení souboru	Splitting a file
 Dělení zrušeno.	Splitting cancelled.
 Dělím {}…	Splitting {}…
 Důvěřovat serveru bez ověření klíče/certifikátu	Trust the server without verifying its key/certificate
@@ -224,12 +230,20 @@ Instalace se nezdařila: {}	The installation failed: {}
 Jazyk (po restartu)	Language (after restart)
 Je dostupná nová verze	A new version is available
 Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from the Tools menu → Update application.
+Jednosměrně: zdroj se kopíruje do cíle. Cíl v cloudu zapište jako rclone:název:/cesta (úložiště přidáte v menu Nástroje → Cloudová úložiště).	One way: the source is copied to the target. Write a cloud target as rclone:name:/path (add storage in the Tools menu → Cloud storage).
+Jednou denně	Once a day
 Jen archivy	Archives only
 Jen dokumenty	Documents only
 Jen hudba	Music only
 Jen obrázky	Images only
 Jen rozdíly	Differences only
+Jen ručně	Manual only
 Jen video	Video only
+Každou hodinu	Every hour
+Každých 15 minut	Every 15 minutes
+Každých 30 minut	Every 30 minutes
+Každých 5 minut	Every 5 minutes
+Každých 6 hodin	Every 6 hours
 Klepnutím sadu otevřete. Sada pamatuje záložky obou panelů.	Click a set to open it. A set remembers the tabs of both panels.
 Kliknutím se v aktivním panelu otevře složka souboru.	Clicking opens the file's folder in the active panel.
 Klávesové zkratky (⌘ + znak)	Keyboard shortcuts (⌘ + character)
@@ -246,10 +260,14 @@ Kopírovat nebo přepsat: {} souborů ({})\nVytvořit složek: {}\n	Copy or over
 Kopírovat název	Copy name
 Kopírovat soubory do schránky	Copy files to clipboard
 Kopírovat vše	Copy all
+Kopírování	Copy
+Kopírování: {} → {}	Copy: {} → {}
 Kopíruji: {}	Copying: {}
 Les	Forest
 Maska	Mask
 Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.	Mask: [N] = name without extension, [E] = extension, [C] = counter.
+Mazat v cíli soubory, které ve zdroji nejsou	Delete files in the target that are not in the source
+Mazání	Deleting
 Mažu {}	Deleting {}
 Mažu: 	Deleting: 
 Microsoft OneDrive	Microsoft OneDrive
@@ -281,8 +299,10 @@ Není co vracet.	Nothing to undo.
 Není žádný přerušený přenos.	There is no interrupted transfer.
 Neshoduje se	Does not match
 Nic k zobrazení.	Nothing to show.
+Nová synchronizace	New sync
 Nová záložka	New tab
 Nová záložka (⌘T)	New tab (⌘T)
+Nové přenosy (F5, F6) se řadí do fronty a běží postupně. Zrušenou nebo selhanou úlohu lze spustit znovu.	New transfers (F5, F6) are queued and run one after another. A cancelled or failed job can be run again.
 Nový	New
 Nový adr.	New dir.
 Nový adresář	New directory
@@ -303,6 +323,7 @@ Oceán	Ocean
 Odebrat z oblíbených	Remove from favorites
 Odpojit od serveru	Disconnect from server
 Odznačit podle masky	Unmark by mask
+Operace	Operation
 Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit.	Terminal with rclone and a browser with the service login will open. When done, click Refresh.
 Otevřít v aplikaci	Open in application
 Označeno {} z {}, {}	Marked {} of {}, {}
@@ -343,6 +364,7 @@ Procesu se pošle požadavek na ukončení.	The process is asked to quit.
 Procházím složky…	Browsing folders…
 Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone“ nebo zadejte jeho cestu.	rclone was not found. Install it with "brew install rclone" or enter its path.
 Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.	rclone was not found. Install it in Terminal with "brew install rclone" (or from rclone.org) and click Refresh.
+Program rclone není nainstalovaný.	rclone is not installed.
 Program rclone zatím není nainstalovaný. Klikněte na „Nainstalovat rclone“.	rclone is not installed yet. Click "Install rclone".
 Prohledá se: 	Searched: 
 Prohledáno souborů: {}	Files searched: {}
@@ -363,6 +385,8 @@ Přenos zrušen. Zbylé položky ({}) jde dokončit z menu Nástroje.	The transf
 Přepsat	Overwrite
 Přepsat vše	Overwrite all
 Přeskočit	Skip
+Přesun	Move
+Přesun: {} → {}	Move: {} → {}
 Přesunout	Move
 Přesunout do koše (jen v cíli): {}	Move to Trash (destination only): {}
 Přesunout {} do koše?	Move {} to the Trash?
@@ -374,6 +398,7 @@ Přidat do archivu v druhém panelu	Add to the archive in the other panel
 Přidat příkaz	Add command
 Přidat {} do „{}“?	Add {} to "{}"?
 Přidat úložiště	Add storage
+Přidat…	Add…
 Přidáno do archivu: {}	Added to archive: {}
 Přidáno do fronty (ve frontě: {})	Added to the queue (in queue: {})
 Přidávám do {}…	Adding to {}…
@@ -422,6 +447,7 @@ Shoduje se	Matches
 Skryté soubory	Hidden files
 Skrytý	Hidden
 Skrýt	Hide
+Slepení souboru	Joining a file
 Slepit díly souboru	Join file parts
 Slepování zrušeno.	Joining cancelled.
 Slepuji {}…	Joining {}…
@@ -445,9 +471,14 @@ Soubor slepen: {}	File joined: {}
 Soubory jsou příliš velké pro porovnání po řádcích (nad 3 MB nebo 8000 řádků) a liší se.	The files are too large for a line comparison (over 3 MB or 8000 lines) and they differ.
 Soubory jsou příliš velké pro porovnání po řádcích, ale jsou shodné.	The files are too large for a line comparison, but they are identical.
 Soubory jsou shodné.	The files are identical.
+Spouštět	Run
 Spočítat velikosti složek	Calculate folder sizes
 Správce procesů	Process manager
 Správce procesů…	Process manager…
+Správce přenosů	Transfer manager
+Správce přenosů…	Transfer manager…
+Spustit teď	Run now
+Spustit znovu	Run again
 Stahuji aktualizaci…	Downloading the update…
 Stahuji náhled {}…	Downloading preview of {}…
 Stahuji rclone z oficiálního webu rclone.org…	Downloading rclone from the official rclone.org site…
@@ -462,6 +493,11 @@ Stáhnout změny ze serveru?	Download changes from the server?
 Světlý	Light
 Symbolický odkaz jde vytvořit jen na lokální soubor nebo složku.	A symbolic link can only be created for a local file or folder.
 Symbolický odkaz na „{}“	Symbolic link to "{}"
+Synchronizace na pozadí	Background sync
+Synchronizace na pozadí…	Background sync…
+Synchronizace „{}“: {}	Sync "{}": {}
+Synchronizace: {}	Sync: {}
+Synchronizuji…	Syncing…
 Systémový Quick Look	System Quick Look
 Síť	Network
 Síť a disky	Network and drives
@@ -485,6 +521,8 @@ Uložit .sha256 vedle souborů	Save .sha256 next to the files
 Uložit aktuální…	Save current…
 Uložit heslo do Klíčenky	Save the password to the Keychain
 Uložit sadu záložek	Save tab set
+Upravit synchronizaci	Edit sync
+Upravit…	Edit…
 Uživatel	User
 Uživatelské příkazy	User commands
 Uživatelské příkazy fungují jen v lokálních složkách.	User commands work only in local folders.
@@ -516,6 +554,7 @@ Vynutit ukončení	Force quit
 Vytvořit	Create
 Vytvořit symbolický odkaz	Create symbolic link
 Vytvoří se v {}	It will be created in {}
+Vyčistit hotové	Clear finished
 Vzhled	Appearance
 Výchozí	Default
 Výchozí (modrá)	Default (blue)
@@ -529,6 +568,8 @@ WebDAV (Nextcloud, ownCloud…)	WebDAV (Nextcloud, ownCloud…)
 Z archivu lze soubory jen kopírovat (F5), ne přesouvat.	Files can only be copied (F5) from an archive, not moved.
 Zabalit	Pack
 Zabalit do archivu	Pack into archive
+Zadejte cíl.	Enter a target.
+Zadejte název.	Enter a name.
 Zadejte velikost dílu jako číslo v MB.	Enter the part size as a number in MB.
 Zapíše záložky obou panelů (záložky na serveru se vynechají).	Saves the tabs of both panels (tabs on a server are left out).
 Zastaveno.	Stopped.
@@ -536,11 +577,16 @@ Zastavit	Stop
 Zatím není nastavené žádné úložiště. Klikněte na „Nastavit úložiště…“.	No storage is configured yet. Click "Set up storage…".
 Zatím není nastavené žádné úložiště. Přidejte ho níže.	No storage is set up yet. Add one below.
 Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikněte na „Uložit aktuální…“.	No set is saved yet. Set up the tabs in both panels and click "Save current…".
+Zatím není žádná úloha. Klikněte na „Přidat…“.	There is no task yet. Click "Add…".
+Zatím žádné přenosy.	No transfers yet.
 Zavřít	Close
 Zavřít záložku	Close tab
 Začít v	Start at
+Zdroj	Source
 Zdrojová a cílová složka jsou stejné.	The source and destination folders are the same.
 Zdrojová a cílová složka se nesmí překrývat.	The source and destination folders must not overlap.
+Zdrojová složka neexistuje.	The source folder does not exist.
+Zdrojová složka „{}“ neexistuje.	The source folder "{}" does not exist.
 Zdrojový a cílový adresář jsou stejné.	The source and destination directories are the same.
 Zjišťuji, jestli je nová verze…	Checking for a new version…
 Zkontrolovat aktualizace	Check for updates
@@ -553,6 +599,7 @@ Změněno	Modified
 Zobrazit	View
 Zpět a vpřed v historii panelu: ⌘[ a ⌘].	Back and forward in the panel history: ⌘[ and ⌘].
 Zpět v historii	Back in history
+Zrcadlení	Mirroring
 Zrcadlení hotovo.	Mirroring finished.
 Zrcadlení mezi dvěma servery není podporováno. Jeden z panelů musí být místní složka.	Mirroring between two servers is not supported. One of the panels must be a local folder.
 Zrcadlení mezi složkou a serverem (FTP, SFTP, cloud) v obou směrech.	Mirroring between a folder and a server (FTP, SFTP, cloud) in both directions.
@@ -568,18 +615,25 @@ Zrušit vše	Cancel all
 Záložky v každém panelu a sady záložek, které si pamatují rozložení obou panelů.	Tabs in each panel and tab sets that remember the layout of both panels.
 Západ slunce	Sunset
 Zástupné znaky: %f soubor pod kurzorem, %n jeho název, %d složka panelu, %o složka druhého panelu, %F označené soubory (nebo soubor pod kurzorem), %% znak procenta. Cesty se samy uzavřou do uvozovek.	Placeholders: %f file under the cursor, %n its name, %d panel folder, %o other panel folder, %F marked files (or the file under the cursor), %% a percent sign. Paths are quoted automatically.
+beze změn	no changes
 cesta k rclone (volitelné, jinak se hledá v PATH a v Homebrew)	path to rclone (optional, otherwise PATH and Homebrew are searched)
+chyba	error
 curl skončil s kódem {}	curl finished with code {}
 hledat podle názvu nebo PID	search by name or PID
+hotovo	done
+každých {} min	every {} min
 kopírovat	copy
 kopírování	copying
 malá	lower
 na serveru jen podle názvu	on the server by name only
+naposledy {}: {}	last {}: {}
 např. *.jpg nebo část názvu	e.g. *.jpg or part of a name
+např. Dokumenty na zálohu	e.g. Documents for backup
 např. ftp.example.com	e.g. ftp.example.com
 název úložiště (písmena a číslice)	storage name (letters and digits)
 použito vícekrát	used more than once
 povinné	required
+probíhá	running
 prázdné = anonymní	empty = anonymous
 přejmenování „{}“	rename of "{}"
 přesun	move
@@ -587,18 +641,24 @@ přesunout	move
 příkaz (Enter spustí, Esc zavře)	command (Enter runs, Esc closes)
 rclone listremotes selhal.	rclone listremotes failed.
 rclone skončil s kódem {}	rclone finished with code {}
+ručně	manual
+složka, nebo rclone:název:/cesta	folder, or rclone:name:/path
 smazání {}	deleting {}
 smb://server/sdílená-složka	smb://server/shared-folder
 text v souboru (volitelné)	text in the file (optional)
+ve frontě	queued
 ve frontě: {}	in queue: {}
 volitelné, např. ~/.ssh/id_rsa	optional, e.g. ~/.ssh/id_rsa
 vytvoření složky „{}“	creating folder "{}"
+zkopírováno {} souborů ({})	copied {} files ({})
+zrušeno	cancelled
 {} položek	{} items
 {} položek, {}	{} items, {}
 {} z {} procesů	{} of {} processes
 {} {} položek	{} {} items
 {}: nelze {} adresář do sebe sama	{}: cannot {} a directory into itself
 {}: {} z {} položek	{}: {} of {} items
+Úlohy se spouštějí podle nastavené doby, dokud je aplikace spuštěná. Běh a výsledek je vidět ve správci přenosů.	Tasks run on the set schedule while the application is running. The run and its result can be seen in the transfer manager.
 Úložiště	Storage
 Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.	Storage is set up with the rclone program (the "rclone config" command). Here you just pick one and connect it to the active panel.
 Úložiště „{}“ přidáno.	Storage "{}" added.

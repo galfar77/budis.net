@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes
+    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks
     var id: String { rawValue }
 }
 
@@ -54,14 +54,20 @@ final class AppModel: ObservableObject {
     /// Panel, ze kterého právě tažení vychází (rozlišuje tažení mezi panely od tažení z Finderu).
     var dragSource: PaneState?
     @Published var queueCount = 0
+    /// Úlohy (běžící, ve frontě i hotové), nejnovější nahoře; posledních 60.
+    @Published var jobs: [JobRecord] = []
+    var nextJobId = 0
+    var runningJob: JobRecord?
+    var syncTimer: Timer?
+    var syncBusy = false
     @Published var diffFiles: (URL, URL)?
     @Published var checksumItems: [FileItem] = []
     @Published var attributeItems: [FileItem] = []
-    private var queue: [QueuedJob] = []
+    var queue: [QueuedJob] = []
     private var interrupted: TransferPlan?
     @Published var showCommandLine = false
     let runner = CommandRunner()
-    private var transferTask: Task<Void, Never>?
+    var transferTask: Task<Void, Never>?
     private var editTasks: [String: Task<Void, Never>] = [:]
 
     var left: PaneState { leftTabs.current }
@@ -81,7 +87,10 @@ final class AppModel: ObservableObject {
         activeIsLeft = state?.activeLeft ?? true
 
         PaneState.onLocationChange = { [weak self] in self?.saveState() }
-        Task { @MainActor in await self.autoCheckForUpdate() }
+        Task { @MainActor in
+            await self.autoCheckForUpdate()
+            self.startSyncScheduler()
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
                                                object: nil, queue: .main) { _ in
             try? FileManager.default.removeItem(at: PaneState.archiveBase)
@@ -114,7 +123,7 @@ final class AppModel: ObservableObject {
                      activeLeft: activeIsLeft).save()
     }
 
-    private func describe(_ items: [FileItem]) -> String {
+    func describe(_ items: [FileItem]) -> String {
         items.count == 1 ? "„\(items[0].name)“" : L("\(items.count) položek")
     }
 
@@ -141,7 +150,7 @@ final class AppModel: ObservableObject {
     }
 
     struct QueuedJob {
-        let run: @MainActor () async -> Void
+        let record: JobRecord
     }
 
     private func locationKey(_ p: PaneState) -> String {
@@ -561,6 +570,8 @@ final class AppModel: ObservableObject {
         case .resumeTransfer: resumeTransfer()
         case .sortByType: active.setSort(.type)
         case .processes: sheet = .processes
+        case .transfers: sheet = .transfers
+        case .syncTasks: sheet = .syncTasks
         case .tabSets: sheet = .tabSets
         case .cloud: sheet = .cloud
         case .checkUpdate: Task { await checkForUpdate() }
@@ -592,37 +603,55 @@ final class AppModel: ObservableObject {
     // MARK: Spuštění úloh se zrušením
 
     /// Spustí úlohu, nebo ji (u přenosů) zařadí do fronty, pokud už jiná běží.
-    private func runCancellable(queue allowQueue: Bool = false, _ work: @escaping @MainActor () async -> Void) {
+    func runCancellable(queue allowQueue: Bool = false, title: String = L("Operace"),
+                        _ work: @escaping @MainActor () async -> Void) {
+        nextJobId += 1
+        let rec = JobRecord(id: nextJobId, title: title, work: work)
         if transferTask != nil {
             if allowQueue {
-                queue.append(QueuedJob(run: work))
+                queue.append(QueuedJob(record: rec))
                 queueCount = queue.count
+                addJob(rec)
                 showNotice(L("Přidáno do fronty (ve frontě: \(queue.count))"))
             } else {
                 showNotice(L("Právě probíhá jiná operace."))
             }
             return
         }
-        startJob(work)
+        addJob(rec)
+        startJob(rec)
     }
 
-    private func startJob(_ work: @escaping @MainActor () async -> Void) {
+    func addJob(_ rec: JobRecord) {
+        jobs.insert(rec, at: 0)
+        if jobs.count > 60 { jobs.removeLast(jobs.count - 60) }
+    }
+
+    private func startJob(_ rec: JobRecord) {
         canCancel = true
+        rec.state = .running
+        rec.started = Date()
+        runningJob = rec
+        objectWillChange.send()
         transferTask = Task {
-            await work()
+            await rec.work?()
+            rec.state = Task.isCancelled ? .cancelled : .done
+            rec.finished = Date()
+            runningJob = nil
             transferTask = nil
             canCancel = false
+            objectWillChange.send()
             if !queue.isEmpty {
                 let next = queue.removeFirst()
                 queueCount = queue.count
-                startJob(next.run)
+                startJob(next.record)
             }
         }
     }
 
     func startTransfer(move: Bool) {
         guard let plan = prepareTransfer(move: move) else { return }
-        runCancellable(queue: true) { await self.transfer(plan: plan) }
+        runCancellable(queue: true, title: transferTitle(plan)) { await self.transfer(plan: plan) }
     }
 
     func resumeTransfer() {
@@ -631,15 +660,19 @@ final class AppModel: ObservableObject {
             return
         }
         interrupted = nil
-        runCancellable(queue: true) { await self.transfer(plan: plan) }
+        runCancellable(queue: true, title: transferTitle(plan)) { await self.transfer(plan: plan) }
     }
 
-    func startDelete() { runCancellable { await self.delete() } }
-    func startSync() { runCancellable { await self.syncMirror() } }
+    func startDelete() { runCancellable(title: L("Mazání")) { await self.delete() } }
+    func startSync() { runCancellable(title: L("Zrcadlení")) { await self.syncMirror() } }
 
     /// Zruší běžící úlohu; `all` zruší i celou frontu.
     func cancelTransfer(all: Bool = false) {
-        if all { queue.removeAll(); queueCount = 0 }
+        if all {
+            for q in queue { q.record.state = .cancelled; q.record.finished = Date() }
+            queue.removeAll()
+            queueCount = 0
+        }
         transferTask?.cancel()
     }
 
@@ -857,7 +890,7 @@ final class AppModel: ObservableObject {
         let partSize = Int64(mb * 1_048_576)
         let url = item.url
         let name = item.name
-        runCancellable {
+        runCancellable(title: L("Dělení souboru")) {
             let flag = CancelFlag()
             self.progress = 0
             self.progressText = L("Dělím \(name)…")
@@ -900,7 +933,7 @@ final class AppModel: ObservableObject {
             guard Dialogs.confirm(L("„\(target)“ už existuje. Přepsat?"), ok: L("Přepsat")) else { return }
         }
         let first = item.url
-        runCancellable {
+        runCancellable(title: L("Slepení souboru")) {
             let flag = CancelFlag()
             self.progress = 0
             self.progressText = L("Slepuji \(target)…")
@@ -1131,7 +1164,7 @@ final class AppModel: ObservableObject {
         }
         let plan = TransferPlan(move: doMove, src: src, dst: target, items: items,
                                 srcKey: locationKey(src), dstKey: locationKey(target))
-        runCancellable(queue: true) { await self.transfer(plan: plan) }
+        runCancellable(queue: true, title: transferTitle(plan)) { await self.transfer(plan: plan) }
     }
 
     /// Soubory puštěné na panel nebo na složku v panelu (z druhého panelu i z Finderu).
