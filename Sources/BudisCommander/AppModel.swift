@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone
+    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone, markAdvanced
     var id: String { rawValue }
 }
 
@@ -574,6 +574,9 @@ final class AppModel: ObservableObject {
         case .transfers: sheet = .transfers
         case .phone: sheet = .phone
         case .terminal: showTerminal.toggle()
+        case .markAdvanced: sheet = .markAdvanced
+        case .markSameExt: active.markSameExtension()
+        case .invertMarks: active.invertMarks()
         case .syncTasks: sheet = .syncTasks
         case .tabSets: sheet = .tabSets
         case .cloud: sheet = .cloud

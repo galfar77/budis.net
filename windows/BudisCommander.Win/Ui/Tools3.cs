@@ -671,6 +671,50 @@ public sealed class TerminalWindow : Window
     private string CurrentDir() => _core.Active.IsRemote ? Environment.CurrentDirectory : _core.Active.PersistentPath;
 }
 
+/// <summary>Rozšířené označování: maska, druh, velikost a datum změny najednou.</summary>
+public sealed class MarkAdvancedWindow : Window
+{
+    public MarkAdvancedWindow(PaneState pane)
+    {
+        Title = "Označit podle podmínek";
+        Width = 480; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var mask = new TextBox { Text = "*", Watermark = "např. *.jpg;*.png" };
+        var kind = new ComboBox { ItemsSource = new[] { "Soubory i složky", "Jen soubory", "Jen složky" }, SelectedIndex = 1 };
+        var min = new TextBox { Watermark = "např. 10 MB" };
+        var max = new TextBox { Watermark = "např. 1 GB" };
+        var from = new TextBox { Watermark = "např. 1. 1. 2025" };
+        var to = new TextBox { Watermark = "např. 31. 12. 2025" };
+        var action = new ComboBox { ItemsSource = new[] { "Označit", "Odznačit" }, SelectedIndex = 0 };
+        var result = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("150,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 6 };
+        void Row(int r, string label, Control c)
+        {
+            var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetRow(l, r); Grid.SetRow(c, r); Grid.SetColumn(c, 1); form.Children.Add(l); form.Children.Add(c);
+        }
+        Row(0, "Maska názvu", mask); Row(1, "Druh", kind); Row(2, "Velikost od", min); Row(3, "Velikost do", max);
+        Row(4, "Změněno od", from); Row(5, "Změněno do", to); Row(6, "Akce", action);
+        var go = UiKit.Button("Provést", () =>
+        {
+            if (!SelectionCriteria.TryParseSize(min.Text, out var mn) || !SelectionCriteria.TryParseSize(max.Text, out var mx)) { result.Text = "Velikost zapište např. 500, 10 KB nebo 1,5 MB."; result.Foreground = Brushes.Red; return; }
+            if (!SelectionCriteria.TryParseDate(from.Text, out var df) || !SelectionCriteria.TryParseDate(to.Text, out var dt)) { result.Text = "Datum zapište např. 31. 12. 2025 nebo 2025-12-31."; result.Foreground = Brushes.Red; return; }
+            var c = new SelectionCriteria { Mask = mask.Text ?? "*", Kind = kind.SelectedIndex, MinSize = mn, MaxSize = mx, ModifiedFrom = df, ModifiedTo = dt };
+            var on = action.SelectedIndex == 0;
+            var n = pane.MarkWhere(c, on);
+            result.Foreground = null; result.Text = (on ? "Označeno: " : "Odznačeno: ") + n;
+        }, true);
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Označit podle podmínek", 15, true), form,
+                UiKit.Label("Vyplněné podmínky platí zároveň. Složky nemají velikost, takže při zadané velikosti se vynechají.", dim: true),
+                result, UiKit.ButtonRow(UiKit.Button("Zavřít", Close), go)),
+        };
+        this.CloseOnEscape();
+    }
+}
+
 /// <summary>Telefon (Android přes adb): seznam připojených telefonů, instalace adb a připojení do panelu.</summary>
 public sealed class PhoneWindow : Window
 {

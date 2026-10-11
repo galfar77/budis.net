@@ -531,6 +531,31 @@ public sealed class PaneState : IDisposable
         StateChanged?.Invoke();
     }
 
+    /// <summary>Označí (nebo odznačí) položky splňující podmínky. Vrací počet dotčených položek.</summary>
+    public int MarkWhere(SelectionCriteria c, bool on)
+    {
+        var n = 0;
+        foreach (var i in Items.Where(i => !i.IsParent && c.Matches(i.Name, i.IsDirectory, i.Size, i.Modified)))
+        {
+            if (c.Marked != null && i.IsMarked != c.Marked) continue;
+            i.IsMarked = on; n++;
+        }
+        StateChanged?.Invoke();
+        return n;
+    }
+
+    /// <summary>Označí všechny soubory se stejnou příponou, jakou má položka pod kurzorem.</summary>
+    public int MarkSameExtension(bool on = true)
+    {
+        var c = Current;
+        if (c == null || c.IsParent || c.IsDirectory) return 0;
+        var ext = c.Ext;
+        var n = 0;
+        foreach (var i in Items.Where(i => !i.IsParent && !i.IsDirectory && string.Equals(i.Ext, ext, StringComparison.OrdinalIgnoreCase))) { i.IsMarked = on; n++; }
+        StateChanged?.Invoke();
+        return n;
+    }
+
     /// <summary>Nastaví rychlý filtr podle druhu souboru (null = všechny soubory).</summary>
     public void SetTypeFilter(string? id)
     {

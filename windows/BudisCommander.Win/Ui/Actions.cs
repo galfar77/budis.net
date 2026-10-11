@@ -37,6 +37,8 @@ public static class Actions
         new("markAll", "Označit vše", "Ctrl+A", Mark),
         new("unmarkAll", "Zrušit označení", "Ctrl+Shift+A", Mark),
         new("invertMarks", "Převrátit označení", null, Mark),
+        new("markAdvanced", "Označit podle podmínek…", null, Mark),
+        new("markSameExt", "Označit stejnou příponu", null, Mark),
         new("markMask", "Označit podle masky…", null, Mark),
         new("unmarkMask", "Odznačit podle masky…", null, Mark),
         new("compare", "Porovnat adresáře", "Ctrl+Shift+D", Mark),

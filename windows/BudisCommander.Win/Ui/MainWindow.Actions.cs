@@ -55,6 +55,8 @@ public sealed partial class MainWindow
         S("unmarkAll", () => Pane.UnmarkAll());
         S("invertMarks", () => Pane.InvertMarks());
         H("markMask", () => MarkByMaskAsync(true));
+        H("markAdvanced", async () => { var w = new MarkAdvancedWindow(Pane); await w.ShowDialog(this); });
+        S("markSameExt", () => Pane.MarkSameExtension());
         H("unmarkMask", () => MarkByMaskAsync(false));
         H("compare", () => _core.CompareAsync(false));
         H("compareContent", () => _core.CompareAsync(true));

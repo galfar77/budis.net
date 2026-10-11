@@ -9,6 +9,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
     case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks, phone, terminal
+    case markAdvanced, markSameExt, invertMarks
 
     var id: String { rawValue }
 
@@ -66,6 +67,9 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .syncTasks: return L("Synchronizace na pozadí…")
         case .phone: return L("Telefon (Android)…")
         case .terminal: return L("Terminál")
+        case .markAdvanced: return L("Označit podle podmínek…")
+        case .markSameExt: return L("Označit stejnou příponu")
+        case .invertMarks: return L("Převrátit označení")
         }
     }
 
@@ -102,6 +106,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
         case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks, .phone: return ""
         case .terminal: return "'"
+        case .markAdvanced, .markSameExt, .invertMarks: return ""
         }
     }
 }

@@ -69,6 +69,7 @@ struct ContentView: View {
             case .processes: ProcessSheet()
             case .transfers: TransfersSheet(model: model)
             case .phone: PhoneSheet(model: model)
+            case .markAdvanced: MarkAdvancedSheet(model: model)
             case .syncTasks: SyncTasksSheet(model: model)
             case .cloud: CloudSheet(model: model)
             }
