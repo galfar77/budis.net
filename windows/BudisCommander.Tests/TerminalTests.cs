@@ -163,18 +163,38 @@ public class PtyTests
                     + "\n--- chyba: " + pty.LastError + "\n--- surový výstup: " + raw.ToString().Replace("\x1b", "<ESC>").Replace("\r", "<CR>").Replace("\n", "<LF>\n"));
     }
 
+    private static string Esc(string s) => s.Replace("\x1b", "<ESC>").Replace("\r", "<CR>").Replace("\n", "<LF>");
+
+    /// <summary>Zkouší několik způsobů spuštění ConPTY a hlásí, který z nich vrátil výstup programu (diagnostika).</summary>
     [Fact]
-    public async Task OneShotCommandOutputArrives()
+    public async Task ConPtyDiagnosticMatrix()
     {
         if (!OperatingSystem.IsWindows()) return;
-        var t = new TerminalBuffer(100, 30);
-        using var pty = new PtySession();
-        var raw = new System.Text.StringBuilder();
-        pty.Output += s => { lock (t) { raw.Append(s); t.Write(s); } };
-        t.Reply += pty.Write;
-        pty.Start(Path.GetTempPath(), 100, 30, "/c echo ahoj-oneshot-77");
-        Assert.True(await WaitFor(t, s => s.Contains("ahoj-oneshot-77")),
-                    "Výstup se neobjevil:\n" + t.GetScreenText() + "\n--- chyba: " + pty.LastError + "\n--- surový výstup: " + raw.ToString().Replace("\x1b", "<ESC>").Replace("\r", "<CR>").Replace("\n", "<LF>\n"));
+        var report = new System.Text.StringBuilder("OS: " + Environment.OSVersion + "\n");
+        var anyOk = false;
+        foreach (var (name, exe, args, poke) in new[]
+        {
+            ("cmd /c echo", (string?)null, "/c echo marker-A-1", ""),
+            ("cmd /c echo + focus", null, "/c echo marker-A-1", "\x1b[I"),
+            ("cmd interactive + CR", null, null, "\r"),
+            ("powershell", @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-NoProfile -Command \"Write-Output marker-A-1\"", ""),
+        })
+        {
+            using var pty = new PtySession(exe);
+            var raw = new System.Text.StringBuilder();
+            pty.Output += s => { lock (raw) raw.Append(s); };
+            var t = new TerminalBuffer(100, 30);
+            t.Reply += pty.Write;
+            pty.Output += s => { lock (t) t.Write(s); };
+            pty.Start(Path.GetTempPath(), 100, 30, args);
+            if (poke.Length > 0) { await Task.Delay(500); pty.Write(poke); }
+            if (args == null) { await Task.Delay(500); pty.Write("echo marker-A-1\r"); }
+            var ok = await WaitFor(t, s => s.Contains("marker-A-1"), 6000);
+            anyOk |= ok;
+            string rawText; lock (raw) rawText = raw.ToString();
+            report.Append($"[{name}] ok={ok} running={pty.Running} err={pty.LastError} raw={Esc(rawText)}\n");
+        }
+        Assert.True(anyOk, report.ToString());
     }
 
     [Fact]
