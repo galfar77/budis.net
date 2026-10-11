@@ -172,30 +172,25 @@ public class PtyTests
         if (!OperatingSystem.IsWindows()) return;
         var report = new System.Text.StringBuilder("OS: " + Environment.OSVersion + "\n");
         var anyOk = false;
-        foreach (var (name, exe, args, poke) in new[]
+        foreach (var variant in new[] { 0, 1, 2, 3, 4, 5 })
         {
-            ("cmd /c echo", (string?)null, "/c echo marker-A-1", ""),
-            ("cmd /c echo + focus", null, "/c echo marker-A-1", "\x1b[I"),
-            ("cmd interactive + CR", null, null, "\r"),
-            ("powershell", @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-NoProfile -Command \"Write-Output marker-A-1\"", ""),
-        })
-        {
-            using var pty = new PtySession(exe);
+            using var pty = new PtySession { Variant = variant };
             var exitInfo = "";
             var sw = System.Diagnostics.Stopwatch.StartNew();
             pty.Exited += c => exitInfo = $"exit=0x{c:X} after {sw.ElapsedMilliseconds} ms";
             var raw = new System.Text.StringBuilder();
-            pty.Output += s => { lock (raw) raw.Append(s); };
             var t = new TerminalBuffer(100, 30);
             t.Reply += pty.Write;
-            pty.Output += s => { lock (t) t.Write(s); };
-            pty.Start(Path.GetTempPath(), 100, 30, args);
-            if (poke.Length > 0) { await Task.Delay(500); pty.Write(poke); }
-            if (args == null) { await Task.Delay(500); pty.Write("echo marker-A-1\r"); }
-            var ok = await WaitFor(t, s => s.Contains("marker-A-1"), 6000);
+            pty.Output += s => { lock (t) { raw.Append(s); t.Write(s); } };
+            try { pty.Start(Path.GetTempPath(), 100, 30, null); }
+            catch (Exception e) { report.Append($"[variant {variant}] start failed: {e.Message}\n"); continue; }
+            await Task.Delay(1000);
+            pty.Write("echo marker-A-1\r");
+            var ok = await WaitFor(t, s => s.Contains("marker-A-1"), 3000);
             anyOk |= ok;
             string rawText; lock (raw) rawText = raw.ToString();
-            report.Append($"[{name}] ok={ok} running={pty.Running} {exitInfo} err={pty.LastError} raw={Esc(rawText)}\n");
+            report.Append($"[variant {variant}] ok={ok} running={pty.Running} {exitInfo} raw={Esc(rawText)}\n");
+            await Task.Delay(300);                                   // ať doběhne zavření konzole předchozí zkoušky
         }
         Assert.True(anyOk, report.ToString());
     }
