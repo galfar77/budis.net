@@ -116,6 +116,11 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
 final class Settings: ObservableObject {
     static let shared = Settings()
 
+    /// Systémová menu (Soubor, Úpravy, Zobrazení, Okno, Nápověda) se překládají podle jazyka aplikace; projeví se při příštím spuštění.
+    nonisolated static func applySystemLanguage(_ language: String) {
+        UserDefaults.standard.set([language == "en" ? "en" : "cs"], forKey: "AppleLanguages")
+    }
+
     @Published var fontSize: Double {
         didSet { UserDefaults.standard.set(fontSize, forKey: "fontSize") }
     }
@@ -158,7 +163,10 @@ final class Settings: ObservableObject {
     var palette: ColorTheme { ColorTheme.get(colorTheme) }
     /// Jazyk rozhraní: "cs" nebo "en" (změna se projeví po restartu aplikace).
     @Published var language: String {
-        didSet { UserDefaults.standard.set(language, forKey: "language") }
+        didSet {
+            UserDefaults.standard.set(language, forKey: "language")
+            Settings.applySystemLanguage(language)
+        }
     }
     /// Při startu se zeptat GitHubu na novou verzi (nejvýš jednou za 20 hodin).
     /// Novou verzi stáhnout sama a nainstalovat při ukončení aplikace.

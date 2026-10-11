@@ -12,6 +12,7 @@ struct BudisCommanderApp: App {
     @StateObject private var model = AppModel()
 
     init() {
+        Settings.applySystemLanguage(Tr.language)
         NSApplication.shared.setActivationPolicy(.regular)
     }
 

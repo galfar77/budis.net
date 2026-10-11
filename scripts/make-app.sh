@@ -21,6 +21,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleName</key><string>Budis Commander</string>
+  <key>CFBundleDevelopmentRegion</key><string>cs</string>
+  <key>CFBundleLocalizations</key><array><string>cs</string><string>en</string></array>
   <key>CFBundleIdentifier</key><string>net.budis.commander</string>
   <key>CFBundleExecutable</key><string>BudisCommander</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
