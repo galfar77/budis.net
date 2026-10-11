@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks
+    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone
     var id: String { rawValue }
 }
 
@@ -66,6 +66,7 @@ final class AppModel: ObservableObject {
     var queue: [QueuedJob] = []
     private var interrupted: TransferPlan?
     @Published var showCommandLine = false
+    @Published var showTerminal = false
     let runner = CommandRunner()
     var transferTask: Task<Void, Never>?
     private var editTasks: [String: Task<Void, Never>] = [:]
@@ -571,6 +572,8 @@ final class AppModel: ObservableObject {
         case .sortByType: active.setSort(.type)
         case .processes: sheet = .processes
         case .transfers: sheet = .transfers
+        case .phone: sheet = .phone
+        case .terminal: showTerminal.toggle()
         case .syncTasks: sheet = .syncTasks
         case .tabSets: sheet = .tabSets
         case .cloud: sheet = .cloud

@@ -8,7 +8,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case split, combine, symlink, userMenu, resumeTransfer, thumbnails
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
-    case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks
+    case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks, phone, terminal
 
     var id: String { rawValue }
 
@@ -64,6 +64,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .processes: return L("Správce procesů…")
         case .transfers: return L("Správce přenosů…")
         case .syncTasks: return L("Synchronizace na pozadí…")
+        case .phone: return L("Telefon (Android)…")
+        case .terminal: return L("Terminál")
         }
     }
 
@@ -98,7 +100,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .compareContent, .split, .combine, .symlink, .userMenu, .resumeTransfer, .thumbnails: return ""
         case .copyFiles, .cutFiles, .pasteFiles, .copyPath, .copyName, .copyDirPath: return ""
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
-        case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks: return ""
+        case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks, .phone: return ""
+        case .terminal: return "'"
         }
     }
 }
@@ -159,6 +162,10 @@ final class Settings: ObservableObject {
         get { UserDefaults.standard.double(forKey: "lastUpdateCheck") }
         set { UserDefaults.standard.set(newValue, forKey: "lastUpdateCheck") }
     }
+    /// Volitelná cesta k programu adb (Android).
+    @Published var adbPath: String {
+        didSet { UserDefaults.standard.set(adbPath, forKey: "adbPath") }
+    }
     /// Volitelná cesta k programu rclone.
     @Published var rclonePath: String {
         didSet { UserDefaults.standard.set(rclonePath, forKey: "rclonePath") }
@@ -189,6 +196,7 @@ final class Settings: ObservableObject {
         showMedia = d.bool(forKey: "showMedia")
         showTags = d.object(forKey: "showTags") as? Bool ?? true
         rclonePath = d.string(forKey: "rclonePath") ?? ""
+        adbPath = d.string(forKey: "adbPath") ?? ""
         language = d.string(forKey: "language") ?? "cs"
         glass = d.object(forKey: "glass") as? Bool ?? true
         colorTheme = d.string(forKey: "colorTheme") ?? "default"

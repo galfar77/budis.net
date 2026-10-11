@@ -279,6 +279,7 @@ Nahrát	Upload
 Nahrát změny na server?	Upload changes to the server?
 Nahrávám změny „{}“ na server…	Uploading changes of "{}" to the server…
 Nahrávám: 	Uploading: 
+Nainstalovat adb	Install adb
 Nainstalovat rclone	Install rclone
 Nalezeno skupin: {}	Groups found: {}
 Nalezeno {}, prohledaných složek {}	Found {}, folders searched {}
@@ -362,6 +363,8 @@ Počítám rozdíly…	Calculating differences…
 Proces bude okamžitě ukončen. Neuložená práce se ztratí.	The process will be ended immediately. Unsaved work will be lost.
 Procesu se pošle požadavek na ukončení.	The process is asked to quit.
 Procházím složky…	Browsing folders…
+Program adb nebyl nalezen. Nainstalujte ho v okně Telefon.	adb was not found. Install it in the Phone window.
+Program adb zatím není nainstalovaný. Klikněte na „Nainstalovat adb“ (stáhne se od Googlu).	adb is not installed yet. Click "Install adb" (it is downloaded from Google).
 Program rclone nebyl nalezen. Nainstalujte ho příkazem „brew install rclone“ nebo zadejte jeho cestu.	rclone was not found. Install it with "brew install rclone" or enter its path.
 Program rclone nebyl nalezen. Nainstalujte ho v Terminálu příkazem „brew install rclone“ (nebo z rclone.org) a klikněte na Obnovit.	rclone was not found. Install it in Terminal with "brew install rclone" (or from rclone.org) and click Refresh.
 Program rclone není nainstalovaný.	rclone is not installed.
@@ -381,6 +384,7 @@ Přehled funkcí	Feature overview
 Přehled funkcí…	Feature overview…
 Přejmenovat	Rename
 Přejmenovávám {}	Renaming {}
+Přejít do složky panelu	Go to the panel folder
 Přenos zrušen. Zbylé položky ({}) jde dokončit z menu Nástroje.	The transfer was cancelled. The remaining items ({}) can be finished from the Tools menu.
 Přepsat	Overwrite
 Přepsat vše	Overwrite all
@@ -404,6 +408,7 @@ Přidáno do fronty (ve frontě: {})	Added to the queue (in queue: {})
 Přidávám do {}…	Adding to {}…
 Připojené disky	Connected disks
 Připojení k FTP, FTP+TLS a SFTP serverům, hesla se ukládají bezpečně.	Connecting to FTP, FTP+TLS and SFTP servers, passwords are stored securely.
+Připojení k telefonu se nezdařilo:\n\n{}	Connecting to the phone failed:\n\n{}
 Připojení k úložišti „{}“ se nezdařilo:\n\n{}	Connecting to storage "{}" failed:\n\n{}
 Připojit	Connect
 Připojit k serveru	Connect to server
@@ -447,6 +452,7 @@ Shoduje se	Matches
 Skryté soubory	Hidden files
 Skrytý	Hidden
 Skrýt	Hide
+Skrýt terminál	Hide terminal
 Slepení souboru	Joining a file
 Slepit díly souboru	Join file parts
 Slepování zrušeno.	Joining cancelled.
@@ -479,6 +485,7 @@ Správce přenosů	Transfer manager
 Správce přenosů…	Transfer manager…
 Spustit teď	Run now
 Spustit znovu	Run again
+Stahuji Android platform-tools z dl.google.com…	Downloading Android platform-tools from dl.google.com…
 Stahuji aktualizaci…	Downloading the update…
 Stahuji náhled {}…	Downloading preview of {}…
 Stahuji rclone z oficiálního webu rclone.org…	Downloading rclone from the official rclone.org site…
@@ -501,6 +508,9 @@ Synchronizuji…	Syncing…
 Systémový Quick Look	System Quick Look
 Síť	Network
 Síť a disky	Network and drives
+Telefon (Android)	Phone (Android)
+Telefon (Android)…	Phone (Android)…
+Terminál	Terminal
 Terminál zde	Terminal here
 Teď	Now
 Tisk…	Print…
@@ -527,6 +537,7 @@ Uživatel	User
 Uživatelské příkazy	User commands
 Uživatelské příkazy fungují jen v lokálních složkách.	User commands work only in local folders.
 Uživatelské příkazy…	User commands…
+V telefonu zapněte Nastavení → Možnosti pro vývojáře → Ladění přes USB, připojte ho kabelem a potvrďte v telefonu dotaz na povolení. Soubory telefonu se pak otevřou v aktivním panelu.	On the phone turn on Settings → Developer options → USB debugging, connect it with a cable and confirm the permission prompt on the phone. The phone files then open in the active panel.
 VELKÁ	UPPER
 Velikost	Size
 Velikost jednoho dílu v MB (např. 100, 700, 4000).\nDíly se uloží do {}	Size of one part in MB (e.g. 100, 700, 4000).\nThe parts are saved to {}
@@ -621,6 +632,7 @@ chyba	error
 curl skončil s kódem {}	curl finished with code {}
 hledat podle názvu nebo PID	search by name or PID
 hotovo	done
+iPhone a iPad: Apple neumožňuje přímý přístup k souborům přes kabel, použijte AirDrop nebo iCloud.	iPhone and iPad: Apple does not allow direct file access over a cable, use AirDrop or iCloud.
 každých {} min	every {} min
 kopírovat	copy
 kopírování	copying
@@ -675,6 +687,7 @@ zrušeno	cancelled
 Štítky Finderu jde nastavit jen u lokálních souborů.	Finder tags can only be set for local files.
 Štítky Finderu…	Finder tags…
 Žádné duplicity.	No duplicates.
+Žádný telefon nenalezen. Zkontrolujte kabel a ladění přes USB.	No phone found. Check the cable and USB debugging.
 „{}“ již v cíli existuje	"{}" already exists in the destination
 „{}“ už existuje. Přepsat?	"{}" already exists. Overwrite?
 ⌘V zavře	⌘V closes

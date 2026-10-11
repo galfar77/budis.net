@@ -16,16 +16,19 @@ enum RemoteProtocol: String, CaseIterable, Identifiable, Codable {
     case sftp = "SFTP"
     /// Cloudová úložiště přes program rclone (nezobrazuje se v dialogu pro FTP/SFTP).
     case rclone = "Cloud (rclone)"
+    /// Android telefon přes program adb (nezobrazuje se v dialogu pro FTP/SFTP).
+    case adb = L("Telefon (Android)")
 
     var id: String { rawValue }
     var scheme: String {
         switch self {
         case .sftp: return "sftp"
         case .rclone: return "rclone"
+        case .adb: return "adb"
         default: return "ftp"
         }
     }
-    var defaultPort: Int { self == .sftp ? 22 : (self == .rclone ? 0 : 21) }
+    var defaultPort: Int { self == .sftp ? 22 : ((self == .rclone || self == .adb) ? 0 : 21) }
 }
 
 struct RemoteError: LocalizedError {
@@ -100,10 +103,14 @@ final class RemoteConnection: @unchecked Sendable {
     }
 
     var displayName: String {
-        proto == .rclone ? "cloud \(host):" : "\(proto.scheme)://\(user.isEmpty ? "" : user + "@")\(host)"
+        switch proto {
+        case .rclone: return "cloud \(host):"
+        case .adb: return "phone " + (user.isEmpty ? host : user.replacingOccurrences(of: "_", with: " "))
+        default: return "\(proto.scheme)://\(user.isEmpty ? "" : user + "@")\(host)"
+        }
     }
     /// FTP: domovský adresář = "/", SFTP: "/~" (kořen serveru je "/").
-    var startPath: String { proto == .sftp ? "/~" : "/" }
+    var startPath: String { proto == .sftp ? "/~" : (proto == .adb ? "/sdcard" : "/") }
 
     // MARK: URL a konfigurace curl
 
@@ -227,6 +234,7 @@ final class RemoteConnection: @unchecked Sendable {
 
     func list(_ path: String) async throws -> [FileItem] {
         if proto == .rclone { return try await rcloneList(path) }
+        if proto == .adb { return try await adbList(path) }
         let out = try await run(config(url: url(path, directory: true)))
         let text = String(decoding: out, as: UTF8.self)
         return text.split(whereSeparator: \.isNewline).compactMap { parseListing(String($0), in: path) }
@@ -262,6 +270,13 @@ final class RemoteConnection: @unchecked Sendable {
                                        to: local.appendingPathComponent(child.name), maxBytes: nil, tracker: tracker)
             }
         } else {
+            if proto == .adb {
+                let name = local.lastPathComponent
+                try await adbDownloadFile(remote: path, to: local, maxBytes: maxBytes,
+                                          onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
+                tracker?.fileDone(size: size)
+                return
+            }
             if proto == .rclone {
                 let name = local.lastPathComponent
                 try await rcloneDownloadFile(remote: path, to: local, maxBytes: maxBytes,
@@ -294,6 +309,12 @@ final class RemoteConnection: @unchecked Sendable {
         } else {
             let name = local.lastPathComponent
             let size = LocalFS.totalSize(local)
+            if proto == .adb {
+                try await adbUploadFile(local: local, to: path,
+                                        onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
+                tracker?.fileDone(size: size)
+                return
+            }
             if proto == .rclone {
                 try await rcloneUploadFile(local: local, to: path,
                                            onProgress: tracker.map { t in { @Sendable frac in t.fileProgress(name, frac, size: size) } })
@@ -309,12 +330,14 @@ final class RemoteConnection: @unchecked Sendable {
 
     func mkdir(_ path: String) async throws {
         if proto == .rclone { return try await rcloneMkdir(path) }
+        if proto == .adb { return try await adbMkdir(path) }
         let r = relPath(path)
         try await command([proto == .sftp ? "mkdir \(quoted(r))" : "MKD \(r)"])
     }
 
     func delete(path: String, isDirectory: Bool) async throws {
         if proto == .rclone { return try await rcloneDelete(path, isDirectory: isDirectory) }
+        if proto == .adb { return try await adbDelete(path, isDirectory: isDirectory) }
         if isDirectory {
             for child in try await list(path) {
                 try await delete(path: child.remotePath ?? "", isDirectory: child.isDirectory)
@@ -329,6 +352,7 @@ final class RemoteConnection: @unchecked Sendable {
 
     func rename(from: String, to: String) async throws {
         if proto == .rclone { return try await rcloneRename(from: from, to: to) }
+        if proto == .adb { return try await adbRename(from: from, to: to) }
         let a = relPath(from), b = relPath(to)
         if proto == .sftp {
             try await command(["rename \(quoted(a)) \(quoted(b))"])

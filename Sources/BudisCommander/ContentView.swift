@@ -24,6 +24,7 @@ struct ContentView: View {
             }
             statusBar
             if model.showCommandLine { CommandPanel(model: model, runner: model.runner) }
+            if model.showTerminal { TerminalPanel(model: model) }
             functionBar
             if settings.showButtonBar && !settings.userCommands.isEmpty { userBar }
         }
@@ -38,6 +39,9 @@ struct ContentView: View {
         .focused($focused)
         .onAppear { focused = true }
         .onChange(of: model.showCommandLine) { _, shown in
+            if !shown { focused = true }
+        }
+        .onChange(of: model.showTerminal) { _, shown in
             if !shown { focused = true }
         }
         .onKeyPress(phases: [.down, .repeat]) { handle($0) }
@@ -64,6 +68,7 @@ struct ContentView: View {
             case .about: AboutSheet(model: model)
             case .processes: ProcessSheet()
             case .transfers: TransfersSheet(model: model)
+            case .phone: PhoneSheet(model: model)
             case .syncTasks: SyncTasksSheet(model: model)
             case .cloud: CloudSheet(model: model)
             }
