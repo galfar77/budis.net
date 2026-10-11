@@ -81,6 +81,7 @@ struct PaneView: View {
             .padding(.horizontal, 8)
             .frame(height: 24)
             .background(isActive ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.15))
+            .liquidGlass(cornerRadius: 6)
 
             if !pane.filter.isEmpty {
                 HStack(spacing: 6) {

@@ -135,7 +135,7 @@ struct ContentView: View {
             .font(.system(size: 12))
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.bordered)
+        .functionButtonStyle()
         .controlSize(.small)
     }
 
