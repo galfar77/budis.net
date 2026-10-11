@@ -17,7 +17,7 @@ enum RemoteProtocol: String, CaseIterable, Identifiable, Codable {
     /// Cloudová úložiště přes program rclone (nezobrazuje se v dialogu pro FTP/SFTP).
     case rclone = "Cloud (rclone)"
     /// Android telefon přes program adb (nezobrazuje se v dialogu pro FTP/SFTP).
-    case adb = L("Telefon (Android)")
+    case adb = "Telefon (Android)"
 
     var id: String { rawValue }
     var scheme: String {
