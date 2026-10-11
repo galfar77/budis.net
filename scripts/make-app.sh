@@ -37,8 +37,10 @@ PLIST
 # Podepsání: bez proměnných ad hoc (stačí pro běh na vlastním Macu).
 # S placeným účtem Apple Developer:
 #   SIGN_IDENTITY="Developer ID Application: Jméno (TEAMID)" ./scripts/make-app.sh
-# a navíc notarizace (jednou: xcrun notarytool store-credentials budis-notary ...):
+# a navíc notarizace, buď s uloženým profilem (jednou: xcrun notarytool store-credentials budis-notary ...):
 #   NOTARY_PROFILE=budis-notary SIGN_IDENTITY="..." ./scripts/make-app.sh
+# nebo přímo s přihlašovacími údaji (tak to dělá GitHub Actions):
+#   NOTARY_APPLE_ID=jmeno@example.com NOTARY_TEAM_ID=TEAMID NOTARY_PASSWORD=heslo-pro-aplikaci SIGN_IDENTITY="..." ./scripts/make-app.sh
 if [ -n "${SIGN_IDENTITY:-}" ]; then
   codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
 else
@@ -48,9 +50,16 @@ fi
 # ZIP pro přenos / sdílení (ditto zachová atributy)
 ditto -c -k --keepParent "$APP" build/BudisCommander.zip
 
-if [ -n "${SIGN_IDENTITY:-}" ] && [ -n "${NOTARY_PROFILE:-}" ]; then
+NOTARY_ARGS=()
+if [ -n "${NOTARY_PROFILE:-}" ]; then
+  NOTARY_ARGS=(--keychain-profile "$NOTARY_PROFILE")
+elif [ -n "${NOTARY_APPLE_ID:-}" ] && [ -n "${NOTARY_TEAM_ID:-}" ] && [ -n "${NOTARY_PASSWORD:-}" ]; then
+  NOTARY_ARGS=(--apple-id "$NOTARY_APPLE_ID" --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD")
+fi
+
+if [ -n "${SIGN_IDENTITY:-}" ] && [ ${#NOTARY_ARGS[@]} -gt 0 ]; then
   echo "Notarizace (může trvat několik minut)…"
-  xcrun notarytool submit build/BudisCommander.zip --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun notarytool submit build/BudisCommander.zip "${NOTARY_ARGS[@]}" --wait
   xcrun stapler staple "$APP"
   rm -f build/BudisCommander.zip
   ditto -c -k --keepParent "$APP" build/BudisCommander.zip

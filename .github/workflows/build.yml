@@ -10,6 +10,14 @@ jobs:
     runs-on: macos-14
     permissions:
       contents: write
+    env:
+      # Podepisování a notarizace se zapnou samy, když jsou v nastavení repozitáře (Settings → Secrets) tyto hodnoty.
+      # Postup je v docs/PODEPISOVANI.md.
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      NOTARY_APPLE_ID: ${{ secrets.APPLE_ID }}
+      NOTARY_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      NOTARY_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Testy
@@ -17,6 +25,24 @@ jobs:
         run: |
           set -o pipefail
           swift test 2>&1 | tee test.log | grep -E "error:|Executed|failed|Fatal|fatal" | sort -u | head -60
+      - name: Certifikát Developer ID do dočasné klíčenky
+        if: ${{ env.MACOS_CERTIFICATE != '' && github.ref == 'refs/heads/main' }}
+        shell: bash
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')"
+          if [ -z "$IDENTITY" ]; then echo "V certifikátu není Developer ID Application."; exit 1; fi
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/cert.p12"
+
       - name: Build BudisCommander.app
         run: ./scripts/make-app.sh
       - uses: actions/upload-artifact@v4
@@ -39,7 +65,7 @@ jobs:
           name: Budis Commander pro macOS (poslední sestavení)
           body: |
             Aplikace pro Mac (Apple Silicon i Intel). Rozbalte ZIP a přetáhněte BudisCommander.app do složky Aplikace.
-            Při prvním spuštění: pravé tlačítko na aplikaci → Otevřít.
+            Dokud aplikace není podepsaná a notarizovaná, otevřete ji poprvé pravým tlačítkem → Otevřít.
 
             Sestavení z commitu: `${{ github.sha }}`
           files: build/BudisCommander.zip

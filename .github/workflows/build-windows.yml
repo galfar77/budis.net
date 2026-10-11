@@ -11,6 +11,10 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      # Podepsání se zapne samo, když je v nastavení repozitáře (Settings → Secrets) certifikát. Postup je v docs/PODEPISOVANI.md.
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -25,6 +29,22 @@ jobs:
 
       - name: Sestavení ARM64
         run: dotnet publish windows/BudisCommander.Win/BudisCommander.Win.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:SourceRevisionId=${{ github.sha }} -o out/win-arm64
+
+      - name: Podepsání programů (jen když je nastavený certifikát)
+        if: ${{ env.WINDOWS_CERTIFICATE != '' && github.ref == 'refs/heads/main' }}
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe nebyl nalezen" }
+          foreach ($exe in "out/win-x64/BudisCommander.exe", "out/win-arm64/BudisCommander.exe") {
+            & $signtool.FullName sign /f $pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /d "Budis Commander" $exe
+            if ($LASTEXITCODE -ne 0) { throw "Podepsání $exe selhalo" }
+            & $signtool.FullName verify /pa $exe
+            if ($LASTEXITCODE -ne 0) { throw "Ověření podpisu $exe selhalo" }
+          }
+          Remove-Item $pfx
 
       - name: Zabalení
         shell: pwsh
