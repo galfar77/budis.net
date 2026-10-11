@@ -115,6 +115,7 @@ struct ProcessSheet: View {
 
     private func reload() async { all = await ProcessList.snapshot() }
 
+    @MainActor
     private func end(force: Bool) {
         guard let pid = selection, let p = all.first(where: { $0.pid == pid }) else { return }
         let info = force ? L("Proces bude okamžitě ukončen. Neuložená práce se ztratí.") : L("Procesu se pošle požadavek na ukončení.")
