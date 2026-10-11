@@ -27,9 +27,6 @@ public sealed class PtySession : IDisposable
     private int _cols = 80, _rows = 24;
     private volatile bool _disposed;
     private int _exitRaised;
-    private SafeFileHandle? _keepInRead, _keepOutWrite;
-    /// <summary>Jen pro diagnostiku: 1 nechat konce rour konzole otevřené, 2 příznak INHERIT_CURSOR, 4 dědění handlů.</summary>
-    public int Variant { get; set; }
 
     public PtySession(string? executable = null)
     {
@@ -71,8 +68,6 @@ public sealed class PtySession : IDisposable
         try { _in?.Dispose(); } catch { }
         try { _out?.Dispose(); } catch { }
         _in = _out = null; _inWrite = _outRead = null;
-        try { _keepInRead?.Dispose(); _keepOutWrite?.Dispose(); } catch { }
-        _keepInRead = _keepOutWrite = null;
     }
 
     public void Dispose() { _disposed = true; Stop(); }
@@ -135,10 +130,9 @@ public sealed class PtySession : IDisposable
     {
         if (!CreatePipe(out var inRead, out var inWrite, IntPtr.Zero, 0)) throw new Win32Exception();
         if (!CreatePipe(out var outRead, out var outWrite, IntPtr.Zero, 0)) throw new Win32Exception();
-        var hr = CreatePseudoConsole(new COORD { X = (short)_cols, Y = (short)_rows }, inRead, outWrite, (Variant & 2) != 0 ? 1u : 0u, out _hpc);
+        var hr = CreatePseudoConsole(new COORD { X = (short)_cols, Y = (short)_rows }, inRead, outWrite, 0, out _hpc);
         if (hr != 0) throw new Win32Exception(hr, "CreatePseudoConsole");
-        if ((Variant & 1) != 0) { _keepInRead = inRead; _keepOutWrite = outWrite; }
-        else { inRead.Dispose(); outWrite.Dispose(); }             // konce, které patří konzoli
+        inRead.Dispose(); outWrite.Dispose();                      // konce, které patří konzoli
         _inWrite = inWrite; _outRead = outRead;
 
         var size = IntPtr.Zero;
@@ -151,7 +145,7 @@ public sealed class PtySession : IDisposable
             var si = new STARTUPINFOEX { lpAttributeList = attrs };
             si.StartupInfo.cb = Marshal.SizeOf<STARTUPINFOEX>();
             var cmdLine = new StringBuilder(args is { Length: > 0 } ? $"\"{Executable}\" {args}" : $"\"{Executable}\"");
-            if (!CreateProcessW(null, cmdLine, IntPtr.Zero, IntPtr.Zero, (Variant & 4) != 0, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workDir, ref si, out var pi))
+            if (!CreateProcessW(null, cmdLine, IntPtr.Zero, IntPtr.Zero, false, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, IntPtr.Zero, workDir, ref si, out var pi))
                 throw new Win32Exception();
             CloseHandle(pi.hThread);
             _procHandle = pi.hProcess;
