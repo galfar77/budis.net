@@ -41,6 +41,7 @@ struct AppCommands: Commands {
                 .disabled(model.sheet != nil || model.viewer != nil)
             Divider()
             item(.checkUpdate)
+            item(.rollbackVersion)
         }
         CommandMenu(L("Nástroje")) {
             item(.undo)

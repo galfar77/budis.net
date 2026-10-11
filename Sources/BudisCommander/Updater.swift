@@ -75,9 +75,51 @@ enum Updater {
         return app
     }
 
-    /// Nahradí běžící aplikaci novou a spustí ji. Výměnu dělá pomocný skript, který počká na konec této aplikace.
+    /// Kam se ukládá předchozí verze po výměně (slouží k návratu zpět).
+    static var previousApp: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("BudisCommander/Previous/BudisCommander.app")
+    }
+
+    static var canRollBack: Bool { FileManager.default.fileExists(atPath: previousApp.path) }
+
+    /// Skript pro výměnu aplikace: počká na konec této aplikace, starou uloží jako předchozí verzi a nahradí ji novou.
+    static let installScript = """
+    while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
+    mkdir -p "$(dirname "$4")"
+    rm -rf "$4"
+    if mv "$3" "$4"; then
+      if mv "$2" "$3"; then :; else mv "$4" "$3"; fi
+    fi
+    xattr -dr com.apple.quarantine "$3" 2>/dev/null
+    if [ "$5" = "1" ]; then "${BUDIS_OPEN:-open}" "$3"; fi
+    """
+
+    /// Skript pro návrat: po skončení aplikace prohodí aktuální a předchozí verzi a spustí aplikaci.
+    static let rollbackScript = """
+    while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
+    tmp="$3.swap"
+    rm -rf "$tmp"
+    if mv "$3" "$tmp"; then
+      if mv "$4" "$3"; then mv "$tmp" "$4"; else mv "$tmp" "$3"; fi
+    fi
+    xattr -dr com.apple.quarantine "$3" 2>/dev/null
+    "${BUDIS_OPEN:-open}" "$3"
+    """
+
     @MainActor
-    static func installAndRelaunch(_ newApp: URL) throws {
+    private static func runHelper(_ script: String, args: [String]) throws {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/bash")
+        p.arguments = ["-c", script, "bash", String(ProcessInfo.processInfo.processIdentifier)] + args
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        try p.run()
+    }
+
+    @MainActor
+    private static func checkTarget() throws -> URL {
         let target = Bundle.main.bundleURL
         guard target.pathExtension == "app" else {
             throw RemoteError(message: L("Aplikace neběží jako balíček .app (spuštěná příkazem swift run)."))
@@ -85,21 +127,30 @@ enum Updater {
         guard FileManager.default.isWritableFile(atPath: target.deletingLastPathComponent().path) else {
             throw RemoteError(message: L("Do složky „\(target.deletingLastPathComponent().path)“ nelze zapisovat. Přesuňte aplikaci třeba do složky Aplikace ve vašem domovském adresáři."))
         }
-        let script = """
-        while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
-        rm -rf "$3.old"
-        if mv "$3" "$3.old"; then
-          if mv "$2" "$3"; then rm -rf "$3.old"; else mv "$3.old" "$3"; fi
-        fi
-        xattr -dr com.apple.quarantine "$3" 2>/dev/null
-        open "$3"
-        """
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/bash")
-        p.arguments = ["-c", script, "bash", String(ProcessInfo.processInfo.processIdentifier), newApp.path, target.path]
-        p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
-        try p.run()
+        return target
+    }
+
+    /// Nahradí běžící aplikaci novou a spustí ji. Výměnu dělá pomocný skript, který počká na konec této aplikace.
+    @MainActor
+    static func installAndRelaunch(_ newApp: URL) throws {
+        let target = try checkTarget()
+        try runHelper(installScript, args: [newApp.path, target.path, previousApp.path, "1"])
+        NSApp.terminate(nil)
+    }
+
+    /// Připraví výměnu na okamžik, kdy aplikaci příště ukončíte; nic nerestartuje.
+    @MainActor
+    static func installOnNextQuit(_ newApp: URL) throws {
+        let target = try checkTarget()
+        try runHelper(installScript, args: [newApp.path, target.path, previousApp.path, "0"])
+    }
+
+    /// Vrátí předchozí verzi (aktuální se uloží, takže jde přepnout zpět) a aplikaci restartuje.
+    @MainActor
+    static func rollBackAndRelaunch() throws {
+        let target = try checkTarget()
+        guard canRollBack else { throw RemoteError(message: L("Předchozí verze není k dispozici. Uloží se při příští aktualizaci.")) }
+        try runHelper(rollbackScript, args: ["", target.path, previousApp.path])
         NSApp.terminate(nil)
     }
 }
@@ -143,6 +194,22 @@ extension AppModel {
         }
     }
 
+    /// Vrátí předchozí verzi aplikace a restartuje ji.
+    func rollBackVersion() {
+        guard Updater.isAppBundle else {
+            Dialogs.error(L("Aktualizace funguje jen v aplikaci .app (ne při spuštění příkazem swift run)."))
+            return
+        }
+        guard Updater.canRollBack else {
+            Dialogs.error(L("Předchozí verze není k dispozici. Uloží se při příští aktualizaci."))
+            return
+        }
+        guard Dialogs.confirm(L("Vrátit předchozí verzi?"),
+                              info: L("Teď nainstalovaná verze se uloží a půjde na ni přepnout zpět stejným příkazem. Aplikace se restartuje."),
+                              ok: L("Vrátit")) else { return }
+        do { try Updater.rollBackAndRelaunch() } catch { Dialogs.error(error.localizedDescription) }
+    }
+
     /// Tiše zjistí, jestli je venku nová verze (při startu, nejvýš jednou za 20 hodin), a jen to oznámí.
     func autoCheckForUpdate() async {
         let settings = Settings.shared
@@ -151,8 +218,13 @@ extension AppModel {
         do {
             let info = try await Updater.check(current: Updater.currentCommit)
             settings.lastUpdateCheck = Date().timeIntervalSince1970
-            if info != nil {
-                showNotice(L("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci."))
+            guard info != nil else { return }
+            if settings.autoInstallUpdates, let info {
+                let newApp = try await Updater.downloadAndUnpack(info)
+                try Updater.installOnNextQuit(newApp)
+                showNotice(L("Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda."))
+            } else {
+                showNotice(L("Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci."))
             }
         } catch {
             // bez internetu se nic neděje

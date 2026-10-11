@@ -581,6 +581,7 @@ final class AppModel: ObservableObject {
         case .tabSets: sheet = .tabSets
         case .cloud: sheet = .cloud
         case .checkUpdate: Task { await checkForUpdate() }
+        case .rollbackVersion: rollBackVersion()
         case .thumbnails: Settings.shared.showThumbs.toggle()
         case .undo: Task { await undoLast() }
         case .copyFiles: copyFiles(cut: false)

@@ -9,7 +9,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
     case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks, phone, terminal
-    case markAdvanced, markSameExt, invertMarks
+    case markAdvanced, markSameExt, invertMarks, rollbackVersion
 
     var id: String { rawValue }
 
@@ -70,6 +70,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .markAdvanced: return L("Označit podle podmínek…")
         case .markSameExt: return L("Označit stejnou příponu")
         case .invertMarks: return L("Převrátit označení")
+        case .rollbackVersion: return L("Vrátit předchozí verzi…")
         }
     }
 
@@ -106,7 +107,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
         case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks, .phone: return ""
         case .terminal: return "'"
-        case .markAdvanced, .markSameExt, .invertMarks: return ""
+        case .markAdvanced, .markSameExt, .invertMarks, .rollbackVersion: return ""
         }
     }
 }
@@ -160,6 +161,10 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(language, forKey: "language") }
     }
     /// Při startu se zeptat GitHubu na novou verzi (nejvýš jednou za 20 hodin).
+    /// Novou verzi stáhnout sama a nainstalovat při ukončení aplikace.
+    @Published var autoInstallUpdates: Bool {
+        didSet { UserDefaults.standard.set(autoInstallUpdates, forKey: "autoInstallUpdates") }
+    }
     @Published var autoCheckUpdates: Bool {
         didSet { UserDefaults.standard.set(autoCheckUpdates, forKey: "autoCheckUpdates") }
     }
@@ -206,6 +211,7 @@ final class Settings: ObservableObject {
         glass = d.object(forKey: "glass") as? Bool ?? true
         colorTheme = d.string(forKey: "colorTheme") ?? "default"
         autoCheckUpdates = d.object(forKey: "autoCheckUpdates") as? Bool ?? true
+        autoInstallUpdates = d.object(forKey: "autoInstallUpdates") as? Bool ?? false
         if let data = d.data(forKey: "userCommands"), let list = try? JSONDecoder().decode([UserCommand].self, from: data) {
             // Starý výchozí příkaz „du -sh“ nahradila vestavěná funkce (⌘S, sloupec Velikost).
             userCommands = list.filter { !($0.name == "Velikost složky" && $0.command == "du -sh %F") }
@@ -280,6 +286,7 @@ struct SettingsSheet: View {
             Toggle(L("Průhledné okno ve stylu skla"), isOn: $settings.glass)
             Toggle(L("Tlačítková lišta uživatelských příkazů"), isOn: $settings.showButtonBar)
             Toggle(L("Při startu zkontrolovat, jestli je dostupná nová verze"), isOn: $settings.autoCheckUpdates)
+            Toggle(L("Novou verzi stáhnout a nainstalovat automaticky (při ukončení aplikace)"), isOn: $settings.autoInstallUpdates)
 
             Divider()
             Text(L("Klávesové zkratky (⌘ + znak)")).font(.subheadline).foregroundStyle(.secondary)
