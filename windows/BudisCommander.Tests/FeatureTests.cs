@@ -549,3 +549,155 @@ public class ProcessAndThemeTests
         w.Close();
     }
 }
+
+public class TransferManagerTests
+{
+    [Fact]
+    public async Task JobsAreRecordedWithStateAndTitle()
+    {
+        using var t = new TempDir();
+        t.File("l/a.txt", "A"); t.Dir("r");
+        var core = Helpers.NewCore(t.Combine("l"), t.Combine("r"));
+        core.Active.MoveTo(core.Active.Items.FindIndex(i => i.Name == "a.txt"));
+        await core.StartTransferAsync(false);
+        await core.WaitIdleAsync();
+        var job = Assert.Single(core.Jobs);
+        Assert.Equal(JobState.Done, job.State);
+        Assert.StartsWith("Kopírování:", job.Title);
+        Assert.NotNull(job.Finished);
+        Assert.Contains("hotovo", BudisCommander.Ui.TransfersWindow.Line(job));
+    }
+
+    [Fact]
+    public async Task QueuedJobCanBeCancelledAndFinishedOnesRetriedAndCleared()
+    {
+        using var t = new TempDir();
+        t.File("l/a.txt", new string('x', 2_000_000)); t.File("l/b.txt", "B"); t.Dir("r");
+        var core = Helpers.NewCore(t.Combine("l"), t.Combine("r"));
+        core.Active.MoveTo(core.Active.Items.FindIndex(i => i.Name == "a.txt"));
+        await core.StartTransferAsync(false);                       // běží
+        core.Active.MoveTo(core.Active.Items.FindIndex(i => i.Name == "b.txt"));
+        await core.StartTransferAsync(false);                       // ve frontě
+        var queued = core.Jobs.FirstOrDefault(j => j.State == JobState.Queued);
+        if (queued != null)
+        {
+            core.CancelJobById(queued.Id);
+            Assert.Equal(JobState.Cancelled, queued.State);
+        }
+        await core.WaitIdleAsync();
+        Assert.All(core.Jobs, j => Assert.NotEqual(JobState.Queued, j.State));
+        var done = core.Jobs.First(j => j.State == JobState.Done);
+        Assert.True(core.RetryJob(done.Id));                        // znovu zařadí stejný přenos
+        await core.WaitIdleAsync();
+        Assert.True(core.Jobs.Count >= 2);
+        core.ClearFinishedJobs();
+        Assert.Empty(core.Jobs);
+    }
+
+    [Fact]
+    public async Task FailedJobIsRecordedWithError()
+    {
+        using var t = new TempDir();
+        var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
+        var method = typeof(AppCore).GetMethod("RunJob", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        Func<CancellationToken, Task> work = _ => throw new InvalidOperationException("chyba z testu");
+        method.Invoke(core, new object[] { work, true, "Zkušební úloha" });
+        await core.WaitIdleAsync();
+        var job = Assert.Single(core.Jobs);
+        Assert.Equal(JobState.Failed, job.State);
+        Assert.Equal("chyba z testu", job.Error);
+    }
+}
+
+[Collection("Env")]
+public class BackgroundSyncTests
+{
+    [Fact]
+    public async Task LocalSyncCopiesNewAndChangedAndKeepsExtrasByDefault()
+    {
+        using var t = new TempDir();
+        t.File("src/a.txt", "A"); t.File("src/sub/b.txt", "B"); t.File("dst/extra.txt", "E");
+        var core = Helpers.NewCore(t.Dir("x1"), t.Dir("x2"));
+        var task = new SyncTask { Name = "test", Source = t.Combine("src"), Target = t.Combine("dst") };
+        var result = await core.RunSyncTaskAsync(task, CancellationToken.None);
+        Assert.Contains("zkopírováno 2", result);
+        Assert.Equal("A", File.ReadAllText(t.Combine("dst", "a.txt")));
+        Assert.Equal("B", File.ReadAllText(t.Combine("dst", "sub", "b.txt")));
+        Assert.True(File.Exists(t.Combine("dst", "extra.txt")));            // bez DeleteExtra se nic nemaže
+        Assert.Equal("beze změn", await core.RunSyncTaskAsync(task, CancellationToken.None));
+        File.WriteAllText(t.Combine("src", "a.txt"), "AAAA");               // změna velikosti
+        Assert.Contains("zkopírováno 1", await core.RunSyncTaskAsync(task, CancellationToken.None));
+        Assert.Equal("AAAA", File.ReadAllText(t.Combine("dst", "a.txt")));
+    }
+
+    [Fact]
+    public async Task DeleteExtraRemovesFilesMissingInSource()
+    {
+        using var t = new TempDir();
+        t.File("src/a.txt", "A"); t.File("dst/extra.txt", "E");
+        var core = Helpers.NewCore(t.Dir("x1"), t.Dir("x2"));
+        var task = new SyncTask { Name = "t", Source = t.Combine("src"), Target = t.Combine("dst"), DeleteExtra = true };
+        var result = await core.RunSyncTaskAsync(task, CancellationToken.None);
+        Assert.Contains("smazáno 1", result);
+        Assert.False(File.Exists(t.Combine("dst", "extra.txt")));
+    }
+
+    [Fact]
+    public async Task OverlappingFoldersAndMissingSourceAreRejected()
+    {
+        using var t = new TempDir();
+        t.Dir("src");
+        var core = Helpers.NewCore(t.Dir("x1"), t.Dir("x2"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => core.RunSyncTaskAsync(new SyncTask { Source = t.Combine("src"), Target = t.Combine("src", "dole") }, CancellationToken.None));
+        await Assert.ThrowsAsync<DirectoryNotFoundException>(() => core.RunSyncTaskAsync(new SyncTask { Source = t.Combine("neexistuje"), Target = t.Combine("c") }, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RunNowRecordsResultAndJob()
+    {
+        using var t = new TempDir();
+        t.File("src/a.txt", "A");
+        var core = Helpers.NewCore(t.Dir("x1"), t.Dir("x2"));
+        var task = new SyncTask { Name = "zaloha", Source = t.Combine("src"), Target = t.Combine("dst") };
+        core.Settings.SyncTasks.Add(task);
+        await core.RunSyncNowAsync(task);
+        Assert.NotNull(task.LastRun);
+        Assert.Contains("zkopírováno", task.LastResult);
+        Assert.Contains(core.Jobs, j => j.Title == "Synchronizace: zaloha" && j.State == JobState.Done);
+    }
+
+    [Fact]
+    public void DueLogicAndRcloneTargetParsing()
+    {
+        var now = DateTime.Now;
+        Assert.False(new SyncTask { IntervalMinutes = 0 }.IsDue(now));
+        Assert.True(new SyncTask { IntervalMinutes = 5 }.IsDue(now));
+        Assert.False(new SyncTask { IntervalMinutes = 5, LastRun = now.AddMinutes(-2) }.IsDue(now));
+        Assert.True(new SyncTask { IntervalMinutes = 5, LastRun = now.AddMinutes(-6) }.IsDue(now));
+        Assert.Equal(("gdrive", "/Zaloha"), SyncTask.ParseRclone("rclone:gdrive:/Zaloha"));
+        Assert.Equal(("gdrive", "/Zaloha"), SyncTask.ParseRclone("rclone:gdrive:Zaloha"));
+        Assert.Equal(("gdrive", "/"), SyncTask.ParseRclone("rclone:gdrive:"));
+        Assert.Null(SyncTask.ParseRclone(@"C:\slozka"));
+    }
+
+    [Fact]
+    public async Task SyncsToRcloneRemote()
+    {
+        var exe = Rclone.FindExe(null);
+        var remote = Environment.GetEnvironmentVariable("BUDIS_TEST_RCLONE");
+        if (exe == null || remote == null) return;
+        using var t = new TempDir();
+        t.File("src/a.txt", "AAA"); t.File("src/sub/b.txt", "BB");
+        var core = Helpers.NewCore(t.Dir("x1"), t.Dir("x2"));
+        var path = "/sync-" + Guid.NewGuid().ToString("N")[..8];
+        var task = new SyncTask { Name = "cloud", Source = t.Combine("src"), Target = $"rclone:{remote}:{path}" };
+        try
+        {
+            Assert.Contains("zkopírováno 2", await core.RunSyncTaskAsync(task, CancellationToken.None));
+            using var s = new RcloneSession(exe, remote);
+            Assert.Contains(await s.ListAsync(path, CancellationToken.None), e => e.Name == "a.txt" && e.Size == 3);
+            Assert.Equal("beze změn", await core.RunSyncTaskAsync(task, CancellationToken.None));
+        }
+        finally { using var s = new RcloneSession(exe, remote); try { await s.DeleteAsync(path, true, CancellationToken.None); } catch { } }
+    }
+}

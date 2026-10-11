@@ -2,6 +2,22 @@ using BudisCommander.Remote;
 
 namespace BudisCommander.Core;
 
+public enum JobState { Queued, Running, Done, Cancelled, Failed }
+
+/// <summary>Záznam o úloze ve správci přenosů.</summary>
+public sealed class JobRecord
+{
+    public int Id { get; init; }
+    public string Title { get; init; } = "";
+    public JobState State { get; set; } = JobState.Queued;
+    public DateTime Added { get; init; }
+    public DateTime? Started { get; set; }
+    public DateTime? Finished { get; set; }
+    public string? Error { get; set; }
+    internal Func<CancellationToken, Task>? Work { get; init; }
+    internal bool Queueable { get; init; }
+}
+
 public sealed record TransferPlan(bool Move, PaneState Src, PaneState Dst, List<FileEntry> Items, string SrcKey, string DstKey);
 
 public enum ViewerKind { Text, Hex, Image, External }
@@ -38,7 +54,13 @@ public sealed partial class AppCore : IDisposable
     private readonly string? _settingsPath;
     private Task? _currentJob;
     private CancellationTokenSource? _jobCts;
-    private readonly List<Func<CancellationToken, Task>> _queue = new();
+    private readonly List<JobRecord> _queue = new();
+    private readonly List<JobRecord> _jobs = new();
+    private int _jobId;
+    private JobRecord? _running;
+    /// <summary>Úlohy (běžící, ve frontě i hotové), nejnovější nahoře; posledních 60.</summary>
+    public IReadOnlyList<JobRecord> Jobs { get { lock (_jobs) return _jobs.ToList(); } }
+    public event Action? JobsChanged;
     private TransferPlan? _interrupted;
     private readonly List<UndoEntry> _undo = new();
     private readonly Dictionary<string, CancellationTokenSource> _editWatchers = new();
@@ -130,41 +152,64 @@ public sealed partial class AppCore : IDisposable
     private bool Busy => _currentJob is { IsCompleted: false };
 
     /// <summary>Spustí úlohu, nebo ji (u přenosů) zařadí do fronty.</summary>
-    private void RunJob(Func<CancellationToken, Task> work, bool queueable = false)
+    private void RunJob(Func<CancellationToken, Task> work, bool queueable = false, string title = "Operace")
     {
+        var rec = new JobRecord { Id = ++_jobId, Title = title, Work = work, Queueable = queueable, Added = DateTime.Now };
         if (Busy)
         {
             if (queueable)
             {
-                _queue.Add(work);
+                _queue.Add(rec);
+                AddJob(rec);
                 ShowNotice($"Přidáno do fronty (ve frontě: {_queue.Count})");
                 StatusChanged?.Invoke();
             }
             else ShowNotice("Právě probíhá jiná operace.");
             return;
         }
-        StartJob(work);
+        AddJob(rec);
+        StartJob(rec);
     }
 
-    private void StartJob(Func<CancellationToken, Task> work)
+    private void AddJob(JobRecord rec)
+    {
+        lock (_jobs)
+        {
+            _jobs.Insert(0, rec);
+            while (_jobs.Count > 60) _jobs.RemoveAt(_jobs.Count - 1);
+        }
+        JobsChanged?.Invoke();
+    }
+
+    private void StartJob(JobRecord rec)
     {
         var cts = _jobCts = new CancellationTokenSource();
         var tcs = new TaskCompletionSource();
         _currentJob = tcs.Task;
+        _running = rec;
+        rec.State = JobState.Running; rec.Started = DateTime.Now;
         CanCancel = true;
+        JobsChanged?.Invoke();
         StatusChanged?.Invoke();
-        _ = RunJobAsync(work, cts.Token, tcs);
+        _ = RunJobAsync(rec, cts.Token, tcs);
     }
 
-    private async Task RunJobAsync(Func<CancellationToken, Task> work, CancellationToken ct, TaskCompletionSource tcs)
+    private async Task RunJobAsync(JobRecord rec, CancellationToken ct, TaskCompletionSource tcs)
     {
-        try { await work(ct); }
-        catch (OperationCanceledException) { }
-        catch (Exception e) { await Ui.ShowErrorAsync(e.Message); }
+        try
+        {
+            await rec.Work!(ct);
+            rec.State = ct.IsCancellationRequested ? JobState.Cancelled : JobState.Done;
+        }
+        catch (OperationCanceledException) { rec.State = JobState.Cancelled; }
+        catch (Exception e) { rec.State = JobState.Failed; rec.Error = e.Message; await Ui.ShowErrorAsync(e.Message); }
         finally
         {
+            rec.Finished = DateTime.Now;
+            _running = null;
             CanCancel = false;
             SetProgress(null, "");
+            JobsChanged?.Invoke();
             tcs.SetResult();
             if (_queue.Count > 0)
             {
@@ -176,8 +221,39 @@ public sealed partial class AppCore : IDisposable
 
     public void CancelJob(bool all = false)
     {
-        if (all) { _queue.Clear(); StatusChanged?.Invoke(); }
+        if (all)
+        {
+            foreach (var q in _queue) { q.State = JobState.Cancelled; q.Finished = DateTime.Now; }
+            _queue.Clear(); StatusChanged?.Invoke(); JobsChanged?.Invoke();
+        }
         _jobCts?.Cancel();
+    }
+
+    /// <summary>Zruší úlohu podle čísla: běžící se přeruší, úloha ve frontě se odebere.</summary>
+    public void CancelJobById(int id)
+    {
+        if (_running?.Id == id) { _jobCts?.Cancel(); return; }
+        var q = _queue.FirstOrDefault(j => j.Id == id);
+        if (q == null) return;
+        _queue.Remove(q);
+        q.State = JobState.Cancelled; q.Finished = DateTime.Now;
+        StatusChanged?.Invoke(); JobsChanged?.Invoke();
+    }
+
+    /// <summary>Spustí znovu dokončenou, zrušenou nebo selhanou úlohu (jen přenosy a podobné fronty).</summary>
+    public bool RetryJob(int id)
+    {
+        var old = Jobs.FirstOrDefault(j => j.Id == id);
+        if (old?.Work == null || old.State is JobState.Running or JobState.Queued) return false;
+        RunJob(old.Work, true, old.Title);
+        return true;
+    }
+
+    /// <summary>Odstraní z historie hotové, zrušené a selhané úlohy.</summary>
+    public void ClearFinishedJobs()
+    {
+        lock (_jobs) _jobs.RemoveAll(j => j.State is JobState.Done or JobState.Cancelled or JobState.Failed);
+        JobsChanged?.Invoke();
     }
 
     /// <summary>Počká na dokončení běžící úlohy i celé fronty (pro testy).</summary>
@@ -213,17 +289,20 @@ public sealed partial class AppCore : IDisposable
         return new TransferPlan(move, src, dst, items, LocationKey(src), LocationKey(dst));
     }
 
+    private static string TransferTitle(TransferPlan p) =>
+        $"{(p.Move ? "Přesun" : "Kopírování")}: {Describe(p.Items)} → {p.Dst.Title}";
+
     public async Task StartTransferAsync(bool move)
     {
         var plan = await PrepareTransferAsync(move);
-        if (plan != null) RunJob(ct => TransferAsync(plan, ct), true);
+        if (plan != null) RunJob(ct => TransferAsync(plan, ct), true, TransferTitle(plan));
     }
 
     public void ResumeTransfer()
     {
         if (_interrupted == null) { ShowNotice("Není žádný přerušený přenos."); return; }
         var plan = _interrupted; _interrupted = null;
-        RunJob(ct => TransferAsync(plan, ct), true);
+        RunJob(ct => TransferAsync(plan, ct), true, TransferTitle(plan));
     }
 
     public async Task TransferAsync(TransferPlan plan, CancellationToken ct)
@@ -428,7 +507,7 @@ public sealed partial class AppCore : IDisposable
         if (!ReferenceEquals(target, dst)) await target.LoadLocalAsync(target.Path, "", true);
         if (source == null) await src.LoadLocalAsync(src.Path, "", true);
         var plan = new TransferPlan(doMove, src, target, items, LocationKey(src), LocationKey(target));
-        RunJob(ct => TransferAsync(plan, ct), true);
+        RunJob(ct => TransferAsync(plan, ct), true, TransferTitle(plan));
     }
 
     // --- vrácení operací ----------------------------------------------------------------
@@ -484,7 +563,7 @@ public sealed partial class AppCore : IDisposable
             SetProgress(null, "");
             await pane.ReloadAsync(true);
             if (errors.Count > 0) await Ui.ShowErrorAsync(string.Join("\n", errors));
-        });
+        }, false, $"Mazání: {Describe(items)}");
     }
 
     public async Task MakeDirectoryAsync()
@@ -651,6 +730,7 @@ public sealed partial class AppCore : IDisposable
 
     public void Dispose()
     {
+        _syncTimer?.Dispose();
         foreach (var w in _editWatchers.Values) w.Cancel();
         foreach (var t in Left.Tabs.Concat(Right.Tabs)) t.Dispose();
         try { if (Directory.Exists(ArchiveService.TempRoot)) Directory.Delete(ArchiveService.TempRoot, true); } catch { }

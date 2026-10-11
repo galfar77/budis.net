@@ -80,6 +80,7 @@ public sealed partial class MainWindow : Window
             RebuildUserBar();
             if (Updater.SelfExePath() is { } self) Updater.CleanupOld(self);
             _ = _core.AutoCheckUpdateAsync();
+            _core.StartSyncScheduler();
         };
         Closing += (_, _) => OnClosing();
         Activated += (_, _) => FocusActiveList();

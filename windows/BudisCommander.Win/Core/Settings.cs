@@ -93,6 +93,8 @@ public sealed class AppSettings
     public string RclonePath { get; set; } = "";
     /// <summary>Řazení pamatované zvlášť pro každou místní složku (jen složky, kde se liší od výchozího).</summary>
     public Dictionary<string, FolderView> FolderViews { get; set; } = new();
+    /// <summary>Úlohy synchronizace na pozadí.</summary>
+    public List<SyncTask> SyncTasks { get; set; } = new();
     public List<TabSet> TabSets { get; set; } = new();
     public double WindowWidth { get; set; } = 1280;
     public double WindowHeight { get; set; } = 760;

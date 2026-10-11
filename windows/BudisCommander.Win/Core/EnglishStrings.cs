@@ -530,5 +530,72 @@ Les	Forest
 Západ slunce	Sunset
 Fialová	Violet
 Grafit	Graphite
+Správce přenosů…	Transfer manager…
+Správce přenosů	Transfer manager
+Zrušit vybranou	Cancel selected
+Spustit znovu	Run again
+Vyčistit hotové	Clear finished
+Nové přenosy (F5, F6) se řadí do fronty a běží postupně. Zrušenou nebo selhanou úlohu lze spustit znovu.	New transfers (F5, F6) are queued and run one after another. A cancelled or failed job can be run again.
+Zatím žádné přenosy.	No transfers yet.
+probíhá	running
+ve frontě	queued
+hotovo	done
+zrušeno	cancelled
+chyba	error
+Přesun: {} → {}	Move: {} → {}
+Kopírování: {} → {}	Copy: {} → {}
+Mazání: {}	Deleting: {}
+Zrcadlení se serverem	Mirroring with a server
+Zrcadlení: {} → {}	Mirroring: {} → {}
+Balení do archivu	Packing into an archive
+Rozbalení archivu	Unpacking an archive
+Přidání do archivu	Adding to an archive
+Dělení souboru	Splitting a file
+Slepení souboru	Joining a file
+Operace	Operation
+Synchronizace na pozadí…	Background sync…
+Synchronizace na pozadí	Background sync
+Nová synchronizace	New sync
+Upravit synchronizaci	Edit sync
+např. Dokumenty na zálohu	e.g. Documents for backup
+složka, nebo rclone:název:/cesta	folder, or rclone:name:/path
+Jen ručně	Manual only
+Každých 5 minut	Every 5 minutes
+Každých 15 minut	Every 15 minutes
+Každých 30 minut	Every 30 minutes
+Každou hodinu	Every hour
+Každých 6 hodin	Every 6 hours
+Jednou denně	Once a day
+Mazat v cíli soubory, které ve zdroji nejsou	Delete files in the target that are not in the source
+Zdrojová složka	Source folder
+Cílová složka	Target folder
+Název	Name
+Zdroj	Source
+Cíl	Target
+Spouštět	Run
+Zadejte název.	Enter a name.
+Zdrojová složka neexistuje.	The source folder does not exist.
+Zadejte cíl.	Enter a target.
+Cíl v cloudu zapište jako rclone:název:/cesta.	Write a cloud target as rclone:name:/path.
+Jednosměrně: zdroj se kopíruje do cíle. Cíl v cloudu zapište jako rclone:název:/cesta (úložiště přidáte v menu Servery → Cloudová úložiště).	One way: the source is copied to the target. Write a cloud target as rclone:name:/path (add storage in the Servers menu → Cloud storage).
+Přidat…	Add…
+Upravit…	Edit…
+Smazat	Delete
+Spustit teď	Run now
+Synchronizuji…	Syncing…
+Úlohy se spouštějí podle nastavené doby, dokud je aplikace spuštěná. Běh a výsledek je vidět ve správci přenosů.	Tasks run on the set schedule while the application is running. The run and its result can be seen in the transfer manager.
+{}   {} → {}   ({})	{}   {} → {}   ({})
+každých {} min	every {} min
+ručně	manual
+   – naposledy {}: {}	   – last {}: {}
+Synchronizace: {}	Sync: {}
+Synchronizace „{}“: {}	Sync "{}": {}
+„{}“: {}	"{}": {}
+beze změn	no changes
+zkopírováno {} souborů ({})	copied {} files ({})
+zkopírováno {} souborů ({}), smazáno {}	copied {} files ({}), deleted {}
+Chyba: {}	Error: {}
+Zdrojová složka „{}“ neexistuje.	The source folder "{}" does not exist.
+Program rclone není nainstalovaný.	rclone is not installed.
 """;
 }

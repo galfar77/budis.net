@@ -110,7 +110,7 @@ public sealed partial class AppCore
             await src.ReloadAsync(true); await dst.ReloadAsync(true);
             ShowNotice(ct.IsCancellationRequested ? "Zrcadlení zrušeno." : "Zrcadlení hotovo.");
             if (errors.Count > 0) await Ui.ShowErrorAsync(string.Join("\n", errors.Take(12)));
-        });
+        }, false, $"Zrcadlení: {System.IO.Path.GetFileName(s)} → {System.IO.Path.GetFileName(d)}");
     }
 
     // --- archivy -----------------------------------------------------------------------
@@ -154,7 +154,7 @@ public sealed partial class AppCore
             catch (Exception e) { try { File.Delete(dest); } catch { } await Ui.ShowErrorAsync(e.Message); }
             foreach (var i in src.AllItems) i.IsMarked = false;
             await src.ReloadAsync(true); await Other.ReloadAsync(true);
-        });
+        }, false, "Balení do archivu");
     }
 
     public async Task UnpackAsync()
@@ -186,7 +186,7 @@ public sealed partial class AppCore
             catch (OperationCanceledException) { ShowNotice("Rozbalování zrušeno."); }
             catch (Exception e) { await Ui.ShowErrorAsync(e.Message); }
             await src.ReloadAsync(true); await Other.ReloadAsync(true);
-        });
+        }, false, "Rozbalení archivu");
     }
 
     public async Task AddToArchiveAsync()
@@ -215,7 +215,7 @@ public sealed partial class AppCore
             catch (OperationCanceledException) { }
             catch (Exception e) { await Ui.ShowErrorAsync(e.Message); }
             await src.ReloadAsync(true); await dst.ReloadAsync(true);
-        });
+        }, false, "Přidání do archivu");
     }
 
     // --- dělení a slepování souborů, odkazy ---------------------------------------------------
@@ -250,7 +250,7 @@ public sealed partial class AppCore
             catch (OperationCanceledException) { ShowNotice("Dělení zrušeno."); }
             catch (Exception e) { await Ui.ShowErrorAsync(e.Message); }
             await src.ReloadAsync(true); await Other.ReloadAsync(true);
-        });
+        }, false, "Dělení souboru");
     }
 
     public async Task StartCombineAsync()
@@ -278,7 +278,7 @@ public sealed partial class AppCore
             catch (OperationCanceledException) { ShowNotice("Slepování zrušeno."); }
             catch (Exception e) { await Ui.ShowErrorAsync(e.Message); }
             await src.ReloadAsync(true); await Other.ReloadAsync(true);
-        });
+        }, false, "Slepení souboru");
     }
 
     private void SetProgressThreadSafe(double fraction, string text)

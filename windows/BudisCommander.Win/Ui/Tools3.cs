@@ -5,6 +5,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using BudisCommander.Core;
+using Avalonia.Threading;
 using BudisCommander.Remote;
 
 namespace BudisCommander.Ui;
@@ -455,5 +456,183 @@ public sealed class ProcessWindow : Window
         if (error != null) await _core.Ui.ShowErrorAsync(error);
         await Task.Delay(300);
         Reload();
+    }
+}
+
+/// <summary>Správce přenosů: běžící úloha, fronta a historie; zrušení, odebrání z fronty a opakování.</summary>
+public sealed class TransfersWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly ListBox _list = new() { Height = 320 };
+    private readonly TextBlock _status = new() { Opacity = 0.8, TextWrapping = TextWrapping.Wrap };
+    private readonly ProgressBar _bar = new() { Maximum = 1, Height = 6 };
+    private List<JobRecord> _shown = new();
+    private readonly Action _onChanged;
+
+    public TransfersWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Správce přenosů";
+        Width = 700; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var cancel = UiKit.Button("Zrušit vybranou", () => { if (Selected() is { } j) _core.CancelJobById(j.Id); });
+        var retry = UiKit.Button("Spustit znovu", () => { if (Selected() is { } j) _core.RetryJob(j.Id); });
+        var all = UiKit.Button("Zrušit vše", () => _core.CancelJob(true));
+        var clear = UiKit.Button("Vyčistit hotové", () => _core.ClearFinishedJobs());
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Správce přenosů", 15, true), _bar, _status, UiKit.Frame(_list),
+                UiKit.HStack(8, cancel, retry, all, clear, UiKit.Button("Zavřít", Close, true)),
+                UiKit.Label("Nové přenosy (F5, F6) se řadí do fronty a běží postupně. Zrušenou nebo selhanou úlohu lze spustit znovu.", dim: true)),
+        };
+        _onChanged = () => Dispatcher.UIThread.Post(Fill);
+        core.JobsChanged += _onChanged; core.StatusChanged += _onChanged;
+        Closed += (_, _) => { core.JobsChanged -= _onChanged; core.StatusChanged -= _onChanged; };
+        this.CloseOnEscape();
+        Opened += (_, _) => Fill();
+    }
+
+    private JobRecord? Selected() => _list.SelectedIndex >= 0 && _list.SelectedIndex < _shown.Count ? _shown[_list.SelectedIndex] : null;
+
+    public static string Line(JobRecord j)
+    {
+        var icon = j.State switch { JobState.Running => "▶", JobState.Queued => "⏳", JobState.Done => "✔", JobState.Cancelled => "⏹", _ => "⚠" };
+        var state = j.State switch { JobState.Running => "probíhá", JobState.Queued => "ve frontě", JobState.Done => "hotovo", JobState.Cancelled => "zrušeno", _ => "chyba" };
+        var when = (j.Finished ?? j.Started ?? j.Added).ToString("HH:mm");
+        return $"{icon} {when}  {Tr.T(state)}  {Tr.T(j.Title)}" + (j.Error != null ? "  – " + j.Error : "");
+    }
+
+    private void Fill()
+    {
+        int sel = _list.SelectedIndex;
+        _shown = _core.Jobs.ToList();
+        _list.ItemsSource = _shown.Select(Line).ToList();
+        if (sel >= 0 && sel < _shown.Count) _list.SelectedIndex = sel;
+        _bar.IsVisible = _core.Progress.HasValue;
+        if (_core.Progress.HasValue) _bar.Value = _core.Progress.Value;
+        _status.Text = _core.CanCancel ? _core.ProgressText : (_shown.Count == 0 ? "Zatím žádné přenosy." : "");
+    }
+}
+
+/// <summary>Úprava jedné úlohy synchronizace.</summary>
+public sealed class SyncTaskEditWindow : Window
+{
+    private static readonly (string Label, int Minutes)[] Intervals =
+    {
+        ("Jen ručně", 0), ("Každých 5 minut", 5), ("Každých 15 minut", 15), ("Každých 30 minut", 30),
+        ("Každou hodinu", 60), ("Každých 6 hodin", 360), ("Jednou denně", 1440),
+    };
+
+    public bool Saved { get; private set; }
+
+    public SyncTaskEditWindow(SyncTask task, AppCore core)
+    {
+        Title = task.Name.Length == 0 ? "Nová synchronizace" : "Upravit synchronizaci";
+        Width = 560; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var name = new TextBox { Text = task.Name, Watermark = "např. Dokumenty na zálohu" };
+        var source = new TextBox { Text = task.Source };
+        var target = new TextBox { Text = task.Target, Watermark = @"složka, nebo rclone:název:/cesta" };
+        var interval = new ComboBox { ItemsSource = Intervals.Select(i => i.Label).ToList(), SelectedIndex = Math.Max(0, Array.FindIndex(Intervals, i => i.Minutes == task.IntervalMinutes)) };
+        var delete = new CheckBox { Content = "Mazat v cíli soubory, které ve zdroji nejsou", IsChecked = task.DeleteExtra };
+        var error = new TextBlock { Foreground = Brushes.Red, TextWrapping = TextWrapping.Wrap };
+        var pickSource = UiKit.Button("Vybrat…", async () =>
+        {
+            var f = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Zdrojová složka" });
+            if (f.Count > 0 && f[0].TryGetLocalPath() is { } p) source.Text = p;
+        });
+        var pickTarget = UiKit.Button("Vybrat…", async () =>
+        {
+            var f = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Cílová složka" });
+            if (f.Count > 0 && f[0].TryGetLocalPath() is { } p) target.Text = p;
+        });
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"), RowSpacing = 6 };
+        void Row(int r, string label, Control c, Control? extra = null)
+        {
+            var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetRow(l, r); Grid.SetRow(c, r); Grid.SetColumn(c, 1); form.Children.Add(l); form.Children.Add(c);
+            if (extra != null) { Grid.SetRow(extra, r); Grid.SetColumn(extra, 2); form.Children.Add(extra); }
+        }
+        Row(0, "Název", name); Row(1, "Zdroj", source, pickSource); Row(2, "Cíl", target, pickTarget); Row(3, "Spouštět", interval);
+        var save = UiKit.Button("Uložit", () =>
+        {
+            if (string.IsNullOrWhiteSpace(name.Text)) { error.Text = "Zadejte název."; return; }
+            if (!Directory.Exists((source.Text ?? "").Trim())) { error.Text = "Zdrojová složka neexistuje."; return; }
+            if (string.IsNullOrWhiteSpace(target.Text)) { error.Text = "Zadejte cíl."; return; }
+            if (target.Text!.StartsWith("rclone:", StringComparison.OrdinalIgnoreCase) && SyncTask.ParseRclone(target.Text) == null) { error.Text = "Cíl v cloudu zapište jako rclone:název:/cesta."; return; }
+            task.Name = name.Text!.Trim(); task.Source = source.Text!.Trim(); task.Target = target.Text!.Trim();
+            task.IntervalMinutes = Intervals[Math.Max(0, interval.SelectedIndex)].Minutes; task.DeleteExtra = delete.IsChecked == true;
+            Saved = true; Close();
+        }, true);
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Synchronizace na pozadí", 15, true), form, delete,
+                UiKit.Label("Jednosměrně: zdroj se kopíruje do cíle. Cíl v cloudu zapište jako rclone:název:/cesta (úložiště přidáte v menu Servery → Cloudová úložiště).", dim: true),
+                error, UiKit.ButtonRow(UiKit.Button("Zrušit", Close), save)),
+        };
+        this.CloseOnEscape();
+    }
+}
+
+/// <summary>Synchronizace na pozadí: seznam úloh, které se opakují, dokud aplikace běží.</summary>
+public sealed class SyncTasksWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly ListBox _list = new() { Height = 260 };
+    private readonly TextBlock _status = new() { Opacity = 0.8, TextWrapping = TextWrapping.Wrap };
+
+    public SyncTasksWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Synchronizace na pozadí";
+        Width = 720; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var add = UiKit.Button("Přidat…", async () =>
+        {
+            var t = new SyncTask { Source = _core.Active.IsRemote ? "" : _core.Active.PersistentPath };
+            var w = new SyncTaskEditWindow(t, _core);
+            await w.ShowDialog(this);
+            if (w.Saved) { _core.Settings.SyncTasks.Add(t); _core.Settings.Save(); Fill(); }
+        });
+        var edit = UiKit.Button("Upravit…", async () =>
+        {
+            if (Selected() is not { } t) return;
+            var w = new SyncTaskEditWindow(t, _core);
+            await w.ShowDialog(this);
+            if (w.Saved) { _core.Settings.Save(); Fill(); }
+        });
+        var del = UiKit.Button("Smazat", () =>
+        {
+            if (Selected() is not { } t) return;
+            _core.Settings.SyncTasks.Remove(t); _core.Settings.Save(); Fill();
+        });
+        var run = UiKit.Button("Spustit teď", async () =>
+        {
+            if (Selected() is not { } t) return;
+            _status.Text = "Synchronizuji…";
+            var result = await _core.RunSyncNowAsync(t);
+            _status.Text = $"„{t.Name}“: {result}";
+            Fill();
+        }, true);
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Synchronizace na pozadí", 15, true), UiKit.Frame(_list),
+                UiKit.HStack(8, add, edit, del, run, UiKit.Button("Zavřít", Close)), _status,
+                UiKit.Label("Úlohy se spouštějí podle nastavené doby, dokud je aplikace spuštěná. Běh a výsledek je vidět ve správci přenosů.", dim: true)),
+        };
+        this.CloseOnEscape();
+        Opened += (_, _) => Fill();
+    }
+
+    private SyncTask? Selected() => _list.SelectedIndex >= 0 && _list.SelectedIndex < _core.Settings.SyncTasks.Count ? _core.Settings.SyncTasks[_list.SelectedIndex] : null;
+
+    private void Fill()
+    {
+        _list.ItemsSource = _core.Settings.SyncTasks.Select(t =>
+            t.Describe() + (t.LastRun is { } l ? $"   – naposledy {l:d. M. HH:mm}: {t.LastResult}" : "")).ToList();
+        if (_core.Settings.SyncTasks.Count > 0 && _list.SelectedIndex < 0) _list.SelectedIndex = 0;
     }
 }

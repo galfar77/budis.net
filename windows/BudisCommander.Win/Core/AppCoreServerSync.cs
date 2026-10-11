@@ -83,6 +83,6 @@ public sealed partial class AppCore
             await src.ReloadAsync(true); await dst.ReloadAsync(true);
             ShowNotice(ct.IsCancellationRequested ? "Zrcadlení zrušeno." : "Zrcadlení hotovo.");
             if (errors.Count > 0) await Ui.ShowErrorAsync(string.Join("\n", errors.Take(12)));
-        });
+        }, false, "Zrcadlení se serverem");
     }
 }
