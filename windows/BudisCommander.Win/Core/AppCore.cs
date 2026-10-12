@@ -52,6 +52,8 @@ public sealed partial class AppCore : IDisposable
     public event Action? SessionChanged;
 
     private readonly string? _settingsPath;
+    /// <summary>Historie provedených operací se soubory (z ní jde operaci zopakovat nebo vrátit).</summary>
+    public OperationLog History { get; }
     private Task? _currentJob;
     private CancellationTokenSource? _jobCts;
     private readonly List<JobRecord> _queue = new();
@@ -72,6 +74,7 @@ public sealed partial class AppCore : IDisposable
         Settings = settings;
         Ui = ui;
         _settingsPath = settingsPath;
+        History = new OperationLog(settingsPath == null ? null : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(settingsPath) ?? "", "history.json"));
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var downloads = Path.Combine(home, "Downloads");
         var s = settings.Session;
@@ -143,6 +146,9 @@ public sealed partial class AppCore : IDisposable
         ProgressText = Tr.T(text);
         StatusChanged?.Invoke();
     }
+
+    public static string Describe(IReadOnlyList<string> names) =>
+        names.Count == 1 ? $"„{names[0]}“" : $"{names.Count} položek";
 
     public static string Describe(IReadOnlyList<FileEntry> items) =>
         items.Count == 1 ? $"„{items[0].Name}“" : $"{items.Count} položek";
@@ -318,6 +324,7 @@ public sealed partial class AppCore : IDisposable
         var items = plan.Items;
         var copies = new List<string>();
         var moves = new List<(string Current, string Original)>();
+        var logged = new List<OpItem>();
         bool overwriteAll = false, cancelled = false;
         var remaining = new List<FileEntry>();
         var errors = new List<string>();
@@ -360,10 +367,11 @@ public sealed partial class AppCore : IDisposable
             try
             {
                 await TransferOneAsync(item, src, dst, move, overwrite, progress, ct);
-                if (!overwrite && !src.IsRemote && !dst.IsRemote)
+                if (!src.IsRemote && !dst.IsRemote)
                 {
                     var created = System.IO.Path.Combine(dst.Path, item.Name);
-                    if (move) moves.Add((created, item.FullPath)); else copies.Add(created);
+                    logged.Add(new OpItem(item.FullPath, created));
+                    if (!overwrite) { if (move) moves.Add((created, item.FullPath)); else copies.Add(created); }
                 }
             }
             catch (OperationCanceledException)
@@ -378,6 +386,8 @@ public sealed partial class AppCore : IDisposable
         }
         foreach (var m in src.AllItems) m.IsMarked = false;
         await FinishTransferAsync(src, dst);
+        if (logged.Count > 0)
+            History.Add(move ? OpKind.Move : OpKind.Copy, $"{(move ? "Přesun" : "Kopírování")} {Describe(logged.Select(l => System.IO.Path.GetFileName(l.To)).ToList())} do {dst.Path}", logged);
         if (copies.Count + moves.Count > 0)
             PushUndo($"{(move ? "přesun" : "kopírování")} {copies.Count + moves.Count} položek", () => UndoTransferAsync(copies, moves));
         _interrupted = cancelled ? plan with { Items = remaining } : null;
@@ -546,6 +556,7 @@ public sealed partial class AppCore : IDisposable
         RunJob(async ct =>
         {
             var errors = new List<string>();
+            var deleted = new List<OpItem>();
             for (int i = 0; i < items.Count; i++)
             {
                 if (ct.IsCancellationRequested) break;
@@ -556,11 +567,14 @@ public sealed partial class AppCore : IDisposable
                     if (pane.IsRemote) await pane.Connection!.DeleteAsync(item.FullPath, item.IsDirectory, ct);
                     else if (toBin) await Task.Run(() => FileOps.DeleteToRecycleBin(item.FullPath), ct);
                     else await Task.Run(() => FileOps.DeletePermanently(item.FullPath), ct);
+                    if (!pane.IsRemote) deleted.Add(new OpItem(item.FullPath, ""));
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception e) { errors.Add($"{item.Name}: {e.Message}"); }
             }
             SetProgress(null, "");
+            if (deleted.Count > 0)
+                History.Add(OpKind.Delete, $"{(toBin ? "Smazání do Koše" : "Trvalé smazání")}: {Describe(deleted.Select(d => System.IO.Path.GetFileName(d.From)).ToList())}", deleted, !toBin);
             await pane.ReloadAsync(true);
             if (errors.Count > 0) await Ui.ShowErrorAsync(string.Join("\n", errors));
         }, false, $"Mazání: {Describe(items)}");
@@ -587,6 +601,7 @@ public sealed partial class AppCore : IDisposable
             {
                 var created = System.IO.Path.Combine(pane.Path, name);
                 Directory.CreateDirectory(created);
+                History.Add(OpKind.NewFolder, $"Nová složka „{name}“", new[] { new OpItem("", created) });
                 PushUndo($"vytvoření složky „{name}“", () => Task.Run(() => FileOps.DeleteToRecycleBin(created)));
                 await pane.ReloadAsync(true);
             }
@@ -621,6 +636,7 @@ public sealed partial class AppCore : IDisposable
                 var original = item.FullPath;
                 var dest = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(original)!, name);
                 if (item.IsDirectory) Directory.Move(original, dest); else File.Move(original, dest);
+                History.Add(OpKind.Rename, $"Přejmenování „{item.Name}“ na „{name}“", new[] { new OpItem(original, dest) });
                 PushUndo($"přejmenování „{item.Name}“", () => Task.Run(() =>
                 {
                     if (Directory.Exists(dest)) Directory.Move(dest, original); else File.Move(dest, original);

@@ -55,6 +55,8 @@ public static class Actions
         new("terminal", "Terminál…", "Ctrl+OemTilde", Tools),
         new("syncTasks", "Synchronizace na pozadí…", null, Tools),
         new("transfers", "Správce přenosů…", null, Tools),
+        new("history", "Historie operací…", null, Tools),
+        new("recycleBin", "Koš – obnovit smazané…", null, Tools),
         new("processes", "Správce procesů…", null, Tools),
         new("search", "Hledat soubory…", "Alt+F7", Tools),
         new("duplicates", "Hledat duplicity…", null, Tools),

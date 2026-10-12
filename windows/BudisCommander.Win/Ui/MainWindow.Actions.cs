@@ -77,6 +77,8 @@ public sealed partial class MainWindow
         });
         H("syncTasks", () => ShowToolAsync(new SyncTasksWindow(_core)));
         H("transfers", () => ShowToolAsync(new TransfersWindow(_core)));
+        H("history", () => ShowToolAsync(new HistoryWindow(_core)));
+        H("recycleBin", () => ShowToolAsync(new RecycleBinWindow(_core)));
         H("processes", () => ShowToolAsync(new ProcessWindow(_core)));
         H("search", () => ShowToolAsync(new SearchWindow(_core)));
         H("duplicates", () => ShowToolAsync(new DuplicatesWindow(_core)));
