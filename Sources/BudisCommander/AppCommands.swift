@@ -77,6 +77,8 @@ struct AppCommands: Commands {
             item(.symlink)
             Divider()
             item(.sortByType)
+            item(.history)
+            item(.trashRestore)
             item(.processes)
             item(.transfers)
             item(.syncTasks)

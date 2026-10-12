@@ -15,6 +15,9 @@ public sealed class SearchWindow : Window
     private readonly AppCore _core;
     private readonly TextBox _root = new(), _mask = new() { Text = "*" }, _text = new() { Watermark = "text v souboru (volitelné)" };
     private readonly CheckBox _hidden = new() { Content = "Včetně skrytých" };
+    private readonly CheckBox _live = new() { Content = "Hledat už při psaní (z rychlého indexu)", IsChecked = true };
+    private readonly DispatcherTimer _liveTimer = new() { Interval = TimeSpan.FromMilliseconds(450) };
+    private bool _liveRun;
     private readonly CheckBox _inArchives = new() { Content = "Hledat i uvnitř archivů (zip, tar, 7z, rar…)" };
     private readonly CheckBox _useIndex = new() { Content = "Nejdřív zkusit rychlý index Windows Search (jen indexované složky)", IsChecked = true };
     private readonly ListBox _results = new() { Height = 260 };
@@ -33,8 +36,20 @@ public sealed class SearchWindow : Window
         _conn = pane.Connection;
         _root.Text = pane.IsRemote ? pane.RemotePath : pane.PersistentPath;
         _rootBase = _root.Text!;
-        if (pane.IsRemote) { _useIndex.IsVisible = false; _inArchives.IsVisible = false; _text.Watermark = "text v souboru (čte se jen první MB, nejvýše 300 souborů)"; }
-        if (!OperatingSystem.IsWindows()) _useIndex.IsVisible = false;
+        if (pane.IsRemote) { _useIndex.IsVisible = false; _inArchives.Content = "Hledat i uvnitř archivů (stáhnou se archivy do 50 MB, nejvýše 15)"; _text.Watermark = "text v souboru (čte se jen první MB, nejvýše 300 souborů)"; }
+        if (!OperatingSystem.IsWindows() || pane.IsRemote) { _useIndex.IsVisible = false; _live.IsVisible = false; }
+        _liveTimer.Tick += (_, _) =>
+        {
+            _liveTimer.Stop();
+            if (_live.IsChecked != true || !_useIndex.IsVisible || _useIndex.IsChecked != true || _inArchives.IsChecked == true) return;
+            if (((_mask.Text ?? "").Trim().Length < 2 && (_text.Text ?? "").Trim().Length < 2) || !Directory.Exists(_root.Text ?? "")) return;
+            if (_cts != null) { _cts.Cancel(); _cts = null; }
+            _liveRun = true;
+            Start();
+        };
+        void Typed() { _liveTimer.Stop(); _liveTimer.Start(); }
+        _mask.TextChanged += (_, _) => Typed();
+        _text.TextChanged += (_, _) => Typed();
         Title = "Hledat soubory";
         Width = 640; SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -48,7 +63,7 @@ public sealed class SearchWindow : Window
         Content = new Border
         {
             Padding = new Thickness(16),
-            Child = UiKit.VStack(8, UiKit.Label("Hledat soubory", 15, true), form, _hidden, _inArchives, _useIndex,
+            Child = UiKit.VStack(8, UiKit.Label("Hledat soubory", 15, true), form, _hidden, _inArchives, _useIndex, _live,
                 UiKit.HStack(8, _go, _status), UiKit.Frame(_results),
                 UiKit.Label("Dvojklikem se v aktivním panelu otevře složka souboru.", dim: true),
                 UiKit.ButtonRow(UiKit.Button("Zavřít", Close))),
@@ -72,6 +87,7 @@ public sealed class SearchWindow : Window
 
     private async void Start()
     {
+        var live = _liveRun; _liveRun = false;
         _found.Clear(); _results.ItemsSource = null;
         var cts = _cts = new CancellationTokenSource();
         _go.Content = "Zastavit";
@@ -84,7 +100,7 @@ public sealed class SearchWindow : Window
         {
             if (_conn != null)
             {
-                await SearchRemoteAsync(_conn, root, mask, text, hidden, cts.Token);
+                await SearchRemoteAsync(_conn, root, mask, text, hidden, inArchives, cts.Token);
             }
             else
             {
@@ -102,6 +118,7 @@ public sealed class SearchWindow : Window
                             _status.Text = $"Nalezeno {hits.Count} (index)";
                             return;
                         }
+                        if (live) { _results.ItemsSource = Array.Empty<string>(); _status.Text = "Index nic nenašel (Enter nebo Hledat prohledá složky)."; return; }
                         _status.Text = "Index nic nenašel, hledám procházením složek…";
                     }
                     catch (OperationCanceledException) { throw; }
@@ -155,13 +172,13 @@ public sealed class SearchWindow : Window
         catch { return false; }
     }
 
-    private async Task SearchRemoteAsync(RemoteSession conn, string root, string mask, string text, bool hidden, CancellationToken ct)
+    private async Task SearchRemoteAsync(RemoteSession conn, string root, string mask, string text, bool hidden, bool inArchives, CancellationToken ct)
     {
         var found = await RemoteSearch.SearchAsync(conn, root, mask, text, hidden, (list, p) =>
         {
             _results.ItemsSource = list.ToArray();
             _status.Text = $"Nalezeno {p.Found}, prohledaných složek {p.Folders}" + (text.Length > 0 ? $", přečteno souborů {p.FilesRead}" + (p.ReadLimitReached ? " (další se kvůli limitu nečetly)" : "") : "");
-        }, ct);
+        }, ct, inArchives);
         _results.ItemsSource = found.ToArray();
     }
 }

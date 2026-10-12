@@ -533,6 +533,35 @@ public sealed partial class AppCore
         if (idx >= 0) pane.MoveTo(idx);
     }
 
+    /// <summary>Spustí program se zvýšenými právy (UAC); zrušení výzvy se bere jako volba uživatele, ne chyba.</summary>
+    public async Task RunAsAdminAsync(FileEntry? item)
+    {
+        if (item == null || item.IsParent || item.IsDirectory || !OperatingSystem.IsWindows()) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(item.FullPath)
+            {
+                UseShellExecute = true, Verb = "runas", WorkingDirectory = System.IO.Path.GetDirectoryName(item.FullPath) ?? "",
+            })?.Dispose();
+        }
+        catch (System.ComponentModel.Win32Exception e) when (e.NativeErrorCode == 1223) { /* uživatel zrušil výzvu */ }
+        catch (Exception e) { await Ui.ShowErrorAsync("Nepodařilo se spustit program:\n\n" + e.Message); }
+    }
+
+    /// <summary>Otevře systémové okno „Otevřít v programu“ pro vybraný soubor.</summary>
+    public async Task OpenWithAsync(FileEntry? item)
+    {
+        if (item == null || item.IsParent || !OperatingSystem.IsWindows()) return;
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("rundll32.exe") { UseShellExecute = false };
+            psi.ArgumentList.Add("shell32.dll,OpenAs_RunDLL");
+            psi.ArgumentList.Add(item.FullPath);
+            System.Diagnostics.Process.Start(psi)?.Dispose();
+        }
+        catch (Exception e) { await Ui.ShowErrorAsync("Nepodařilo se otevřít výběr programu:\n\n" + e.Message); }
+    }
+
     public Task TrashPathsAsync(IEnumerable<string> paths) => Task.Run(() =>
     {
         foreach (var p in paths) FileOps.DeleteToRecycleBin(p);

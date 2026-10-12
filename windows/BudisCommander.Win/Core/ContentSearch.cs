@@ -52,17 +52,18 @@ public static class ArchiveSearch
 /// <summary>Hledání na serveru nebo v cloudu: podle názvu a volitelně podle textu (čte se jen začátek souborů).</summary>
 public static class RemoteSearch
 {
-    public const int MaxFoldersListed = 3000, MaxResults = 5000, MaxFilesRead = 300;
+    public const int MaxFoldersListed = 3000, MaxResults = 5000, MaxFilesRead = 300, MaxArchivesDownloaded = 15;
+    public const long MaxArchiveBytes = 50L * 1024 * 1024;
     public const int HeadBytes = 1024 * 1024;
 
-    public sealed record Progress(int Found, int Folders, int FilesRead, bool ReadLimitReached);
+    public sealed record Progress(int Found, int Folders, int FilesRead, bool ReadLimitReached, int Archives = 0);
 
     public static async Task<List<string>> SearchAsync(RemoteSession conn, string root, string mask, string text, bool hidden,
-                                                       Action<IReadOnlyList<string>, Progress>? report, CancellationToken ct)
+                                                       Action<IReadOnlyList<string>, Progress>? report, CancellationToken ct, bool inArchives = false)
     {
         var queue = new Queue<string>(); queue.Enqueue(root);
         var found = new List<string>();
-        int listed = 0, read = 0; var limit = false;
+        int listed = 0, read = 0, archives = 0; var limit = false;
         while (queue.Count > 0 && listed < MaxFoldersListed && found.Count < MaxResults)
         {
             ct.ThrowIfCancellationRequested();
@@ -73,6 +74,11 @@ public static class RemoteSearch
             {
                 if (!hidden && i.Name.StartsWith('.')) continue;
                 if (i.IsDirectory) { queue.Enqueue(i.FullPath); if (text.Length == 0 && Formatting.MatchesMask(i.Name, mask)) found.Add(i.FullPath); continue; }
+                if (inArchives && ArchiveService.IsArchive(i.Name) && i.Size <= MaxArchiveBytes && archives < MaxArchivesDownloaded)
+                {
+                    archives++;
+                    found.AddRange(await SearchRemoteArchiveAsync(conn, i, mask, text, ct));
+                }
                 if (!Formatting.MatchesMask(i.Name, mask)) continue;
                 if (text.Length == 0) { found.Add(i.FullPath); continue; }
                 if (i.Size > 50L * 1024 * 1024) continue;
@@ -86,9 +92,25 @@ public static class RemoteSearch
                 catch (OperationCanceledException) { throw; }
                 catch { }
             }
-            report?.Invoke(found, new Progress(found.Count, listed, read, limit));
+            report?.Invoke(found, new Progress(found.Count, listed, read, limit, archives));
         }
-        report?.Invoke(found, new Progress(found.Count, listed, read, limit));
+        report?.Invoke(found, new Progress(found.Count, listed, read, limit, archives));
         return found;
+    }
+
+    /// <summary>Stáhne archiv ze serveru do dočasné složky a hledá v něm; výsledky mají tvar „cesta na serveru ▸ položka“.</summary>
+    private static async Task<List<string>> SearchRemoteArchiveAsync(RemoteSession conn, FileEntry archive, string mask, string text, CancellationToken ct)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "budis-rsearch-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(dir);
+            var local = Path.Combine(dir, archive.Name);
+            await conn.DownloadAsync(archive.FullPath, false, archive.Size, local, null, ct);
+            return await Task.Run(() => ArchiveSearch.Search(local, mask, text, 200, ct).Select(e => archive.FullPath + ArchiveSearch.Separator + e).ToList(), ct);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return new List<string>(); }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 }

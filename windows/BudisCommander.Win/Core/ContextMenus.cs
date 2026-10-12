@@ -8,12 +8,13 @@ public static class ContextMenus
 {
     public const string Separator = "-";
 
-    public static IReadOnlyList<string> For(ContextKind kind, bool remote)
+    public static IReadOnlyList<string> For(ContextKind kind, bool remote, bool executable = false)
     {
         var list = new List<string>();
         void Add(params string[] ids) => list.AddRange(ids);
         void Sep() { if (list.Count > 0 && list[^1] != Separator) list.Add(Separator); }
         void Local(params string[] ids) { if (!remote) list.AddRange(ids); }
+        void Windows(params string[] ids) { if (!remote && OperatingSystem.IsWindows()) list.AddRange(ids); }
 
         switch (kind)
         {
@@ -38,14 +39,14 @@ public static class ContextMenus
                 Local("pack", "dirSizes", "attributes");
                 break;
             case ContextKind.Archive:
-                Add("open"); Sep();
+                Add("open"); Windows("openWith"); Sep();
                 Add("copy", "move"); Sep();
                 Local("copyFiles", "cutFiles"); Add("copyPath", "copyName"); Sep();
                 Add("rename", "delete"); Sep();
                 Local("unpack", "pack", "checksum", "attributes");
                 break;
             default:    // soubor
-                Add("open", "view", "edit"); Sep();
+                Add("open", "view", "edit"); Windows("openWith"); if (executable) Windows("runAsAdmin"); Sep();
                 Add("copy", "move"); Sep();
                 Local("copyFiles", "cutFiles"); Add("copyPath", "copyName"); Sep();
                 Add("rename", "delete"); Sep();
@@ -55,6 +56,11 @@ public static class ContextMenus
         while (list.Count > 0 && list[^1] == Separator) list.RemoveAt(list.Count - 1);
         return list;
     }
+
+    private static readonly HashSet<string> Runnable = new(StringComparer.OrdinalIgnoreCase) { ".exe", ".bat", ".cmd", ".msi", ".ps1", ".com", ".vbs", ".msc" };
+
+    /// <summary>Jestli jde soubor spustit (a tedy „jako správce“).</summary>
+    public static bool IsRunnable(string name) => Runnable.Contains(Path.GetExtension(name));
 
     /// <summary>Určí druh obsahu pro označené položky a položku pod ukazatelem.</summary>
     public static ContextKind KindOf(int markedCount, bool underIsMarked, FileEntry? under)

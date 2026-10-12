@@ -13,6 +13,8 @@ public static class Actions
     public static readonly IReadOnlyList<ActionDef> All = new List<ActionDef>
     {
         new("open", "Otevřít", null, ""),
+        new("openWith", "Otevřít v programu…", null, ""),
+        new("runAsAdmin", "Spustit jako správce", null, ""),
         new("view", "Zobrazit", "F3", File),
         new("edit", "Editovat", "F4", File),
         new("copy", "Kopírovat do druhého panelu", "F5", File),

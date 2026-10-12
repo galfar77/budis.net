@@ -55,6 +55,8 @@ public sealed partial class MainWindow
         S("unmarkAll", () => Pane.UnmarkAll());
         S("invertMarks", () => Pane.InvertMarks());
         H("open", () => ActivePanel.Enter());
+        H("openWith", () => _core.OpenWithAsync(Pane.Current));
+        H("runAsAdmin", () => _core.RunAsAdminAsync(Pane.Current));
         H("markMask", () => MarkByMaskAsync(true));
         H("markAdvanced", async () => { var w = new MarkAdvancedWindow(Pane); await w.ShowDialog(this); });
         S("markSameExt", () => Pane.MarkSameExtension());

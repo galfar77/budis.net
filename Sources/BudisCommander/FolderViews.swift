@@ -33,6 +33,8 @@ enum TypeFilter: String, CaseIterable, Identifiable {
 struct FolderView: Codable, Equatable {
     var sort: String
     var ascending: Bool
+    /// Vlastní pořadí a šířky sloupců pro tuto složku (nil = výchozí rozložení).
+    var columns: ColumnLayout? = nil
 }
 
 /// Pamatuje řazení zvlášť pro každou složku (jen ty, kde se liší od výchozího: název vzestupně).
@@ -51,11 +53,11 @@ final class FolderViewStore {
 
     func view(for path: String) -> FolderView? { views[path] }
 
-    func save(sort: SortKey, ascending: Bool, for path: String) {
-        if sort == .name && ascending {
+    func save(sort: SortKey, ascending: Bool, columns: ColumnLayout? = nil, for path: String) {
+        if sort == .name && ascending && columns == nil {
             views.removeValue(forKey: path)
         } else {
-            views[path] = FolderView(sort: sort.rawValue, ascending: ascending)
+            views[path] = FolderView(sort: sort.rawValue, ascending: ascending, columns: columns)
         }
         if let data = try? JSONEncoder().encode(views) {
             UserDefaults.standard.set(data, forKey: Self.key)

@@ -9,7 +9,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
     case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks, phone, terminal
-    case markAdvanced, markSameExt, invertMarks, rollbackVersion
+    case markAdvanced, markSameExt, invertMarks, rollbackVersion, history, trashRestore
 
     var id: String { rawValue }
 
@@ -71,6 +71,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .markSameExt: return L("Označit stejnou příponu")
         case .invertMarks: return L("Převrátit označení")
         case .rollbackVersion: return L("Vrátit předchozí verzi…")
+        case .history: return L("Historie operací…")
+        case .trashRestore: return L("Obnovit z Koše…")
         }
     }
 
@@ -107,7 +109,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
         case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks, .phone: return ""
         case .terminal: return "'"
-        case .markAdvanced, .markSameExt, .invertMarks, .rollbackVersion: return ""
+        case .markAdvanced, .markSameExt, .invertMarks, .rollbackVersion, .history, .trashRestore: return ""
         }
     }
 }
@@ -130,6 +132,16 @@ final class Settings: ObservableObject {
     }
     @Published var showExt: Bool {
         didSet { UserDefaults.standard.set(showExt, forKey: "showExt") }
+    }
+    /// Výchozí rozložení sloupců pro složky bez vlastního (nil = základní).
+    @Published var defaultColumns: ColumnLayout? {
+        didSet {
+            if let data = defaultColumns.flatMap({ try? JSONEncoder().encode($0) }) {
+                UserDefaults.standard.set(data, forKey: "defaultColumns")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "defaultColumns")
+            }
+        }
     }
     @Published var showThumbs: Bool {
         didSet { UserDefaults.standard.set(showThumbs, forKey: "showThumbs") }
@@ -207,6 +219,7 @@ final class Settings: ObservableObject {
         shortcuts = (d.dictionary(forKey: "shortcuts") as? [String: String]) ?? [:]
         showExt = d.bool(forKey: "showExt")
         showThumbs = d.bool(forKey: "showThumbs")
+        defaultColumns = d.data(forKey: "defaultColumns").flatMap { try? JSONDecoder().decode(ColumnLayout.self, from: $0) }
         showButtonBar = d.object(forKey: "showButtonBar") as? Bool ?? true
         autoDirSizes = d.bool(forKey: "autoDirSizes")
         showPerms = d.bool(forKey: "showPerms")

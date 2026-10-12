@@ -42,6 +42,9 @@ final class PaneState: ObservableObject {
     /// Rychlý filtr podle druhu souboru (nil = všechny soubory).
     @Published private(set) var typeFilter: TypeFilter?
     private var viewApplied = false
+    /// Vlastní rozložení sloupců této složky (nil = výchozí).
+    @Published private(set) var customColumns: ColumnLayout?
+    var columns: ColumnLayout { customColumns ?? Settings.shared.defaultColumns ?? ColumnLayout() }
     /// Všechny položky adresáře bez filtru.
     private(set) var allItems: [FileItem] = []
 
@@ -190,6 +193,7 @@ final class PaneState: ObservableObject {
             let view = FolderViewStore.shared.view(for: dir.path)
             sortKey = view.flatMap { SortKey(rawValue: $0.sort) } ?? .name
             ascending = view?.ascending ?? true
+            customColumns = view?.columns
             viewApplied = true
         }
         var list = branch ? sorted(branchItems(dir)) : sorted(urls.compactMap(FileItem.load))
@@ -329,10 +333,35 @@ final class PaneState: ObservableObject {
 
     func setSort(_ key: SortKey) {
         if sortKey == key { ascending.toggle() } else { sortKey = key; ascending = true }
-        if connection == nil && !ephemeral && !Self.isTemp(url) {
-            FolderViewStore.shared.save(sort: sortKey, ascending: ascending, for: url.path)
-        }
+        persistView()
         reload()
+    }
+
+    private func persistView() {
+        if connection == nil && !ephemeral && !Self.isTemp(url) {
+            FolderViewStore.shared.save(sort: sortKey, ascending: ascending, columns: customColumns, for: url.path)
+        }
+    }
+
+    // MARK: Rozložení sloupců
+
+    /// Uloží rozložení sloupců jen pro tuto složku.
+    func setColumns(_ layout: ColumnLayout) {
+        customColumns = layout.isDefault && Settings.shared.defaultColumns == nil ? nil : layout
+        persistView()
+    }
+
+    /// Vrátí této složce výchozí rozložení sloupců.
+    func resetColumns() {
+        customColumns = nil
+        persistView()
+    }
+
+    /// Nastaví rozložení jako výchozí pro všechny složky bez vlastního.
+    func setDefaultColumns(_ layout: ColumnLayout) {
+        Settings.shared.defaultColumns = layout.isDefault ? nil : layout
+        customColumns = nil
+        persistView()
     }
 
     func toggleHidden() {

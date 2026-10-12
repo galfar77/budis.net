@@ -57,7 +57,13 @@ public class ContentSearchTests
             var data = File.ReadAllBytes(L(path));
             return Task.FromResult(data.Length > maxBytes ? data[..maxBytes] : data);
         }
-        protected override Task DownloadFileAsync(string remote, string local, long size, Action<double>? progress, CancellationToken ct) => Task.CompletedTask;
+        public int Downloads;
+        protected override Task DownloadFileAsync(string remote, string local, long size, Action<double>? progress, CancellationToken ct)
+        {
+            Downloads++;
+            File.Copy(L(remote), local, true);
+            return Task.CompletedTask;
+        }
         protected override Task UploadFileAsync(string local, string remote, Action<double>? progress, CancellationToken ct) => Task.CompletedTask;
         protected override Task DeleteFileAsync(string path, CancellationToken ct) => Task.CompletedTask;
         protected override Task DeleteEmptyDirectoryAsync(string path, CancellationToken ct) => Task.CompletedTask;
@@ -84,6 +90,26 @@ public class ContentSearchTests
 
         var withHidden = await RemoteSearch.SearchAsync(remote, "/", "*.txt", "klíčové", true, null, CancellationToken.None);
         Assert.Contains("/sub/.skryty.txt", withHidden);
+    }
+
+    [Fact]
+    public async Task RemoteSearchLooksInsideArchivesWhenAsked()
+    {
+        using var t = new TempDir();
+        t.File("src/readme.txt", "tajné slovo pomeranč"); t.File("src/other.txt", "nic");
+        t.Dir("srv");
+        ArchiveService.Create(t.Combine("srv/balik.zip"), t.Combine("src"), new[] { t.Combine("src/readme.txt"), t.Combine("src/other.txt") }, null, CancellationToken.None);
+        var remote = new LocalBackedRemote(t.Combine("srv"));
+
+        var without = await RemoteSearch.SearchAsync(remote, "/", "*.txt", "", false, null, CancellationToken.None);
+        Assert.Empty(without); Assert.Equal(0, remote.Downloads);
+
+        var byName = await RemoteSearch.SearchAsync(remote, "/", "*.txt", "", false, null, CancellationToken.None, inArchives: true);
+        Assert.Equal(new[] { "/balik.zip" + ArchiveSearch.Separator + "other.txt", "/balik.zip" + ArchiveSearch.Separator + "readme.txt" }, byName.OrderBy(x => x));
+        Assert.Equal(1, remote.Downloads);
+
+        var byText = await RemoteSearch.SearchAsync(remote, "/", "*", "POMERANČ", false, null, CancellationToken.None, inArchives: true);
+        Assert.Equal(new[] { "/balik.zip" + ArchiveSearch.Separator + "readme.txt" }, byText);
     }
 
     [Fact]

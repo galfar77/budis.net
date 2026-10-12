@@ -74,7 +74,7 @@ public sealed partial class AppCore : IDisposable
         Settings = settings;
         Ui = ui;
         _settingsPath = settingsPath;
-        History = new OperationLog(settingsPath == null ? null : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(settingsPath) ?? "", "history.json"));
+        History = new OperationLog(settingsPath == null ? null : System.IO.Path.ChangeExtension(settingsPath, ".history.json"));
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var downloads = Path.Combine(home, "Downloads");
         var s = settings.Session;
@@ -453,7 +453,7 @@ public sealed partial class AppCore : IDisposable
     // --- přetahování a schránka --------------------------------------------------
 
     /// <summary>Soubory puštěné na panel nebo složku (z druhého panelu nebo z Průzkumníka).</summary>
-    public async Task DropFilesAsync(IReadOnlyList<string> paths, PaneState dst, string? folder)
+    public async Task DropFilesAsync(IReadOnlyList<string> paths, PaneState dst, string? folder, bool? move = null)
     {
         if (paths.Count == 0) return;
         var ds = DragSource;
@@ -464,12 +464,12 @@ public sealed partial class AppCore : IDisposable
             var items = dragged.Any(d => d.IsMarked) ? ds.Targets() : dragged;
             if (folder == null && ReferenceEquals(ds, dst)) return;
             if (folder != null && items.Any(i => string.Equals(i.FullPath, folder, StringComparison.OrdinalIgnoreCase))) return;
-            await TransferItemsAsync(items, ds, dst, folder, null);
+            await TransferItemsAsync(items, ds, dst, folder, move);
             return;
         }
         var entries = paths.Select(EntryFromPath).Where(e => e != null).Cast<FileEntry>().ToList();
         if (entries.Count == 0) return;
-        await TransferItemsAsync(entries, null, dst, folder, null);
+        await TransferItemsAsync(entries, null, dst, folder, move);
     }
 
     public async Task PasteAsync(IReadOnlyList<string> paths, bool cut)

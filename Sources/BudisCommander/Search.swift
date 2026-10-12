@@ -69,6 +69,8 @@ final class FileSearch: ObservableObject {
     @Published var filesRead = 0
     @Published var readLimitReached = false
     static let maxFilesRead = 300
+    static let maxRemoteArchives = 15
+    static let maxRemoteArchiveBytes: Int64 = 50 * 1024 * 1024
     @Published var running = false
     @Published var scanned = 0
     private var flag = CancelFlag()
@@ -145,6 +147,26 @@ final class FileSearch: ObservableObject {
         return urls
     }
 
+    /// Hledání při psaní: jen z indexu Spotlight, bez procházení složek (rychlé, výsledky se průběžně přepisují).
+    func startIndexOnly(root: URL, mask: String, text: String) {
+        stop()
+        results = []
+        archiveHits = []
+        scanned = 0
+        running = true
+        let flag = CancelFlag()
+        self.flag = flag
+        let query = FileSearch.spotlightQuery(mask: mask, text: text)
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let hits = FileSearch.runSpotlight(query, root: root.path, flag: flag)
+            if flag.isSet { return }
+            DispatchQueue.main.async {
+                self?.results = hits
+                self?.running = false
+            }
+        }
+    }
+
     /// Nejdřív zkusí rychlý index Spotlight; když nic nenajde (složka není indexovaná), hledá procházením složek.
     func startWithIndex(root: URL, mask: String, text: String, hidden: Bool) {
         stop()
@@ -170,7 +192,7 @@ final class FileSearch: ObservableObject {
     }
 
     /// Hledání podle názvu na serveru: prochází složky do šířky (nejvýš 3000 výpisů).
-    func startRemote(conn: RemoteConnection, root: String, mask: String, text: String = "", hidden: Bool) {
+    func startRemote(conn: RemoteConnection, root: String, mask: String, text: String = "", hidden: Bool, inArchives: Bool = false) {
         stop()
         results = []
         archiveHits = []
@@ -192,16 +214,26 @@ final class FileSearch: ObservableObject {
             var found = 0
             var filesReadCount = 0
             var limitReached = false
+            var archivesDownloaded = 0
             while !queue.isEmpty && !flag.isSet && listed < 3000 && found < FileSearch.limit {
                 let dir = queue.removeFirst()
                 listed += 1
                 guard let items = try? await conn.list(dir) else { continue }
                 var batch: [URL] = []
+                var archiveBatch: [ArchiveHit] = []
                 for item in items {
                     if flag.isSet { break }
                     if !hidden && item.name.hasPrefix(".") { continue }
                     guard let path = item.remotePath else { continue }
                     if item.isDirectory { queue.append(path) }
+                    if inArchives, !item.isDirectory, ArchiveInfo.isArchive(item.name), item.size <= FileSearch.maxRemoteArchiveBytes,
+                       archivesDownloaded < FileSearch.maxRemoteArchives {
+                        archivesDownloaded += 1
+                        for entry in await FileSearch.remoteArchiveEntries(conn, item, mask: finalPattern, text: needle, flag: flag) {
+                            archiveBatch.append(ArchiveHit(archive: URL(fileURLWithPath: path), entry: entry))
+                            found += 1
+                        }
+                    }
                     guard fnmatch(finalPattern, item.name, FNM_CASEFOLD) == 0 else { continue }
                     if needle.isEmpty {
                         batch.append(URL(fileURLWithPath: path))
@@ -218,6 +250,7 @@ final class FileSearch: ObservableObject {
                 let count = listed, read = filesReadCount, limit = limitReached
                 DispatchQueue.main.async {
                     self?.results.append(contentsOf: batch)
+                    self?.archiveHits.append(contentsOf: archiveBatch)
                     self?.scanned = count
                     self?.filesRead = read
                     self?.readLimitReached = limit
@@ -230,6 +263,17 @@ final class FileSearch: ObservableObject {
     func stop() {
         flag.set()
         running = false
+    }
+
+    /// Stáhne archiv ze serveru do dočasné složky a vrátí položky, které odpovídají masce (a textu).
+    static func remoteArchiveEntries(_ conn: RemoteConnection, _ item: FileItem, mask: String, text: String, flag: CancelFlag) async -> [String] {
+        guard let path = item.remotePath else { return [] }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("budis-rsearch-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        do { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) } catch { return [] }
+        let local = dir.appendingPathComponent(item.name)
+        guard (try? await conn.download(path: path, isDirectory: false, size: item.size, to: local)) != nil else { return [] }
+        return await Task.detached { ArchiveSearch.search(archive: local, mask: mask, text: text, limit: 200, flag: flag) }.value
     }
 
     /// Stáhne začátek vzdáleného souboru (nejvýš 1 MB) a hledá v něm text.
@@ -295,6 +339,8 @@ struct SearchSheet: View {
     @State private var hidden = false
     @State private var useIndex = true
     @State private var inArchives = false
+    @State private var live = true
+    @State private var liveTask: Task<Void, Never>?
     @State private var conn: RemoteConnection?
 
     var body: some View {
@@ -310,10 +356,13 @@ struct SearchSheet: View {
             }
             .textFieldStyle(.roundedBorder)
             Toggle(L("Včetně skrytých souborů"), isOn: $hidden).font(.system(size: 12))
+            Toggle(conn == nil ? L("Hledat i uvnitř archivů (zip, tar, 7z, rar…)") : L("Hledat i uvnitř archivů (stáhnou se archivy do 50 MB, nejvýše 15)"),
+                   isOn: $inArchives).font(.system(size: 12))
             if conn == nil {
-                Toggle(L("Hledat i uvnitř archivů (zip, tar, 7z, rar…)"), isOn: $inArchives).font(.system(size: 12))
                 Toggle(L("Nejdřív zkusit rychlý index Spotlight (jen indexované složky)"), isOn: $useIndex)
                     .font(.system(size: 12)).disabled(inArchives)
+                Toggle(L("Hledat už při psaní (z rychlého indexu)"), isOn: $live)
+                    .font(.system(size: 12)).disabled(inArchives || !useIndex)
             }
 
             HStack {
@@ -365,12 +414,14 @@ struct SearchSheet: View {
             conn = model.active.connection
             root = conn != nil ? model.active.remotePath : model.active.url.path
         }
-        .onDisappear { search.stop() }
+        .onDisappear { search.stop(); liveTask?.cancel() }
+        .onChange(of: mask) { _, _ in scheduleLive() }
+        .onChange(of: text) { _, _ in scheduleLive() }
     }
 
     private func run() {
         if let conn {
-            search.startRemote(conn: conn, root: root, mask: mask, text: text, hidden: hidden)
+            search.startRemote(conn: conn, root: root, mask: mask, text: text, hidden: hidden, inArchives: inArchives)
             return
         }
         var isDir: ObjCBool = false
@@ -382,6 +433,20 @@ struct SearchSheet: View {
             search.startWithIndex(root: URL(fileURLWithPath: root), mask: mask, text: text, hidden: hidden)
         } else {
             search.start(root: URL(fileURLWithPath: root), mask: mask, text: text, hidden: hidden, inArchives: inArchives)
+        }
+    }
+
+    /// Po chvilce od posledního stisku klávesy hledá v indexu Spotlight, aby výsledky naskakovaly při psaní.
+    private func scheduleLive() {
+        liveTask?.cancel()
+        guard live, useIndex, !inArchives, conn == nil else { return }
+        guard mask.trimmingCharacters(in: .whitespaces).count >= 2 || text.trimmingCharacters(in: .whitespaces).count >= 2 else { return }
+        liveTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled else { return }
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: root, isDirectory: &isDir), isDir.boolValue else { return }
+            search.startIndexOnly(root: URL(fileURLWithPath: root), mask: mask, text: text)
         }
     }
 

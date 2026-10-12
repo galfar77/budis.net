@@ -28,6 +28,8 @@ enum ContextCommand: Hashable {
 enum ContextEntry: Hashable {
     case command(ContextCommand)
     case divider
+    /// Podnabídka „Otevřít v aplikaci“ se seznamem programů pro daný soubor.
+    case openWith
 }
 
 /// Obsah místní nabídky (pravé tlačítko) v seznamu souborů podle toho, co je pod ukazatelem.
@@ -58,13 +60,13 @@ enum ContextMenus {
             add(.rename, .delete); sep()
             local(.pack, .dirSizes, .attributes, .tags)
         case .archive:
-            add(.open); sep()
+            add(.open); if !remote { list.append(.openWith) }; sep()
             add(.copy, .move); sep()
             local(.copyFiles, .cutFiles); act(.copyPath, .copyName); sep()
             add(.rename, .delete); sep()
             local(.unpack, .pack, .checksum, .attributes, .tags)
         case .file:
-            add(.open, .view, .edit); sep()
+            add(.open, .view, .edit); if !remote { list.append(.openWith) }; sep()
             add(.copy, .move); sep()
             local(.copyFiles, .cutFiles); act(.copyPath, .copyName); sep()
             add(.rename, .delete); sep()
@@ -80,5 +82,50 @@ enum ContextMenus {
         guard let under, !under.isParent else { return .empty }
         if under.isDirectory { return .folder }
         return ArchiveInfo.isArchive(under.name) ? .archive : .file
+    }
+}
+
+/// Programy, kterými jde soubor otevřít (jako „Otevřít v aplikaci“ ve Finderu).
+enum OpenWith {
+    static func apps(for url: URL) -> [URL] {
+        var list = NSWorkspace.shared.urlsForApplications(toOpen: url)
+        if let def = NSWorkspace.shared.urlForApplication(toOpen: url), let i = list.firstIndex(of: def) {
+            list.remove(at: i); list.insert(def, at: 0)
+        }
+        return Array(list.prefix(15))
+    }
+
+    static func name(_ app: URL) -> String {
+        FileManager.default.displayName(atPath: app.path).replacingOccurrences(of: ".app", with: "")
+    }
+
+    @MainActor
+    static func open(_ urls: [URL], with app: URL) {
+        NSWorkspace.shared.open(urls, withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// Nechá vybrat libovolný program ze složky Aplikace.
+    @MainActor
+    static func chooseAndOpen(_ urls: [URL]) {
+        let panel = NSOpenPanel()
+        panel.title = L("Vyberte aplikaci")
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowedContentTypes = [.application]
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let app = panel.url { open(urls, with: app) }
+    }
+}
+
+struct OpenWithMenu: View {
+    let urls: [URL]
+
+    var body: some View {
+        Menu(L("Otevřít v aplikaci")) {
+            ForEach(urls.first.map { OpenWith.apps(for: $0) } ?? [], id: \.self) { app in
+                Button(OpenWith.name(app)) { OpenWith.open(urls, with: app) }
+            }
+            Divider()
+            Button(L("Jiná aplikace…")) { OpenWith.chooseAndOpen(urls) }
+        }
     }
 }

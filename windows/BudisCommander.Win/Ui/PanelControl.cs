@@ -146,7 +146,7 @@ public sealed class PanelControl : UserControl
         PointerPressed += (_, _) => Activated?.Invoke();
         _list.AddHandler(PointerPressedEvent, OnListPointerPressed, RoutingStrategies.Tunnel);
         _list.AddHandler(PointerMovedEvent, OnListPointerMoved, RoutingStrategies.Tunnel);
-        _list.AddHandler(PointerReleasedEvent, (_, _) => _dragStart = null, RoutingStrategies.Tunnel);
+        _list.AddHandler(PointerReleasedEvent, OnListPointerReleased, RoutingStrategies.Tunnel);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
@@ -359,7 +359,8 @@ public sealed class PanelControl : UserControl
             Grid.SetColumn(tb, c++);
             g.Children.Add(tb);
         }
-        Add(nameof(FileEntry.Icon));
+        if (s.ShowThumbs && Thumbnails.Available) AddIconWithThumbnail(g, c++);
+        else Add(nameof(FileEntry.Icon));
         foreach (var col in Layout.Visible(s.ShowExtColumn, s.ShowAttrColumn))
         {
             switch (col)
@@ -372,6 +373,30 @@ public sealed class PanelControl : UserControl
             }
         }
         return g;
+    }
+
+    /// <summary>Buňka s ikonou, kterou po načtení miniatury (na pozadí) nahradí obrázek.</summary>
+    private static void AddIconWithThumbnail(Grid row, int column)
+    {
+        var icon = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 1) }.Raw();
+        icon.Bind(TextBlock.TextProperty, new Binding(nameof(FileEntry.Icon)));
+        icon.Bind(TextBlock.ForegroundProperty, new Binding(nameof(FileEntry.Foreground)));
+        var image = new Image { Width = 20, Height = 20, IsVisible = false, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left };
+        var cell = new Grid();
+        cell.Children.Add(icon); cell.Children.Add(image);
+        Grid.SetColumn(cell, column);
+        row.Children.Add(cell);
+        cell.DataContextChanged += async (_, _) =>
+        {
+            image.IsVisible = false; image.Source = null; icon.IsVisible = true;
+            if (cell.DataContext is not FileEntry { IsParent: false, IsDirectory: false, IsRemote: false } e) return;
+            var path = e.FullPath;
+            var bmp = await Thumbnails.GetAsync(path, e.Size, e.Modified);
+            if (bmp != null && cell.DataContext is FileEntry cur && cur.FullPath == path)
+            {
+                image.Source = bmp; image.IsVisible = true; icon.IsVisible = false;
+            }
+        };
     }
 
     private void BuildHeader()
@@ -500,8 +525,10 @@ public sealed class PanelControl : UserControl
         Activated?.Invoke();
         if (e.GetCurrentPoint(_list).Properties.IsRightButtonPressed)
         {
+            // nabídka se ukáže až po pustění tlačítka; když se mezitím myš posune, je z toho tažení pravým tlačítkem
             e.Handled = true;
-            ShowContextMenu((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>()?.DataContext as FileEntry);
+            _rightStart = e.GetPosition(_list);
+            _rightUnder = (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>()?.DataContext as FileEntry;
             return;
         }
         if (e.GetCurrentPoint(_list).Properties.IsLeftButtonPressed && (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>() != null)
@@ -534,7 +561,7 @@ public sealed class PanelControl : UserControl
         var kind = ContextMenus.KindOf(_pane.Marked.Count(), underIsMarked, under);
         var settings = _core.Settings;
         var menu = new ContextMenu();
-        foreach (var id in ContextMenus.For(kind, _pane.IsRemote))
+        foreach (var id in ContextMenus.For(kind, _pane.IsRemote, under != null && ContextMenus.IsRunnable(under.Name)))
         {
             if (id == ContextMenus.Separator) { menu.Items.Add(new Separator()); continue; }
             var def = Actions.All.FirstOrDefault(a => a.Id == id);
@@ -548,14 +575,35 @@ public sealed class PanelControl : UserControl
         menu.Open(_list);
     }
 
+    private Point? _rightStart;
+    private FileEntry? _rightUnder;
+    /// <summary>Právě probíhá tažení pravým tlačítkem (po pustění se ukáže nabídka Kopírovat sem / Přesunout sem).</summary>
+    private static bool s_rightDrag;
+
+    private void OnListPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _dragStart = null;
+        if (e.InitialPressMouseButton == MouseButton.Right && _rightStart != null)
+        {
+            var under = _rightUnder;
+            _rightStart = null; _rightUnder = null;
+            ShowContextMenu(under);
+            e.Handled = true;
+        }
+    }
+
     private async void OnListPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_dragStart == null || !e.GetCurrentPoint(_list).Properties.IsLeftButtonPressed) return;
+        var props = e.GetCurrentPoint(_list).Properties;
+        var right = props.IsRightButtonPressed && _rightStart != null;
+        if (!right && (_dragStart == null || !props.IsLeftButtonPressed)) return;
         var p = e.GetPosition(_list);
-        if (Math.Abs(p.X - _dragStart.Value.X) < 8 && Math.Abs(p.Y - _dragStart.Value.Y) < 8) return;
+        var origin = right ? _rightStart!.Value : _dragStart!.Value;
+        if (Math.Abs(p.X - origin.X) < 8 && Math.Abs(p.Y - origin.Y) < 8) return;
         _dragStart = null;
+        var under = right ? _rightUnder : (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>()?.DataContext as FileEntry;
+        if (right) { _rightStart = null; _rightUnder = null; }
         if (_pane == null || _pane.IsRemote) return;
-        var under = (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>()?.DataContext as FileEntry;
         var entries = under != null && under.IsMarked ? _pane.Targets() : under != null && !under.IsParent ? new List<FileEntry> { under } : new List<FileEntry>();
         if (entries.Count == 0) return;
         var top = TopLevel.GetTopLevel(this);
@@ -572,7 +620,31 @@ public sealed class PanelControl : UserControl
         if (storage.Count == 0) return;
         data.Set(DataFormats.Files, storage);
         _core.DragSource = _pane;
-        await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy | DragDropEffects.Move);
+        s_rightDrag = right;
+        try { await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy | DragDropEffects.Move); }
+        finally { s_rightDrag = false; }
+    }
+
+    /// <summary>Nabídka po pustění souborů tažených pravým tlačítkem: 0 kopírovat, 1 přesunout, null zrušit.</summary>
+    private Task<int?> AskDropActionAsync()
+    {
+        var tcs = new TaskCompletionSource<int?>();
+        var menu = new ContextMenu();
+        MenuItem Item(string header, int result)
+        {
+            var mi = new MenuItem { Header = Tr.T(header) };
+            mi.Click += (_, _) => tcs.TrySetResult(result);
+            return mi;
+        }
+        menu.Items.Add(Item("Kopírovat sem", 0));
+        menu.Items.Add(Item("Přesunout sem", 1));
+        menu.Items.Add(new Separator());
+        var cancel = new MenuItem { Header = Tr.T("Zrušit") };
+        cancel.Click += (_, _) => tcs.TrySetResult(null);
+        menu.Items.Add(cancel);
+        menu.Closed += (_, _) => Dispatcher.UIThread.Post(() => tcs.TrySetResult(null), DispatcherPriority.Background);
+        menu.Open(this);
+        return tcs.Task;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
@@ -592,6 +664,13 @@ public sealed class PanelControl : UserControl
         if (!Pane.IsRemote && !Pane.IsArchive && (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>()?.DataContext is FileEntry { IsDirectory: true } target)
             folder = target.IsParent ? Path.GetDirectoryName(Pane.Path.TrimEnd('\\', '/')) ?? target.FullPath : target.FullPath;
         e.Handled = true;
-        await _core.DropFilesAsync(paths, Pane, folder);
+        bool? move = null;
+        if (s_rightDrag)
+        {
+            var choice = await AskDropActionAsync();
+            if (choice == null) return;
+            move = choice == 1;
+        }
+        await _core.DropFilesAsync(paths, Pane, folder, move);
     }
 }

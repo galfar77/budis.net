@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone, markAdvanced
+    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone, markAdvanced, history, trash
     var id: String { rawValue }
 }
 
@@ -203,6 +203,7 @@ final class AppModel: ObservableObject {
 
         undoCopies = []
         undoMoves = []
+        var logged: [OpItem] = []
         var overwriteAll = false
         var cancelled = false
         var remaining: [FileItem] = []
@@ -237,9 +238,10 @@ final class AppModel: ObservableObject {
             }
             do {
                 try await transferOne(item, src: src, dst: dst, move: move, overwrite: overwrite, report: report)
-                if !overwrite && src.connection == nil && dst.connection == nil {
+                if src.connection == nil && dst.connection == nil {
                     let created = dst.url.appendingPathComponent(item.name)
-                    if move { undoMoves.append((created, item.url)) } else { undoCopies.append(created) }
+                    logged.append(OpItem(from: item.url.path, to: created.path))
+                    if !overwrite { if move { undoMoves.append((created, item.url)) } else { undoCopies.append(created) } }
                 }
             } catch {
                 if Task.isCancelled {
@@ -255,6 +257,12 @@ final class AppModel: ObservableObject {
         }
         src.marked = []
         finish(src, dst)
+        if !logged.isEmpty {
+            let names = logged.map { ($0.to as NSString).lastPathComponent }
+            OperationLog.shared.add(move ? .move : .copy,
+                                    "\(move ? "Přesun" : "Kopírování") \(names.count == 1 ? "„\(names[0])“" : "\(names.count) položek") do \(dst.title)",
+                                    items: logged)
+        }
         if !undoCopies.isEmpty || !undoMoves.isEmpty {
             let copies = undoCopies, moves = undoMoves
             let count = copies.count + moves.count
@@ -367,7 +375,12 @@ final class AppModel: ObservableObject {
                 errors.append("\(item.name): \(error.localizedDescription)")
             }
         }
-        if !trashed.isEmpty { pushTrashUndo(trashed) }
+        if !trashed.isEmpty {
+            pushTrashUndo(trashed)
+            let names = trashed.map { $0.1.lastPathComponent }
+            OperationLog.shared.add(.delete, "Smazání do Koše: \(names.count == 1 ? "„\(names[0])“" : "\(names.count) položek")",
+                                    items: trashed.map { OpItem(from: $0.1.path, to: "", trash: $0.0.path) })
+        }
         pane.marked = []
         progress = nil
         progressText = ""
@@ -390,6 +403,7 @@ final class AppModel: ObservableObject {
             } else {
                 let created = pane.url.appendingPathComponent(name)
                 try FileManager.default.createDirectory(at: created, withIntermediateDirectories: true)
+                OperationLog.shared.add(.newFolder, "Nová složka „\(name)“", items: [OpItem(from: "", to: created.path)])
                 pushUndo(L("vytvoření složky „\(name)“")) { try FileManager.default.trashItem(at: created, resultingItemURL: nil) }
                 pane.reload()
             }
@@ -415,6 +429,7 @@ final class AppModel: ObservableObject {
                 let original = item.url
                 let dest = original.deletingLastPathComponent().appendingPathComponent(name)
                 try FileManager.default.moveItem(at: original, to: dest)
+                OperationLog.shared.add(.rename, "Přejmenování „\(item.name)“ na „\(name)“", items: [OpItem(from: original.path, to: dest.path)])
                 pushUndo(L("přejmenování „\(item.name)“")) { try FileManager.default.moveItem(at: dest, to: original) }
                 pane.reload()
             }
@@ -582,6 +597,8 @@ final class AppModel: ObservableObject {
         case .phone: sheet = .phone
         case .terminal: showTerminal.toggle()
         case .markAdvanced: sheet = .markAdvanced
+        case .history: sheet = .history
+        case .trashRestore: sheet = .trash
         case .markSameExt: active.markSameExtension()
         case .invertMarks: active.invertMarks()
         case .syncTasks: sheet = .syncTasks

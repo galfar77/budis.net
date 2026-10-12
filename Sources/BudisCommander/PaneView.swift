@@ -23,6 +23,8 @@ struct PaneView: View {
     @ObservedObject var settings = Settings.shared
     @State private var paneDropTargeted = false
     @State private var dropRow: String?
+    @State private var draftWidth: [String: Double] = [:]
+    @State private var dragStart: [String: Double] = [:]
 
     @ViewBuilder
     private var rows: some View {
@@ -148,6 +150,8 @@ struct PaneView: View {
             switch entry {
             case .divider:
                 Divider()
+            case .openWith:
+                if let item { OpenWithMenu(urls: [item.url]) }
             case .command(let command):
                 Button(command.title) { runContext(command, item: item, index: index) }
             }
@@ -172,27 +176,85 @@ struct PaneView: View {
         }
     }
 
+    private var showExtra: Bool { settings.showPerms || settings.showOwner || settings.showMedia }
+    private var visibleColumns: [String] { pane.columns.visible(showExt: settings.showExt, showExtra: showExtra) }
+    private func colWidth(_ column: String) -> Double {
+        if column == "extra" {
+            return (settings.showPerms ? 78 : 0) + (settings.showOwner ? 70 : 0) + (settings.showMedia ? 84 : 0)
+                + Double(max(0, [settings.showPerms, settings.showOwner, settings.showMedia].filter { $0 }.count - 1)) * 6
+        }
+        return draftWidth[column] ?? pane.columns.width(column)
+    }
+
     private var columnHeader: some View {
         HStack(spacing: 6) {
             headerButton(L("Název"), .name).frame(maxWidth: .infinity, alignment: .leading)
-            if settings.showExt {
-                headerButton(L("Přípona"), .type).frame(width: 64, alignment: .leading)
+            ForEach(visibleColumns, id: \.self) { column in
+                headerCell(column)
+                    .frame(width: colWidth(column), alignment: column == "ext" ? .leading : .trailing)
+                    .overlay(alignment: .leading) { if column != "extra" { resizeHandle(column) } }
+                    .contextMenu { headerMenu(column) }
             }
-            if settings.showPerms {
-                Text(L("Práva")).font(.system(size: 11, weight: .semibold)).frame(width: 78, alignment: .leading)
-            }
-            if settings.showOwner {
-                Text(L("Vlastník")).font(.system(size: 11, weight: .semibold)).frame(width: 70, alignment: .leading)
-            }
-            if settings.showMedia {
-                Text(L("Rozměry/délka")).font(.system(size: 11, weight: .semibold)).frame(width: 84, alignment: .trailing)
-            }
-            headerButton(L("Velikost"), .size, alignment: .trailing).frame(width: 80, alignment: .trailing)
-            headerButton(L("Změněno"), .date, alignment: .trailing).frame(width: 130, alignment: .trailing)
         }
         .padding(.horizontal, 8)
         .frame(height: 22)
         .background(Color.secondary.opacity(0.1))
+    }
+
+    @ViewBuilder
+    private func headerCell(_ column: String) -> some View {
+        switch column {
+        case "ext": headerButton(L("Přípona"), .type)
+        case "size": headerButton(L("Velikost"), .size, alignment: .trailing)
+        case "date": headerButton(L("Změněno"), .date, alignment: .trailing)
+        default:
+            HStack(spacing: 6) {
+                if settings.showPerms { Text(L("Práva")).frame(width: 78, alignment: .leading) }
+                if settings.showOwner { Text(L("Vlastník")).frame(width: 70, alignment: .leading) }
+                if settings.showMedia { Text(L("Rozměry/délka")).frame(width: 84, alignment: .trailing) }
+            }
+            .font(.system(size: 11, weight: .semibold))
+        }
+    }
+
+    /// Úchyt na levé hraně sloupce: tažením se mění šířka a po pustění se uloží pro tuto složku.
+    private func resizeHandle(_ column: String) -> some View {
+        Rectangle()
+            .fill(Color.clear)
+            .frame(width: 8)
+            .contentShape(Rectangle())
+            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+            .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                .onChanged { value in
+                    let start = dragStart[column] ?? pane.columns.width(column)
+                    dragStart[column] = start
+                    draftWidth[column] = min(max(start - value.translation.width, ColumnLayout.minWidth), ColumnLayout.maxWidth)
+                }
+                .onEnded { _ in
+                    if let w = draftWidth[column] {
+                        var layout = pane.columns
+                        layout.resize(column, to: w)
+                        pane.setColumns(layout)
+                    }
+                    draftWidth[column] = nil
+                    dragStart[column] = nil
+                })
+    }
+
+    @ViewBuilder
+    private func headerMenu(_ column: String) -> some View {
+        let shown = visibleColumns
+        let idx = shown.firstIndex(of: column) ?? 0
+        Button(L("Posunout sloupec doleva")) { moveColumn(column, by: -1) }.disabled(idx == 0)
+        Button(L("Posunout sloupec doprava")) { moveColumn(column, by: 1) }.disabled(idx >= shown.count - 1)
+        Divider()
+        Button(L("Použít toto rozložení pro všechny složky")) { pane.setDefaultColumns(pane.columns) }
+        Button(L("Výchozí rozložení této složky")) { pane.resetColumns() }.disabled(pane.customColumns == nil)
+    }
+
+    private func moveColumn(_ column: String, by delta: Int) {
+        var layout = pane.columns
+        if layout.move(column, by: delta, showExt: settings.showExt, showExtra: showExtra) { pane.setColumns(layout) }
     }
 
     private func headerButton(_ title: String, _ key: SortKey, alignment: Alignment = .leading) -> some View {
@@ -205,6 +267,16 @@ struct PaneView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func rowCell(_ column: String, item: FileItem, ext: String, sizeText: String) -> some View {
+        switch column {
+        case "ext": Text(ext).foregroundStyle(.secondary).lineLimit(1)
+        case "size": Text(sizeText).lineLimit(1)
+        case "date": Text(item.modified.map { $0.formatted(date: .numeric, time: .shortened) } ?? "").lineLimit(1)
+        default: ExtraCells(item: item, generation: pane.generation, settings: settings)
+        }
     }
 
     private func row(_ item: FileItem, index: Int) -> some View {
@@ -239,16 +311,10 @@ struct PaneView: View {
             if settings.showTags && !item.isParent && item.remotePath == nil {
                 TagDots(item: item, generation: pane.generation)
             }
-            if settings.showExt {
-                Text(ext).foregroundStyle(.secondary).frame(width: 64, alignment: .leading)
+            ForEach(visibleColumns, id: \.self) { column in
+                rowCell(column, item: item, ext: ext, sizeText: sizeText)
+                    .frame(width: colWidth(column), alignment: column == "ext" ? .leading : .trailing)
             }
-            if settings.showPerms || settings.showOwner || settings.showMedia {
-                ExtraCells(item: item, generation: pane.generation, settings: settings)
-            }
-            Text(sizeText)
-                .frame(width: 80, alignment: .trailing)
-            Text(item.modified.map { $0.formatted(date: .numeric, time: .shortened) } ?? "")
-                .frame(width: 130, alignment: .trailing)
         }
         .font(.system(size: settings.fontSize))
         .monospacedDigit()

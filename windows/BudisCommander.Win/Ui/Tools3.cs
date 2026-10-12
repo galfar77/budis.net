@@ -134,6 +134,7 @@ public sealed class SettingsWindow : Window
         var attr = new CheckBox { Content = "Sloupec Atributy (R H S A)", IsChecked = s.ShowAttrColumn };
         var auto = new CheckBox { Content = "Automaticky počítat velikosti složek (na pozadí, jen lokální složky)", IsChecked = s.AutoDirSizes };
         var bar = new CheckBox { Content = "Tlačítková lišta uživatelských příkazů", IsChecked = s.ShowButtonBar };
+        var thumbs = new CheckBox { Content = "Miniatury souborů místo ikon (obrázky, videa, PDF, dokumenty)", IsChecked = s.ShowThumbs, IsEnabled = Thumbnails.Available };
 
         var rows = new List<(ActionDef Action, TextBox Box)>();
         var grid = new StackPanel { Spacing = 4 };
@@ -172,7 +173,7 @@ public sealed class SettingsWindow : Window
             s.Glass = glass.IsChecked == true;
             s.ColorTheme = ColorThemes.All[Math.Max(0, colorTheme.SelectedIndex)].Id;
             s.ShowExtColumn = ext.IsChecked == true; s.ShowAttrColumn = attr.IsChecked == true;
-            s.AutoDirSizes = auto.IsChecked == true; s.ShowButtonBar = bar.IsChecked == true;
+            s.AutoDirSizes = auto.IsChecked == true; s.ShowButtonBar = bar.IsChecked == true; s.ShowThumbs = thumbs.IsChecked == true;
             Close();
         }, true);
 
@@ -181,7 +182,7 @@ public sealed class SettingsWindow : Window
         Row(0, "Vzhled", theme); Row(1, "Velikost písma", font); Row(2, "Jazyk (po restartu)", language); Row(3, "Barevné téma", colorTheme);
 
         var dock = new DockPanel { Margin = new Thickness(16) };
-        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, glass, ext, attr, auto, bar, updates, autoInstall,
+        var top = UiKit.VStack(8, UiKit.Label("Nastavení", 15, true), form, glass, ext, attr, auto, bar, thumbs, updates, autoInstall,
             UiKit.Label("Klávesové zkratky (např. Ctrl+Shift+K; prázdné = žádná)", dim: true));
         var bottom = UiKit.VStack(6, error, UiKit.HStack(8, reset, new Border { Width = 30 }, UiKit.Button("Zrušit", Close), save));
         DockPanel.SetDock(top, Dock.Top); DockPanel.SetDock(bottom, Dock.Bottom);

@@ -90,10 +90,21 @@ public class ContextMenuTests
         foreach (var kind in Enum.GetValues<ContextKind>())
         {
             var m = ContextMenus.For(kind, remote: true);
-            foreach (var local in new[] { "pack", "unpack", "checksum", "attributes", "copyFiles", "cutFiles", "pasteFiles", "terminal", "dirSizes", "batchRename" })
+            foreach (var local in new[] { "pack", "unpack", "checksum", "attributes", "copyFiles", "cutFiles", "pasteFiles", "terminal", "dirSizes", "batchRename", "openWith", "runAsAdmin" })
                 Assert.DoesNotContain(local, m);
         }
         Assert.Contains("mkdir", ContextMenus.For(ContextKind.Empty, true));
+    }
+
+    [Fact]
+    public void ExecutableFilesGetRunAsAdminOnlyOnWindows()
+    {
+        Assert.True(ContextMenus.IsRunnable("setup.EXE")); Assert.True(ContextMenus.IsRunnable("a.bat")); Assert.False(ContextMenus.IsRunnable("a.txt"));
+        var withExe = ContextMenus.For(ContextKind.File, false, executable: true);
+        var plain = ContextMenus.For(ContextKind.File, false, executable: false);
+        Assert.Equal(OperatingSystem.IsWindows(), withExe.Contains("runAsAdmin"));
+        Assert.DoesNotContain("runAsAdmin", plain);
+        Assert.Equal(OperatingSystem.IsWindows(), plain.Contains("openWith"));
     }
 
     [Fact]

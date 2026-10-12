@@ -31,6 +31,15 @@ final class ContextMenuTests: XCTestCase {
         XCTAssertTrue(commands(.empty, remote: true).contains(.mkdir))
     }
 
+    func testOpenWithSubmenuOnlyForLocalFilesAndArchives() {
+        XCTAssertTrue(ContextMenus.entries(kind: .file, remote: false).contains(.openWith))
+        XCTAssertTrue(ContextMenus.entries(kind: .archive, remote: false).contains(.openWith))
+        for kind in [ContextKind.empty, .file, .archive, .folder, .multiple] {
+            XCTAssertFalse(ContextMenus.entries(kind: kind, remote: true).contains(.openWith))
+        }
+        XCTAssertFalse(ContextMenus.entries(kind: .folder, remote: false).contains(.openWith))
+    }
+
     func testArchiveOffersUnpackAndEmptyAreaOffersNewFolder() {
         XCTAssertTrue(commands(.archive).contains(.action(.unpack)))
         XCTAssertTrue(commands(.empty).contains(.mkdir))

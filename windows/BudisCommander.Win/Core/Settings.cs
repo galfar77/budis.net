@@ -86,6 +86,8 @@ public sealed class AppSettings
     public bool AutoInstallUpdates { get; set; }
     public DateTime LastUpdateCheck { get; set; }
     public bool ShowButtonBar { get; set; } = true;
+    /// <summary>Místo ikon ukazovat miniatury souborů (jen Windows).</summary>
+    public bool ShowThumbs { get; set; }
     public List<string> Favorites { get; set; } = new();
     public List<string> Recents { get; set; } = new();
     public List<SavedServer> Servers { get; set; } = new();
