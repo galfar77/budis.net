@@ -675,5 +675,60 @@ Automatická instalace aktualizací (volitelně v Nastavení) a návrat na před
 Zavřít ostatní záložky	Close other tabs
 Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).	Right-click menu: functions depend on what is under the pointer (file, folder, archive, several marked items, empty space).
 Automatická instalace aktualizace se nezdařila: {}	Automatic update installation failed: {}
+Historie operací	Operation history
+Historie operací…	Operation history…
+Obnovit z Koše	Restore from Trash
+Obnovit z Koše…	Restore from Trash…
+Všechny operace	All operations
+Jen smazané	Deleted only
+vráceno	reverted
+Zopakovat	Repeat
+Vrátit zpět	Undo
+Vyčistit historii	Clear history
+Zopakovat jde kopírování. Vrátit jde kopírování (kopie jde do Koše), přesun, přejmenování, nová složka a smazání do Koše. Z Koše jdou obnovit jen soubory smazané touto aplikací.	Copies can be repeated. Copies (the copy goes to the Trash), moves, renames, new folders and deletions to the Trash can be undone. Only files deleted by this app can be restored from the Trash.
+Zkopírováno znovu: {}	Copied again: {}
+Vráceno položek: {}	Items reverted: {}
+Posunout sloupec doleva	Move column left
+Posunout sloupec doprava	Move column right
+Použít toto rozložení pro všechny složky	Use this layout for all folders
+Výchozí rozložení této složky	Default layout for this folder
+Hledat i uvnitř archivů (stáhnou se archivy do 50 MB, nejvýše 15)	Also search inside archives (archives up to 50 MB are downloaded, at most 15)
+Hledat už při psaní (z rychlého indexu)	Search as you type (from the fast index)
+Vyberte aplikaci	Choose an application
+Jiná aplikace…	Other application…
+Kopírování {} do {}	Copy of {} to {}
+Přesun {} do {}	Move of {} to {}
+Smazání do Koše: {}	Deleted to Trash: {}
+Nová složka „{}“	New folder “{}”
+Přejmenování „{}“ na „{}“	Rename “{}” to “{}”
+Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje).	Operation history: a list of copies, moves, deletions and renames; copies can be repeated, the rest undone (Tools menu).
+Obnovení z Koše přímo v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací).	Restore from the Trash inside the app (Windows: the whole Recycle Bin, Mac: files deleted by the app).
+Šířku sloupců změníte tažením za záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku.	Drag a column header edge to change its width, right-click a header to reorder; the layout is remembered per folder.
+Pravé tlačítko: Otevřít v programu nebo aplikaci; ve Windows i Spustit jako správce.	Right-click: Open with a program or app; on Windows also Run as administrator.
+Hledání: už při psaní z indexu, uvnitř archivů i na serveru a v cloudu.	Search: as you type from the index, inside archives, also on servers and in the cloud.
+Otevřít v programu…	Open with…
+Spustit jako správce	Run as administrator
+Koš – obnovit smazané…	Recycle Bin – restore deleted…
+Kopírovat sem	Copy here
+Přesunout sem	Move here
+Zopakovat jde kopírování. Vrátit jde kopírování (kopie jde do Koše), přesun, přejmenování, nová složka a smazání do Koše.	Copies can be repeated. Copies (the copy goes to the Recycle Bin), moves, renames, new folders and deletions to the Recycle Bin can be undone.
+Tuto operaci nejde zopakovat (zopakovat jde jen kopírování).	This operation cannot be repeated (only copies can).
+Tuto operaci už někdo vrátil.	This operation was already undone.
+Tuto operaci nejde vrátit (trvalé smazání).	This operation cannot be undone (permanent deletion).
+Koš	Recycle Bin
+Obnovit vybrané	Restore selected
+Obnovit seznam	Refresh list
+Položky se vrátí na původní místo (kdyby tam už něco bylo, přidá se k názvu číslo). Označit víc položek jde s Ctrl nebo Shift.	Items go back to their original place (if something is already there, a number is added to the name). Select several items with Ctrl or Shift.
+Koš je prázdný.	The Recycle Bin is empty.
+Koš nelze číst (jen ve Windows).	The Recycle Bin cannot be read (Windows only).
+Vyberte položky k obnovení.	Select items to restore.
+Obnoveno položek: {}	Items restored: {}
+Trvalé smazání: {}	Permanent deletion: {}
+Miniatury souborů místo ikon (obrázky, videa, PDF, dokumenty)	File thumbnails instead of icons (images, videos, PDFs, documents)
+Index nic nenašel (Enter nebo Hledat prohledá složky).	The index found nothing (Enter or Search will scan the folders).
+Nepodařilo se spustit program:\n\n	Could not start the program:\n\n
+Nepodařilo se otevřít výběr programu:\n\n	Could not open the program chooser:\n\n
+Přetahování pravým tlačítkem: po pustění nabídka Kopírovat sem nebo Přesunout sem (Windows).	Right-button drag: a Copy here / Move here menu appears on drop (Windows).
+Miniatury souborů ve Windows (Nastavení): obrázky, videa, PDF a dokumenty.	File thumbnails on Windows (Settings): images, videos, PDFs and documents.
 """;
 }

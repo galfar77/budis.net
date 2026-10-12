@@ -73,6 +73,12 @@ Nastavení a stav se ukládají do `%APPDATA%\BudisCommander\settings.json`.
 - **Barevná témata:** šest vzhledů v Nastavení.
 - **Rozšířené označování:** menu Označit/Nástroje → *Označit podle podmínek…* (maska, druh, velikost, datum změny), *Označit stejnou příponu*, *Převrátit označení*.
 - **Hledání v archivech a v obsahu na serveru:** v okně hledání volba *Hledat i uvnitř archivů*; na serveru a v cloudu jde hledat i text (čte se první MB nejvýše 300 souborů).
+- **Historie operací** (Nástroje): kopírování, přesuny, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět. **Obnovení z Koše** v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací).
+- **Sloupce:** šířku změníte tažením za hranu záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku.
+- **Hledání** už při psaní z indexu a uvnitř archivů i na serveru a v cloudu (stáhnou se archivy do 50 MB, nejvýše 15).
+- **Miniatury souborů** ve Windows (Nastavení): obrázky, videa, PDF a dokumenty přes miniatury Průzkumníka.
+- **Přetahování pravým tlačítkem** mezi panely: po pustění nabídka Kopírovat sem / Přesunout sem.
+- **Spustit jako správce** a **Otevřít v programu…** v nabídce pravého tlačítka.
 - **Pravé tlačítko myši:** místní nabídka podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo); ve Windows i nabídka záložky.
 - **Aktualizace:** volitelně se nová verze stáhne a nainstaluje sama (Nastavení); předchozí verzi vrátí menu Nápověda → *Vrátit předchozí verzi…*.
 - **Podepsání aplikací** (macOS Developer ID s notarizací, Windows Authenticode): zapne se po zadání certifikátů, návod v [docs/PODEPISOVANI.md](../docs/PODEPISOVANI.md).

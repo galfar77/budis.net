@@ -222,16 +222,22 @@ Heslo	Password
 Heslo archivu (volitelné)	Archive password (optional)
 Heslo klíče	Key password
 Heslo pro přidané soubory	Password for the added files
+Historie operací	Operation history
+Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje).	Operation history: a list of copies, moves, deletions and renames; copies can be repeated, the rest undone (Tools menu).
+Historie operací…	Operation history…
 Hledat	Search
 Hledat duplicity	Find duplicates
+Hledat i uvnitř archivů (stáhnou se archivy do 50 MB, nejvýše 15)	Also search inside archives (archives up to 50 MB are downloaded, at most 15)
 Hledat i uvnitř archivů (zip, tar, 7z, rar…)	Also search inside archives (zip, tar, 7z, rar…)
 Hledat i ve složce druhého panelu	Also search the other panel's folder
 Hledat soubory	Search files
+Hledat už při psaní (z rychlého indexu)	Search as you type (from the fast index)
 Hledám…	Searching…
 Hledání duplicit	Duplicate search
 Hledání duplicit funguje jen v lokálních složkách.	Duplicate search works only in local folders.
 Hledání souborů podle názvu a obsahu, hledání duplicit.	Searching files by name and content, finding duplicates.
 Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu.	Search inside archives and in the contents of files on servers and in the cloud.
+Hledání: už při psaní z indexu, uvnitř archivů i na serveru a v cloudu.	Search: as you type from the index, inside archives, also on servers and in the cloud.
 Hotovo	Done
 Hromadné přejmenování	Batch rename
 Hromadné přejmenování ({} položek)	Batch rename ({} items)
@@ -250,8 +256,10 @@ Jen obrázky	Images only
 Jen rozdíly	Differences only
 Jen ručně	Manual only
 Jen složky	Folders only
+Jen smazané	Deleted only
 Jen soubory	Files only
 Jen video	Video only
+Jiná aplikace…	Other application…
 Každou hodinu	Every hour
 Každých 15 minut	Every 15 minutes
 Každých 30 minut	Every 30 minutes
@@ -275,6 +283,7 @@ Kopírovat název	Copy name
 Kopírovat soubory do schránky	Copy files to clipboard
 Kopírovat vše	Copy all
 Kopírování	Copy
+Kopírování {} do {}	Copy of {} to {}
 Kopírování: {} → {}	Copy: {} → {}
 Kopíruji: {}	Copying: {}
 Les	Forest
@@ -320,6 +329,7 @@ Nic k zobrazení.	Nothing to show.
 Novou verzi stáhnout a nainstalovat automaticky (projeví se po restartu)	Download and install new versions automatically (takes effect after a restart)
 Novou verzi stáhnout a nainstalovat automaticky (při ukončení aplikace)	Download and install new versions automatically (when the app quits)
 Nová složka	New folder
+Nová složka „{}“	New folder “{}”
 Nová synchronizace	New sync
 Nová verze je nainstalovaná, projeví se po restartu aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is installed and takes effect after the app restarts. You can go back to the previous one in the Help menu.
 Nová verze je stažená a nainstaluje se při ukončení aplikace. Předchozí verzi vrátíte v menu Nápověda.	The new version is downloaded and will be installed when the app quits. You can go back to the previous one in the Help menu.
@@ -340,8 +350,11 @@ O aplikaci	About
 O aplikaci…	About…
 Oblíbené	Favorites
 Oblíbené a poslední složky	Favorites and recent folders
+Obnovení z Koše přímo v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací).	Restore from the Trash inside the app (Windows: the whole Recycle Bin, Mac: files deleted by the app).
 Obnovit	Refresh
 Obnovit výchozí zkratky	Restore default shortcuts
+Obnovit z Koše	Restore from Trash
+Obnovit z Koše…	Restore from Trash…
 Obsahuje	Contains
 Oceán	Ocean
 Odebrat z oblíbených	Remove from favorites
@@ -352,7 +365,7 @@ Odznačit podle masky	Unmark by mask
 Operace	Operation
 Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit.	Terminal with rclone and a browser with the service login will open. When done, click Refresh.
 Otevřít	Open
-Otevřít v aplikaci	Open in application
+Otevřít v aplikaci	Open with
 Označeno {} z {}, {}	Marked {} of {}, {}
 Označeno: 	Marked: 
 Označit	Mark
@@ -388,10 +401,14 @@ Porovnávám…	Comparing…
 Poskytovatel (AWS, Minio, Wasabi…)	Provider (AWS, Minio, Wasabi…)
 Postavte kurzor na první díl souboru (název končí na .001).	Place the cursor on the first part of the file (the name ends with .001).
 Postavte kurzor v obou panelech na soubor, který chcete porovnat.	Place the cursor on the file you want to compare in both panels.
+Posunout sloupec doleva	Move column left
+Posunout sloupec doprava	Move column right
 Použít	Apply
+Použít toto rozložení pro všechny složky	Use this layout for all folders
 Počítače v síti (SMB)	Computers on the network (SMB)
 Počítám rozdíly…	Calculating differences…
 Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).	Right-click menu: functions depend on what is under the pointer (file, folder, archive, several marked items, empty space).
+Pravé tlačítko: Otevřít v programu nebo aplikaci; ve Windows i Spustit jako správce.	Right-click: Open with a program or app; on Windows also Run as administrator.
 Proces bude okamžitě ukončen. Neuložená práce se ztratí.	The process will be ended immediately. Unsaved work will be lost.
 Procesu se pošle požadavek na ukončení.	The process is asked to quit.
 Procházím složky…	Browsing folders…
@@ -418,6 +435,7 @@ Předchozí verze není k dispozici. Uloží se při příští aktualizaci.	The
 Přehled funkcí	Feature overview
 Přehled funkcí…	Feature overview…
 Přejmenovat	Rename
+Přejmenování „{}“ na „{}“	Rename “{}” to “{}”
 Přejmenovávám {}	Renaming {}
 Přejít do složky panelu	Go to the panel folder
 Přenos zrušen. Zbylé položky ({}) jde dokončit z menu Nástroje.	The transfer was cancelled. The remaining items ({}) can be finished from the Tools menu.
@@ -425,6 +443,7 @@ Přepsat	Overwrite
 Přepsat vše	Overwrite all
 Přeskočit	Skip
 Přesun	Move
+Přesun {} do {}	Move of {} to {}
 Přesun: {} → {}	Move: {} → {}
 Přesunout	Move
 Přesunout do druhého panelu	Move to the other panel
@@ -508,6 +527,7 @@ Služba	Service
 Smazat	Delete
 Smazat na serveru: {}	Delete on server: {}
 Smazat sadu	Delete the set
+Smazání do Koše: {}	Deleted to Trash: {}
 Soubor je příliš velký pro náhled (nad 100 MB). Zkopírujte ho do lokálního panelu.	The file is too large for a preview (over 100 MB). Copy it to a local panel.
 Soubor nelze přečíst.	The file cannot be read.
 Soubor rozdělen na {} dílů.	The file was split into {} parts.
@@ -600,13 +620,16 @@ Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top,
 Vlastník	Owner
 Vložit soubory ze schránky	Paste files from clipboard
 Vpřed v historii	Forward in history
+Vráceno položek: {}	Items reverted: {}
 Vráceno: {}	Undone: {}
 Vrácení se nepodařilo:\n{}	Undo failed:\n{}
 Vrátit	Go back
 Vrátit poslední operaci	Undo last operation
 Vrátit předchozí verzi?	Go back to the previous version?
 Vrátit předchozí verzi…	Go back to the previous version…
+Vrátit zpět	Undo
 Vrátit: {}	Undo: {}
+Vyberte aplikaci	Choose an application
 Vyberte aspoň jeden soubor.	Select at least one file.
 Vyberte lokální soubor s archivem (zip, tar, tar.gz, tar.bz2, 7z…).	Select a local archive file (zip, tar, tar.gz, tar.bz2, 7z…).
 Vyberte lokální soubor, který chcete rozdělit.	Select the local file you want to split.
@@ -622,14 +645,17 @@ Vyplněné podmínky platí zároveň. Složky nemají velikost, takže při zad
 Vytvořit	Create
 Vytvořit symbolický odkaz	Create symbolic link
 Vytvoří se v {}	It will be created in {}
+Vyčistit historii	Clear history
 Vyčistit hotové	Clear finished
 Vzhled	Appearance
 Výchozí	Default
 Výchozí (modrá)	Default (blue)
+Výchozí rozložení této složky	Default layout for this folder
 Vývojové sestavení (bez označení verze)	Development build (no version mark)
 Včetně obsahu složek	Including folder contents
 Včetně skrytých	Including hidden
 Včetně skrytých souborů	Including hidden files
+Všechny operace	All operations
 Všechny podsložky najednou (Branch view)	All subfolders at once (Branch view)
 Všechny soubory	All files
 WebDAV (Nextcloud, ownCloud…)	WebDAV (Nextcloud, ownCloud…)
@@ -660,6 +686,7 @@ Zdrojový a cílový adresář jsou stejné.	The source and destination director
 Zjišťuji, jestli je nová verze…	Checking for a new version…
 Zkontrolovat aktualizace	Check for updates
 Zkopírováno do schránky.	Copied to clipboard.
+Zkopírováno znovu: {}	Copied again: {}
 Zkopírováno: {} položek. Vložte klávesou ⌘V.	Copied: {} items. Paste with ⌘V.
 Zkratky všech funkcí jsou vidět v menu a jdou změnit v Nastavení.	The shortcuts of all functions are shown in the menus and can be changed in Settings.
 Změny „{}“ se nepodařilo nahrát:\n{}	Changes to "{}" could not be uploaded:\n{}
@@ -668,6 +695,8 @@ Změněno	Modified
 Změněno do	Modified to
 Změněno od	Modified from
 Zobrazit	View
+Zopakovat	Repeat
+Zopakovat jde kopírování. Vrátit jde kopírování (kopie jde do Koše), přesun, přejmenování, nová složka a smazání do Koše. Z Koše jdou obnovit jen soubory smazané touto aplikací.	Copies can be repeated. Copies (the copy goes to the Trash), moves, renames, new folders and deletions to the Trash can be undone. Only files deleted by this app can be restored from the Trash.
 Zpět a vpřed v historii panelu: ⌘[ a ⌘].	Back and forward in the panel history: ⌘[ and ⌘].
 Zpět v historii	Back in history
 Zrcadlení	Mirroring
@@ -729,6 +758,7 @@ text v souboru (čte se jen první MB, nejvýše 300 souborů)	text in file (onl
 ve frontě	queued
 ve frontě: {}	in queue: {}
 volitelné, např. ~/.ssh/id_rsa	optional, e.g. ~/.ssh/id_rsa
+vráceno	reverted
 vytvoření složky „{}“	creating folder "{}"
 zkopírováno {} souborů ({})	copied {} files ({})
 zrušeno	cancelled
@@ -754,6 +784,7 @@ zrušeno	cancelled
 Štítky Finderu ({} položek)	Finder tags ({} items)
 Štítky Finderu jde nastavit jen u lokálních souborů.	Finder tags can only be set for local files.
 Štítky Finderu…	Finder tags…
+Šířku sloupců změníte tažením za záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku.	Drag a column header edge to change its width, right-click a header to reorder; the layout is remembered per folder.
 Žádné duplicity.	No duplicates.
 Žádný telefon nenalezen. Zkontrolujte kabel a ladění přes USB.	No phone found. Check the cable and USB debugging.
 „{}“ již v cíli existuje	"{}" already exists in the destination

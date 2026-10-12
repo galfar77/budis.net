@@ -4,6 +4,11 @@ import Foundation
 enum InfoTexts {
     static let news: [String] = [
         L("# Nové"),
+        L("Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje)."),
+        L("Obnovení z Koše přímo v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací)."),
+        L("Šířku sloupců změníte tažením za záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku."),
+        L("Pravé tlačítko: Otevřít v programu nebo aplikaci; ve Windows i Spustit jako správce."),
+        L("Hledání: už při psaní z indexu, uvnitř archivů i na serveru a v cloudu."),
         L("Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo)."),
         L("Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení."),
         L("Hledání uvnitř archivů a v obsahu souborů na serveru a v cloudu."),

@@ -10,6 +10,13 @@ public static class InfoTexts
             var list = new List<string>
             {
         "# Nové",
+            "Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje).",
+            "Obnovení z Koše přímo v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací).",
+            "Šířku sloupců změníte tažením za záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku.",
+            "Pravé tlačítko: Otevřít v programu nebo aplikaci; ve Windows i Spustit jako správce.",
+            "Hledání: už při psaní z indexu, uvnitř archivů i na serveru a v cloudu.",
+            "Přetahování pravým tlačítkem: po pustění nabídka Kopírovat sem nebo Přesunout sem (Windows).",
+            "Miniatury souborů ve Windows (Nastavení): obrázky, videa, PDF a dokumenty.",
             "Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).",
             "Vestavěný terminál ve Windows je plnohodnotný (ConPTY): fungují i vim, top, ssh a další celoobrazovkové programy.",
             "Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.",

@@ -1,4 +1,6 @@
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 
 /// Co je pod ukazatelem při kliknutí pravým tlačítkem.
 enum ContextKind { case empty, file, archive, folder, multiple }
