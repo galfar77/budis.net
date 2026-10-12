@@ -102,7 +102,7 @@ public class OperationLogTests
         await core.WaitIdleAsync();
         var copy = Assert.Single(core.History.Entries);
         Assert.Equal(OpKind.Copy, copy.Kind);
-        Assert.Equal(t.Combine("r/a.txt"), copy.Items[0].To);
+        Assert.Equal(Path.Combine(t.Combine("r"), "a.txt"), copy.Items[0].To);
 
         core.Active.MoveTo(core.Active.Items.FindIndex(i => i.Name == "a.txt"));
         await core.StartDeleteAsync(true);
@@ -170,7 +170,7 @@ public class RecycleBinTests
         Directory.CreateDirectory(t.Combine("kam"));
         File.WriteAllText(original, "jiný soubor");                          // původní název je obsazený
         var target = RecycleBin.Restore(item);
-        Assert.Equal(t.Combine("kam/doc (2).txt"), target);
+        Assert.Equal(Path.Combine(t.Combine("kam"), "doc (2).txt"), target);
         Assert.Equal("obsah", File.ReadAllText(target));
         Assert.Equal("jiný soubor", File.ReadAllText(original));
         Assert.Empty(RecycleBin.List(new[] { t.Combine("bin") }));

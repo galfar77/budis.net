@@ -31,7 +31,7 @@ final class OperationLog: ObservableObject {
     private let url: URL?
     private var nextID = 1
 
-    static var defaultURL: URL? {
+    nonisolated static var defaultURL: URL? {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appendingPathComponent("BudisCommander/history.json")
     }
