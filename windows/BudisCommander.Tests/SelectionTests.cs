@@ -107,3 +107,66 @@ public class ContextMenuTests
                     Assert.Contains(id, known);
     }
 }
+
+public class ColumnLayoutTests
+{
+    [Fact]
+    public void DefinitionFollowsOrderAndVisibility()
+    {
+        var l = new ColumnLayout();
+        Assert.Equal("26,*,92,140", l.Definition(false, false));
+        Assert.Equal("26,*,60,48,92,140", l.Definition(true, true));
+        Assert.True(l.IsDefault);
+        Assert.True(l.Move("date", -1, false, false));                    // Změněno před Velikost
+        Assert.Equal(new[] { "name", "date", "size" }, l.Visible(false, false));
+        Assert.Equal("26,*,140,92", l.Definition(false, false));
+        Assert.False(l.IsDefault);
+        Assert.False(l.Move("name", -1, false, false));                   // dál doleva to nejde
+        Assert.False(l.Move("size", 1, false, false));
+    }
+
+    [Fact]
+    public void MoveSkipsHiddenColumnsAndResizeIsClamped()
+    {
+        var l = new ColumnLayout();
+        Assert.True(l.Move("size", -1, false, false));                    // ext a attr se nezobrazují, Velikost se prohodí s Názvem
+        Assert.Equal(new[] { "size", "name", "date" }, l.Visible(false, false));
+        l.Resize("size", 5); Assert.Equal(ColumnLayout.MinWidth, l.WidthOf("size"));
+        l.Resize("date", 9999); Assert.Equal(ColumnLayout.MaxWidth, l.WidthOf("date"));
+        l.Resize("name", 100); Assert.False(l.Widths.ContainsKey("name"));
+        Assert.Contains("date", l.Normalized());
+        var odd = new ColumnLayout { Order = new() { "date", "zzz", "date" } };
+        Assert.Equal(5, odd.Normalized().Count); Assert.Equal("date", odd.Normalized()[0]);
+    }
+
+    [Fact]
+    public async Task LayoutIsRememberedPerFolderAndSurvivesSerialization()
+    {
+        using var t = new TempDir();
+        t.File("a/f.txt"); t.File("b/g.txt");
+        var settings = new AppSettings();
+        var p = new PaneState(settings, t.Combine("a"));
+        Assert.True(await p.LoadLocalAsync(t.Combine("a"), "", true));
+        var l = new ColumnLayout(); l.Move("date", -1, false, false); l.Resize("size", 120);
+        p.SetColumns(l);
+        Assert.True(p.HasCustomColumns);
+        Assert.Single(settings.FolderViews);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(settings.FolderViews);
+        var back = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, FolderView>>(json)!;
+        Assert.Equal(120, back.Values.Single().Columns!.WidthOf("size"));
+
+        Assert.True(await p.LoadLocalAsync(t.Combine("b"), "", true));
+        Assert.False(p.HasCustomColumns);                                   // jiná složka má výchozí rozložení
+        Assert.True(await p.LoadLocalAsync(t.Combine("a"), "", true));
+        Assert.True(p.HasCustomColumns); Assert.Equal(120, p.Columns.WidthOf("size"));
+
+        p.SetDefaultColumns(l);                                             // pro všechny složky
+        Assert.False(p.HasCustomColumns);
+        Assert.Equal(120, p.Columns.WidthOf("size"));
+        p.ResetColumns();
+        Assert.Equal(120, p.Columns.WidthOf("size"));                       // výchozí z nastavení platí dál
+        settings.DefaultColumns = null;
+        Assert.True(p.Columns.IsDefault);
+    }
+}

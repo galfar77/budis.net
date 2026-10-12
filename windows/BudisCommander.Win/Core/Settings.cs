@@ -42,6 +42,8 @@ public sealed class FolderView
 {
     public SortKey Sort { get; set; } = SortKey.Name;
     public bool Ascending { get; set; } = true;
+    /// <summary>Vlastní pořadí a šířky sloupců pro tuto složku (null = výchozí rozložení).</summary>
+    public ColumnLayout? Columns { get; set; }
 }
 
 /// <summary>Pojmenovaná sada záložek obou panelů.</summary>
@@ -97,6 +99,8 @@ public sealed class AppSettings
     public string AdbPath { get; set; } = "";
     /// <summary>Řazení pamatované zvlášť pro každou místní složku (jen složky, kde se liší od výchozího).</summary>
     public Dictionary<string, FolderView> FolderViews { get; set; } = new();
+    /// <summary>Výchozí rozložení sloupců pro složky bez vlastního (null = základní).</summary>
+    public ColumnLayout? DefaultColumns { get; set; }
     /// <summary>Úlohy synchronizace na pozadí.</summary>
     public List<SyncTask> SyncTasks { get; set; } = new();
     public List<TabSet> TabSets { get; set; } = new();

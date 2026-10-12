@@ -277,16 +277,41 @@ public sealed class PaneState : IDisposable
 
     private void ApplyFolderView(string dir)
     {
-        if (Settings.FolderViews.TryGetValue(ViewKey(dir), out var v)) { SortKey = v.Sort; Ascending = v.Ascending; }
-        else { SortKey = SortKey.Name; Ascending = true; }
+        if (Settings.FolderViews.TryGetValue(ViewKey(dir), out var v)) { SortKey = v.Sort; Ascending = v.Ascending; _customColumns = v.Columns?.Clone(); }
+        else { SortKey = SortKey.Name; Ascending = true; _customColumns = null; }
+    }
+
+    private ColumnLayout? _customColumns;
+    /// <summary>Rozložení sloupců, které se pro tuto složku zobrazuje (vlastní, jinak výchozí z nastavení).</summary>
+    public ColumnLayout Columns => _customColumns ?? Settings.DefaultColumns ?? new ColumnLayout();
+    public bool HasCustomColumns => _customColumns != null;
+
+    /// <summary>Uloží rozložení sloupců jen pro tuto složku.</summary>
+    public void SetColumns(ColumnLayout layout)
+    {
+        _customColumns = layout.IsDefault && Settings.DefaultColumns == null ? null : layout.Clone();
+        SaveFolderView();
+        StateChanged?.Invoke();
+    }
+
+    /// <summary>Vrátí této složce výchozí rozložení sloupců.</summary>
+    public void ResetColumns() { _customColumns = null; SaveFolderView(); StateChanged?.Invoke(); }
+
+    /// <summary>Nastaví rozložení jako výchozí pro všechny složky bez vlastního.</summary>
+    public void SetDefaultColumns(ColumnLayout layout)
+    {
+        Settings.DefaultColumns = layout.IsDefault ? null : layout.Clone();
+        _customColumns = null;
+        SaveFolderView();
+        StateChanged?.Invoke();
     }
 
     private void SaveFolderView()
     {
         if (Connection != null || Ephemeral || IsTemp(Path)) return;
         var key = ViewKey(Path);
-        if (SortKey == SortKey.Name && Ascending) Settings.FolderViews.Remove(key);
-        else Settings.FolderViews[key] = new FolderView { Sort = SortKey, Ascending = Ascending };
+        if (SortKey == SortKey.Name && Ascending && _customColumns == null) Settings.FolderViews.Remove(key);
+        else Settings.FolderViews[key] = new FolderView { Sort = SortKey, Ascending = Ascending, Columns = _customColumns?.Clone() };
         LocationChanged?.Invoke();      // uloží nastavení
     }
 

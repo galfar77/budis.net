@@ -207,6 +207,7 @@ public sealed class PanelControl : UserControl
         UpdateSummary();
         UpdateDriveSelection();
         RebuildTabsTitles();
+        if (LayoutKey() != _layoutKey) { _layoutKey = LayoutKey(); ApplySettings(); }
     }
 
     private void UpdateSummary()
@@ -314,10 +315,19 @@ public sealed class PanelControl : UserControl
 
     // --- sloupce a vzhled ----------------------------------------------------------------------
 
+    private ColumnLayout Layout => _pane?.Columns ?? new ColumnLayout();
+    private string _layoutKey = "";
+
     private string Columns()
     {
         var s = _core.Settings;
-        return "26,*," + (s.ShowExtColumn ? "60," : "") + (s.ShowAttrColumn ? "48," : "") + "92,140";
+        return Layout.Definition(s.ShowExtColumn, s.ShowAttrColumn);
+    }
+
+    private string LayoutKey()
+    {
+        var s = _core.Settings;
+        return Columns() + "|" + string.Join(",", Layout.Visible(s.ShowExtColumn, s.ShowAttrColumn));
     }
 
     public void ApplySettings()
@@ -350,11 +360,17 @@ public sealed class PanelControl : UserControl
             g.Children.Add(tb);
         }
         Add(nameof(FileEntry.Icon));
-        Add(nameof(FileEntry.DisplayName), trim: true);
-        if (s.ShowExtColumn) Add(nameof(FileEntry.Ext));
-        if (s.ShowAttrColumn) Add(nameof(FileEntry.AttrText));
-        Add(nameof(FileEntry.SizeText), right: true);
-        Add(nameof(FileEntry.DateText), right: true);
+        foreach (var col in Layout.Visible(s.ShowExtColumn, s.ShowAttrColumn))
+        {
+            switch (col)
+            {
+                case "name": Add(nameof(FileEntry.DisplayName), trim: true); break;
+                case "ext": Add(nameof(FileEntry.Ext)); break;
+                case "attr": Add(nameof(FileEntry.AttrText)); break;
+                case "size": Add(nameof(FileEntry.SizeText), right: true); break;
+                case "date": Add(nameof(FileEntry.DateText), right: true); break;
+            }
+        }
         return g;
     }
 
@@ -366,21 +382,89 @@ public sealed class PanelControl : UserControl
         _header.Background = new SolidColorBrush(Color.FromArgb(30, 128, 128, 128));
         _header.Margin = new Thickness(4, 0, 4, 0);
         int c = 1;
-        TextBlock H(string text, SortKey? key, bool right = false)
+        foreach (var col in Layout.Visible(s.ShowExtColumn, s.ShowAttrColumn))
         {
+            var (title, key, right) = col switch
+            {
+                "name" => ("Název", (SortKey?)SortKey.Name, false),
+                "ext" => ("Přípona", SortKey.Ext, false),
+                "attr" => ("Atr", null, false),
+                "size" => ("Velikost", SortKey.Size, true),
+                _ => ("Změněno", SortKey.Date, true),
+            };
             var arrow = key != null && _pane != null && _pane.SortKey == key ? (_pane.Ascending ? " ▲" : " ▼") : "";
-            var tb = new TextBlock { Text = text + arrow, FontWeight = FontWeight.SemiBold, FontSize = Math.Max(10, s.FontSize - 1), Margin = new Thickness(0, 3, right ? 6 : 0, 3), Cursor = new Cursor(StandardCursorType.Hand) };
+            var tb = new TextBlock { Text = Tr.T(title) + arrow, FontWeight = FontWeight.SemiBold, FontSize = Math.Max(10, s.FontSize - 1), Margin = new Thickness(0, 3, right ? 6 : 0, 3), Cursor = new Cursor(StandardCursorType.Hand) };
             if (right) tb.HorizontalAlignment = HorizontalAlignment.Right;
-            if (key != null) tb.PointerPressed += async (_, _) => { Activated?.Invoke(); await Pane.SetSortAsync(key.Value); BuildHeader(); };
-            Grid.SetColumn(tb, c++);
+            if (key != null) tb.PointerPressed += async (_, e) =>
+            {
+                if (!e.GetCurrentPoint(tb).Properties.IsLeftButtonPressed) return;
+                Activated?.Invoke(); await Pane.SetSortAsync(key.Value); BuildHeader();
+            };
+            var captured = col;
+            tb.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Right) ShowHeaderMenu(captured, tb); };
+            Grid.SetColumn(tb, c);
             _header.Children.Add(tb);
-            return tb;
+            if (col != "name") _header.Children.Add(MakeResizeHandle(col, c, right));
+            c++;
         }
-        H("Název", SortKey.Name);
-        if (s.ShowExtColumn) H("Přípona", SortKey.Ext);
-        if (s.ShowAttrColumn) H("Atr", null);
-        H("Velikost", SortKey.Size, true);
-        H("Změněno", SortKey.Date, true);
+    }
+
+    /// <summary>Úchyt na hraně sloupce: tažením se mění šířka a po pustění se uloží pro tuto složku.</summary>
+    private Control MakeResizeHandle(string col, int gridColumn, bool onLeftEdge)
+    {
+        var handle = new Border
+        {
+            Width = 6, Background = Brushes.Transparent, Cursor = new Cursor(StandardCursorType.SizeWestEast),
+            HorizontalAlignment = onLeftEdge ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+        };
+        Grid.SetColumn(handle, gridColumn);
+        double startX = 0, startWidth = 0; bool dragging = false;
+        handle.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(handle).Properties.IsLeftButtonPressed) return;
+            Activated?.Invoke();
+            dragging = true; startX = e.GetPosition(_header).X; startWidth = Layout.WidthOf(col);
+            e.Pointer.Capture(handle); e.Handled = true;
+        };
+        handle.PointerMoved += (_, e) =>
+        {
+            if (!dragging) return;
+            var dx = e.GetPosition(_header).X - startX;
+            var width = Math.Clamp(startWidth + (onLeftEdge ? -dx : dx), ColumnLayout.MinWidth, ColumnLayout.MaxWidth);
+            var cols = _header.ColumnDefinitions;
+            if (gridColumn < cols.Count) cols[gridColumn].Width = new GridLength(width);
+        };
+        handle.PointerReleased += (_, e) =>
+        {
+            if (!dragging) return;
+            dragging = false; e.Pointer.Capture(null);
+            var dx = e.GetPosition(_header).X - startX;
+            var layout = Layout.Clone();
+            layout.Resize(col, startWidth + (onLeftEdge ? -dx : dx));
+            Pane.SetColumns(layout);
+        };
+        return handle;
+    }
+
+    private void ShowHeaderMenu(string col, Control anchor)
+    {
+        var s = _core.Settings;
+        var menu = new ContextMenu();
+        MenuItem Item(string header, Action action, bool enabled = true)
+        {
+            var mi = new MenuItem { Header = Tr.T(header), IsEnabled = enabled };
+            mi.Click += (_, _) => { Activated?.Invoke(); action(); };
+            return mi;
+        }
+        var visible = Layout.Visible(s.ShowExtColumn, s.ShowAttrColumn);
+        var idx = visible.IndexOf(col);
+        void Move(int delta) { var l = Layout.Clone(); if (l.Move(col, delta, s.ShowExtColumn, s.ShowAttrColumn)) Pane.SetColumns(l); }
+        menu.Items.Add(Item("Posunout sloupec doleva", () => Move(-1), idx > 0));
+        menu.Items.Add(Item("Posunout sloupec doprava", () => Move(1), idx >= 0 && idx < visible.Count - 1));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Item("Použít toto rozložení pro všechny složky", () => Pane.SetDefaultColumns(Layout.Clone())));
+        menu.Items.Add(Item("Výchozí rozložení této složky", () => Pane.ResetColumns(), Pane.HasCustomColumns));
+        menu.Open(anchor);
     }
 
     // --- aktivní panel, filtr ----------------------------------------------------------------------
