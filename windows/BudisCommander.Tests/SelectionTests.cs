@@ -185,7 +185,7 @@ public class ColumnLayoutTests
 public class ServerBookTests
 {
     private static SavedServer S(string host, string name = "", string group = "", string user = "u") =>
-        new() { Protocol = BudisCommander.Remote.RemoteProtocol.Sftp, Host = host, User = user, Name = name, Group = group };
+        new() { Protocol = RemoteProtocol.Sftp, Host = host, User = user, Name = name, Group = group };
 
     [Fact]
     public void TreePutsUngroupedFirstThenGroupsAlphabetically()
