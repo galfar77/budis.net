@@ -746,5 +746,43 @@ Jednosměrně (zdroj → cíl)	One-way (source → target)
 Obousměrně (nové a novější soubory na obě strany, nic se nemaže)	Two-way (new and newer files go both ways, nothing is deleted)
 na cíl {}, ze cíle {} souborů ({})	to target {}, from target {} files ({})
 , konflikty (přeskočeno) {}: {}	, conflicts (skipped) {}: {}
+Správce připojení…	Connection manager…
+Správce připojení	Connection manager
+Skupina	Group
+volitelné, např. Web firmy	optional, e.g. Company website
+volitelné, např. Práce	optional, e.g. Work
+Jen uložit	Save only
+Bez skupiny	No group
+Zatím žádný uložený server. Přidejte ho tlačítkem Nový.	No saved server yet. Add one with New.
+Nový…	New…
+Duplikovat	Duplicate
+Smazat uložený server „{}“?	Delete the saved server “{}”?
+Rychlé připojení	Quick connect
+Žádný uložený server	No saved server
+Název a skupinu nastavíte v okně Upravit; servery ve skupinách se samy nemažou. Rychlé připojení je i v menu Nástroje.	Set the name and group in the Edit window; servers in groups are never removed automatically. Quick connect is also in the Tools menu.
+Odstranit diakritiku (á → a)	Remove diacritics (á → a)
+Mezery nahradit podtržítkem	Replace spaces with underscores
+Maska: [N] = název bez přípony, [N2-5] = znaky 2 až 5 názvu, [E] = přípona, [C] = čítač, [Y] [M] [D] [h] [m] [s] = rok, měsíc, den, hodina, minuta, sekunda změny, [P] = název nadřazené složky.	Mask: [N] = name without extension, [N2-5] = characters 2 to 5 of the name, [E] = extension, [C] = counter, [Y] [M] [D] [h] [m] [s] = year, month, day, hour, minute, second of modification, [P] = parent folder name.
+Správce připojení: uložené servery ve skupinách, rychlé připojení z menu.	Connection manager: saved servers in groups, quick connect from the menu.
+Úprava souboru uvnitř zip archivu: F4 ho otevře v editoru a po uložení zapíše zpět do archivu.	Editing a file inside a zip archive: F4 opens it in the editor and writes it back to the archive when you save.
+Sdílení odkazem: na cloudu pravé tlačítko → Sdílet odkazem, odkaz se zkopíruje do schránky.	Share link: in a cloud panel right-click → Share link; the link is copied to the clipboard.
+Synchronizace na pozadí umí i obousměrný režim (nové a novější soubory na obě strany, nic se nemaže).	Background sync also has a two-way mode (new and newer files go both ways, nothing is deleted).
+Hromadné přejmenování: značky data a času změny, nadřazené složky a rozsahu znaků, volby bez diakritiky a mezer.	Batch rename: modification date and time tokens, parent folder and character ranges, options to remove diacritics and spaces.
+Dvojklik se připojí. Název a skupinu nastavíte v okně Upravit; servery ve skupinách se samy nemažou. Rychlé připojení je i v menu Servery.	Double-click to connect. Set the name and group in the Edit window; servers in groups are never removed automatically. Quick connect is also in the Servers menu.
+Počítače v síti	Computers on the network
+Prohledat síť	Scan the network
+Sdílené složky vybraného počítače	Shared folders of the selected computer
+Žádná aktivní síť.	No active network.
+Hledám mezi {} adresami (otevřený port 445)…	Searching {} addresses (open port 445)…
+Nalezeno počítačů: {}…	Computers found: {}…
+Hledání zastaveno.	Search stopped.
+Nalezeno počítačů: {}. Dvojklikem na počítač se zobrazí jeho sdílené složky.	Computers found: {}. Double-click a computer to see its shared folders.
+Zjišťuji sdílené složky {}…	Looking up the shared folders of {}…
+Počítač nesdílí žádné složky.	The computer shares no folders.
+Sdílené složky počítače {}: {} (dvojklik otevře).	Shared folders of {}: {} (double-click to open).
+Sdílenou složku se nepodařilo otevřít (možná je nutné přihlášení – zadejte ho níže).	The shared folder could not be opened (you may need to sign in – enter credentials below).
+Počítač vyžaduje přihlášení (zadejte uživatele a heslo níže a zkuste to znovu).	The computer requires sign-in (enter a user and password below and try again).
+Sdílené složky se nepodařilo zjistit (kód {}).	Could not list the shared folders (code {}).
+Hledání počítačů v síti a jejich sdílených složek (Servery → Síť a disky).	Finding computers on the network and their shared folders (Servers → Network and disks).
 """;
 }

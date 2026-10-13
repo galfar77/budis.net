@@ -74,6 +74,11 @@ Všechny ⌘ zkratky jdou změnit v Nastavení (⌘,) a jsou také v menu **Nás
 - **Správce procesů:** běžící programy, řazení, ukončení.
 - **Správce přenosů:** kopírování a přesuny běží na pozadí; zrušení, opakování, vyčištění hotových.
 - **Synchronizace na pozadí:** uložené úlohy (složka ↔ složka, server nebo cloud) se spouštějí podle časovače.
+- **Správce připojení:** uložené servery se jmény a skupinami ve stromu, rychlé připojení z menu Servery.
+- **Úprava souboru v archivu:** soubor uvnitř zip/jar se otevře v editoru a po uložení se zapíše zpět do archivu.
+- **Odkaz ke sdílení:** u cloudového souboru příkaz *Zkopírovat odkaz ke sdílení* (rclone link) dá odkaz do schránky.
+- **Obousměrná synchronizace:** úloha na pozadí může mít směr ⇄; novější verze vyhrává, nic se nemaže, konflikty se jen hlásí.
+- **Hromadné přejmenování:** žetony `[N2-5]`, `[Y][M][D][h][m][s]`, `[P]`, odstranění diakritiky a mezer.
 - **Vestavěný terminál** (Ctrl+`): plný terminál, fungují i vim, top a ssh (Mac: SwiftTerm, Windows: ConPTY).
 - **Telefon s Androidem** přes adb (adb si aplikace umí stáhnout); iPhone podporován není.
 - **Barevná témata:** šest vzhledů v Nastavení.

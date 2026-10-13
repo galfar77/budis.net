@@ -167,6 +167,7 @@ Balím {}…	Packing {}…
 Barevná témata: šest vzhledů v Nastavení.	Colour themes: six looks in Settings.
 Barevné téma	Color theme
 Barevné štítky Finderu u názvů	Colored Finder tags next to names
+Bez skupiny	No group
 Beze změny	No change
 Binární soubory jsou shodné.	The binary files are identical.
 Binární soubory se liší.	The binary files differ.
@@ -200,6 +201,7 @@ Dokumenty	Documents
 Domů	Home
 Druh	Kind
 Druh (nextcloud, owncloud, other)	Type (nextcloud, owncloud, other)
+Duplikovat	Duplicate
 Dva panely, Tab přepíná mezi nimi. Šipky, Enter a Backspace se pohybují po složkách.	Two panels, Tab switches between them. Arrows, Enter and Backspace move through folders.
 Dva panely, záložky, ovládání z klávesnice, F2 až F8, označování, rychlé hledání, vrácení operací.	Two panels, tabs, keyboard control, F2 to F8, marking, quick search, undo of operations.
 Dvoupanelový správce souborů	Two-panel file manager
@@ -243,6 +245,7 @@ Hledání: už při psaní z indexu, uvnitř archivů i na serveru a v cloudu.	S
 Hotovo	Done
 Hromadné přejmenování	Batch rename
 Hromadné přejmenování ({} položek)	Batch rename ({} items)
+Hromadné přejmenování: značky data a času změny, nadřazené složky a rozsahu znaků, volby bez diakritiky a mezer.	Batch rename: modification date and time tokens, parent folder and character ranges, options to remove diacritics and spaces.
 ID účtu nebo klíče	Account or key ID
 Instalace se nezdařila: {}	The installation failed: {}
 Jazyk (po restartu)	Language (after restart)
@@ -261,6 +264,7 @@ Jen ručně	Manual only
 Jen složky	Folders only
 Jen smazané	Deleted only
 Jen soubory	Files only
+Jen uložit	Save only
 Jen video	Video only
 Jiná aplikace…	Other application…
 Každou hodinu	Every hour
@@ -293,10 +297,12 @@ Les	Forest
 Maska	Mask
 Maska názvu	Name mask
 Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.	Mask: [N] = name without extension, [E] = extension, [C] = counter.
+Maska: [N] = název bez přípony, [N2-5] = znaky 2 až 5 názvu, [E] = přípona, [C] = čítač, [Y] [M] [D] [h] [m] [s] = rok, měsíc, den, hodina, minuta, sekunda změny, [P] = název nadřazené složky.	Mask: [N] = name without extension, [N2-5] = characters 2 to 5 of the name, [E] = extension, [C] = counter, [Y] [M] [D] [h] [m] [s] = year, month, day, hour, minute, second of modification, [P] = parent folder name.
 Mazat v cíli soubory, které ve zdroji nejsou	Delete files in the target that are not in the source
 Mazání	Deleting
 Mažu {}	Deleting {}
 Mažu: 	Deleting: 
+Mezery nahradit podtržítkem	Replace spaces with underscores
 Microsoft OneDrive	Microsoft OneDrive
 Miniatury souborů	File thumbnails
 Miniatury souborů místo ikon	File thumbnails instead of icons
@@ -342,11 +348,13 @@ Nové přenosy (F5, F6) se řadí do fronty a běží postupně. Zrušenou nebo 
 Nový	New
 Nový adr.	New dir.
 Nový adresář	New directory
+Nový…	New…
 Náhled souboru na serveru: stiskněte F3.	Preview of a file on the server: press F3.
 Nápověda	Help
 Nástroje	Tools
 Návrat se nezdařil:\n\n	Going back failed:\n\n
 Název	Name
+Název a skupinu nastavíte v okně Upravit; servery ve skupinách se samy nemažou. Rychlé připojení je i v menu Nástroje.	Set the name and group in the Edit window; servers in groups are never removed automatically. Quick connect is also in the Tools menu.
 Název archivu musí končit na .zip, .tar.gz nebo .tgz.	The archive name must end with .zip, .tar.gz or .tgz.
 Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.	The name may only contain letters, digits, a hyphen and an underscore.
 O aplikaci	About
@@ -367,6 +375,7 @@ Odkaz jde vytvořit jen v panelu připojeném ke cloudu (menu Servery → Cloudo
 Odkaz je ve schránce: {}	The link is in the clipboard: {}
 Odkaz se nepodařilo vytvořit (úložiště ho možná neumí):\n\n{}	The link could not be created (the storage may not support it):\n\n{}
 Odpojit od serveru	Disconnect from server
+Odstranit diakritiku (á → a)	Remove diacritics (á → a)
 Odznačeno: 	Unmarked: 
 Odznačit	Unmark
 Odznačit podle masky	Unmark by mask
@@ -478,6 +487,7 @@ Připojení k úložišti „{}“ se nezdařilo:\n\n{}	Connecting to storage "{
 Připojit	Connect
 Připojit k serveru	Connect to server
 Připojuji {}…	Connecting {}…
+Připojuji…	Connecting…
 Příkaz	Command
 Příkaz skončil s kódem {}	The command finished with code {}
 Příkazový řádek	Command line
@@ -500,6 +510,7 @@ Rozměry/délka	Dimensions/duration
 Rozšířené označování: podle masky, druhu, velikosti a data změny, stejná přípona, převrácení označení.	Advanced marking: by mask, kind, size and modification date, same extension, invert marks.
 Rychlé hledání psaním písmen, filtr názvů a filtr podle typu souboru (tlačítko v panelu).	Quick search by typing letters, a name filter and a file type filter (button in the panel).
 Rychlé hledání přes index (Spotlight na Macu, Windows Search ve Windows): stačí nechat zaškrtnuté v okně hledání.	Fast search through the index (Spotlight on Mac, Windows Search on Windows): just leave it ticked in the search window.
+Rychlé připojení	Quick connect
 Rychlý náhled	Quick view
 Rychlý náhled, hex, kontrolní součty, dělení a slepování souborů, příkazový řádek.	Quick view, hex, checksums, splitting and joining files, command line.
 Rychlý náhled, příkazový řádek a vlastní příkazy v menu.	Quick view, command line and your own commands in the menu.
@@ -511,6 +522,7 @@ Sady záložek…	Tab sets…
 Samostatný sloupec s příponou	Separate column with the extension
 Schránka neobsahuje soubory.	The clipboard contains no files.
 Schránka souborů funguje jen pro lokální soubory.	The file clipboard works only for local files.
+Sdílení odkazem: na cloudu pravé tlačítko → Sdílet odkazem, odkaz se zkopíruje do schránky.	Share link: in a cloud panel right-click → Share link; the link is copied to the clipboard.
 Sdílet odkazem (cloud)	Share link (cloud)
 Server	Server
 Server: {}\n\n{}	Server: {}\n\n{}
@@ -520,6 +532,7 @@ Skryté soubory	Hidden files
 Skrytý	Hidden
 Skrýt	Hide
 Skrýt terminál	Hide terminal
+Skupina	Group
 Slepení souboru	Joining a file
 Slepit díly souboru	Join file parts
 Slepování zrušeno.	Joining cancelled.
@@ -536,6 +549,7 @@ Služba	Service
 Smazat	Delete
 Smazat na serveru: {}	Delete on server: {}
 Smazat sadu	Delete the set
+Smazat uložený server „{}“?	Delete the saved server “{}”?
 Smazání do Koše: {}	Deleted to Trash: {}
 Směr	Direction
 Soubor je příliš velký pro náhled (nad 100 MB). Zkopírujte ho do lokálního panelu.	The file is too large for a preview (over 100 MB). Copy it to a local panel.
@@ -555,6 +569,9 @@ Správce procesů…	Process manager…
 Správce přenosů	Transfer manager
 Správce přenosů: kopírování a přesuny běží na pozadí, jde je zrušit a zopakovat.	Transfer manager: copies and moves run in the background and can be cancelled or retried.
 Správce přenosů…	Transfer manager…
+Správce připojení	Connection manager
+Správce připojení: uložené servery ve skupinách, rychlé připojení z menu.	Connection manager: saved servers in groups, quick connect from the menu.
+Správce připojení…	Connection manager…
 Spustit teď	Run now
 Spustit znovu	Run again
 Stahuji Android platform-tools z dl.google.com…	Downloading Android platform-tools from dl.google.com…
@@ -574,6 +591,7 @@ Světlý	Light
 Symbolický odkaz jde vytvořit jen na lokální soubor nebo složku.	A symbolic link can only be created for a local file or folder.
 Symbolický odkaz na „{}“	Symbolic link to "{}"
 Synchronizace na pozadí	Background sync
+Synchronizace na pozadí umí i obousměrný režim (nové a novější soubory na obě strany, nic se nemaže).	Background sync also has a two-way mode (new and newer files go both ways, nothing is deleted).
 Synchronizace na pozadí: uložené úlohy se spouštějí podle časovače.	Background sync: saved tasks run on a timer.
 Synchronizace na pozadí…	Background sync…
 Synchronizace „{}“: {}	Sync "{}": {}
@@ -686,6 +704,7 @@ Zatím není nastavené žádné úložiště. Přidejte ho níže.	No storage i
 Zatím není uložená žádná sada. Nastavte záložky v obou panelech a klikněte na „Uložit aktuální…“.	No set is saved yet. Set up the tabs in both panels and click "Save current…".
 Zatím není žádná úloha. Klikněte na „Přidat…“.	There is no task yet. Click "Add…".
 Zatím žádné přenosy.	No transfers yet.
+Zatím žádný uložený server. Přidejte ho tlačítkem Nový.	No saved server yet. Add one with New.
 Zavřít	Close
 Zavřít ostatní záložky	Close other tabs
 Zavřít záložku	Close tab
@@ -773,6 +792,8 @@ text v souboru (volitelné)	text in the file (optional)
 text v souboru (čte se jen první MB, nejvýše 300 souborů)	text in file (only the first MB is read, at most 300 files)
 ve frontě	queued
 ve frontě: {}	in queue: {}
+volitelné, např. Práce	optional, e.g. Work
+volitelné, např. Web firmy	optional, e.g. Company website
 volitelné, např. ~/.ssh/id_rsa	optional, e.g. ~/.ssh/id_rsa
 vráceno	reverted
 vytvoření složky „{}“	creating folder "{}"
@@ -789,6 +810,7 @@ zrušeno	cancelled
 Úložiště se nastavují programem rclone (příkaz „rclone config“). Tady stačí vybrat jedno z nich a připojit ho do aktivního panelu.	Storage is set up with the rclone program (the "rclone config" command). Here you just pick one and connect it to the active panel.
 Úložiště „{}“ přidáno.	Storage "{}" added.
 Úložiště „{}“ už existuje.	Storage "{}" already exists.
+Úprava souboru uvnitř zip archivu: F4 ho otevře v editoru a po uložení zapíše zpět do archivu.	Editing a file inside a zip archive: F4 opens it in the editor and writes it back to the archive when you save.
 Červeně označené názvy jsou prázdné, duplicitní nebo už existují.	Names marked in red are empty, duplicate or already exist.
 Čeština a angličtina (Nastavení, platí po restartu).	Czech and English (Settings, applies after a restart).
 Čeština a angličtina, světlý a tmavý vzhled, nastavení sloupců a písma.	Czech and English, light and dark appearance, column and font settings.
@@ -803,6 +825,7 @@ zrušeno	cancelled
 Šířku sloupců změníte tažením za záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku.	Drag a column header edge to change its width, right-click a header to reorder; the layout is remembered per folder.
 Žádné duplicity.	No duplicates.
 Žádný telefon nenalezen. Zkontrolujte kabel a ladění přes USB.	No phone found. Check the cable and USB debugging.
+Žádný uložený server	No saved server
 „{}“ již v cíli existuje	"{}" already exists in the destination
 „{}“ už existuje. Přepsat?	"{}" already exists. Overwrite?
 ⌘V zavře	⌘V closes

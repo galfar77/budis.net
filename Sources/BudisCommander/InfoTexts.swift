@@ -4,6 +4,11 @@ import Foundation
 enum InfoTexts {
     static let news: [String] = [
         L("# Nové"),
+        L("Správce připojení: uložené servery ve skupinách, rychlé připojení z menu."),
+        L("Úprava souboru uvnitř zip archivu: F4 ho otevře v editoru a po uložení zapíše zpět do archivu."),
+        L("Sdílení odkazem: na cloudu pravé tlačítko → Sdílet odkazem, odkaz se zkopíruje do schránky."),
+        L("Synchronizace na pozadí umí i obousměrný režim (nové a novější soubory na obě strany, nic se nemaže)."),
+        L("Hromadné přejmenování: značky data a času změny, nadřazené složky a rozsahu znaků, volby bez diakritiky a mezer."),
         L("Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje)."),
         L("Obnovení z Koše přímo v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací)."),
         L("Šířku sloupců změníte tažením za záhlaví, pořadí pravým tlačítkem na záhlaví; rozložení se pamatuje pro každou složku."),
