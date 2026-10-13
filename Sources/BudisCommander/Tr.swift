@@ -126,6 +126,7 @@ enum Tr {
 # Základy	# Basics
 (jen lokální složky)	(local folders only)
 , chyb {}: {}	, errors {}: {}
+, konflikty (přeskočeno) {}: {}	, conflicts (skipped) {}: {}
 , přečteno souborů {}	, files read {}
 , smazáno {}	, deleted {}
 Adresa (https://…)	Address (https://…)
@@ -207,6 +208,7 @@ Dělení zrušeno.	Splitting cancelled.
 Dělím {}…	Splitting {}…
 Důvěřovat serveru bez ověření klíče/certifikátu	Trust the server without verifying its key/certificate
 Editace „{}“: po uložení se změny nahrají na server	Editing "{}": changes are uploaded to the server after saving
+Editace „{}“: po uložení se změny zapíšou do archivu	Editing “{}”: changes are written to the archive when you save
 Editovat	Edit
 F3 zobrazí soubor, F4 ho upraví (na serveru se změny po uložení nahrají zpět).	F3 views a file, F4 edits it (on a server the changes are uploaded back after saving).
 F5 a F6 kopírují a přesouvají do druhého panelu, F7 vytvoří složku, F8 smaže do koše.	F5 and F6 copy and move to the other panel, F7 creates a folder, F8 deletes to the trash.
@@ -247,6 +249,7 @@ Jazyk (po restartu)	Language (after restart)
 Je dostupná nová verze	A new version is available
 Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nápověda → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from Help → Update the application.
 Je dostupná nová verze Budis Commanderu. Nainstalujete ji v menu Nástroje → Aktualizovat aplikaci.	A new version of Budis Commander is available. Install it from the Tools menu → Update application.
+Jednosměrně (zdroj → cíl)	One-way (source → target)
 Jednosměrně: zdroj se kopíruje do cíle. Cíl v cloudu zapište jako rclone:název:/cesta (úložiště přidáte v menu Nástroje → Cloudová úložiště).	One way: the source is copied to the target. Write a cloud target as rclone:name:/path (add storage in the Tools menu → Cloud storage).
 Jednou denně	Once a day
 Jen archivy	Archives only
@@ -355,9 +358,14 @@ Obnovit	Refresh
 Obnovit výchozí zkratky	Restore default shortcuts
 Obnovit z Koše	Restore from Trash
 Obnovit z Koše…	Restore from Trash…
+Obousměrně (nové a novější soubory na obě strany, nic se nemaže)	Two-way (new and newer files go both ways, nothing is deleted)
 Obsahuje	Contains
 Oceán	Ocean
 Odebrat z oblíbených	Remove from favorites
+Odkaz jde vytvořit jen v panelu připojeném ke cloudu (menu Nástroje → Cloudová úložiště).	A link can only be created in a panel connected to the cloud (Tools → Cloud storage).
+Odkaz jde vytvořit jen v panelu připojeném ke cloudu (menu Servery → Cloudová úložiště).	A link can only be created in a panel connected to the cloud (Servers → Cloud storage).
+Odkaz je ve schránce: {}	The link is in the clipboard: {}
+Odkaz se nepodařilo vytvořit (úložiště ho možná neumí):\n\n{}	The link could not be created (the storage may not support it):\n\n{}
 Odpojit od serveru	Disconnect from server
 Odznačeno: 	Unmarked: 
 Odznačit	Unmark
@@ -503,6 +511,7 @@ Sady záložek…	Tab sets…
 Samostatný sloupec s příponou	Separate column with the extension
 Schránka neobsahuje soubory.	The clipboard contains no files.
 Schránka souborů funguje jen pro lokální soubory.	The file clipboard works only for local files.
+Sdílet odkazem (cloud)	Share link (cloud)
 Server	Server
 Server: {}\n\n{}	Server: {}\n\n{}
 Sestavení z commitu: {}	Built from commit: {}
@@ -528,6 +537,7 @@ Smazat	Delete
 Smazat na serveru: {}	Delete on server: {}
 Smazat sadu	Delete the set
 Smazání do Koše: {}	Deleted to Trash: {}
+Směr	Direction
 Soubor je příliš velký pro náhled (nad 100 MB). Zkopírujte ho do lokálního panelu.	The file is too large for a preview (over 100 MB). Copy it to a local panel.
 Soubor nelze přečíst.	The file cannot be read.
 Soubor rozdělen na {} dílů.	The file was split into {} parts.
@@ -592,6 +602,7 @@ Ukončit	End
 Ukončit „{}“ (PID {})?	End "{}" (PID {})?
 Ukázat	Show
 Ukázat ve Finderu	Show in Finder
+Uloženo do archivu: {}	Saved to the archive: {}
 Uloženo na server: {}	Saved to server: {}
 Uložené servery	Saved servers
 Uložit	Save
@@ -601,6 +612,7 @@ Uložit heslo do Klíčenky	Save the password to the Keychain
 Uložit sadu záložek	Save tab set
 Upravit synchronizaci	Edit sync
 Upravit…	Edit…
+Upravovat soubory uvnitř archivu jde jen u zip (a jar). Ostatní formáty jsou otevřené jen pro čtení; soubor zkopírujte ven (F5).	Files inside an archive can only be edited in zip (and jar). Other formats are read-only; copy the file out (F5).
 Uživatel	User
 Uživatelské příkazy	User commands
 Uživatelské příkazy fungují jen v lokálních složkách.	User commands work only in local folders.
@@ -645,6 +657,7 @@ Vyplněné podmínky platí zároveň. Složky nemají velikost, takže při zad
 Vytvořit	Create
 Vytvořit symbolický odkaz	Create symbolic link
 Vytvoří se v {}	It will be created in {}
+Vytvářím odkaz…	Creating the link…
 Vyčistit historii	Clear history
 Vyčistit hotové	Clear finished
 Vzhled	Appearance
@@ -690,6 +703,7 @@ Zkopírováno znovu: {}	Copied again: {}
 Zkopírováno: {} položek. Vložte klávesou ⌘V.	Copied: {} items. Paste with ⌘V.
 Zkratky všech funkcí jsou vidět v menu a jdou změnit v Nastavení.	The shortcuts of all functions are shown in the menus and can be changed in Settings.
 Změny „{}“ se nepodařilo nahrát:\n{}	Changes to "{}" could not be uploaded:\n{}
+Změny „{}“ se nepodařilo zapsat do archivu:\n{}	Changes to “{}” could not be written to the archive:\n{}
 Změní se jen štítky, které mají všechny vybrané položky společné; ostatní zůstanou.	Only tags that all selected items have in common are changed; the others stay.
 Změněno	Modified
 Změněno do	Modified to
@@ -728,6 +742,7 @@ každých {} min	every {} min
 kopírovat	copy
 kopírování	copying
 malá	lower
+na cíl {}, ze cíle {} souborů ({})	to target {}, from target {} files ({})
 na serveru jen podle názvu	on the server by name only
 naposledy {}: {}	last {}: {}
 např. *.jpg nebo část názvu	e.g. *.jpg or part of a name
@@ -748,6 +763,7 @@ přesun	move
 přesunout	move
 příkaz (Enter spustí, Esc zavře)	command (Enter runs, Esc closes)
 rclone listremotes selhal.	rclone listremotes failed.
+rclone odkaz nevytvořil.	rclone did not create a link.
 rclone skončil s kódem {}	rclone finished with code {}
 ručně	manual
 složka, nebo rclone:název:/cesta	folder, or rclone:name:/path

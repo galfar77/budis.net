@@ -12,6 +12,13 @@ struct SyncTask: Codable, Identifiable, Equatable {
     var intervalMinutes = 0
     /// Mazat v cíli soubory, které ve zdroji nejsou (jinak se jen přidává a přepisuje).
     var deleteExtra = false
+    /// Obousměrně: nové a novější soubory se kopírují na obě strany, nic se nemaže. (Uloženo jako nepovinná hodnota,
+    /// aby šly načíst i úlohy uložené před přidáním této volby.)
+    var twoWayStored: Bool? = nil
+    var twoWay: Bool {
+        get { twoWayStored ?? false }
+        set { twoWayStored = newValue }
+    }
     var lastRun: Date?
     var lastResult = ""
 
@@ -107,6 +114,58 @@ extension AppModel {
         return result
     }
 
+    /// Zkopíruje soubor, starší verzi na cíli pošle do Koše a zachová čas změny (jinak by se kopie příště považovala za novější).
+    nonisolated static func copyKeepingTime(from: String, to: String) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(atPath: (to as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
+        if fm.fileExists(atPath: to) { try fm.trashItem(at: URL(fileURLWithPath: to), resultingItemURL: nil) }
+        try fm.copyItem(atPath: from, toPath: to)
+        if let date = (try? fm.attributesOfItem(atPath: from))?[.modificationDate] as? Date {
+            try? fm.setAttributes([.modificationDate: date], ofItemAtPath: to)
+        }
+    }
+
+    /// Obousměrná synchronizace: nové a novější soubory jdou na obě strany, nic se nemaže.
+    private func runTwoWay(source: String, dstRoot: String, dstList: @escaping TreeMirror.Lister,
+                           tolerance: TimeInterval, conn: RemoteConnection?) async throws -> String {
+        let plan = try await TreeMirror.planTwoWay(a: TreeMirror.localLister(), aRoot: source, b: dstList, bRoot: dstRoot, tolerance: tolerance)
+        if plan.isEmpty && plan.conflicts.isEmpty { return L("beze změn") }
+        var up = 0, down = 0
+        var errors: [String] = []
+        for dir in plan.mkdirsA {
+            do { try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true) }
+            catch { errors.append("\((dir as NSString).lastPathComponent): \(error.localizedDescription)") }
+        }
+        for dir in plan.mkdirsB {
+            do {
+                if let conn { try await conn.mkdir(dir) } else { try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true) }
+            } catch { errors.append("\((dir as NSString).lastPathComponent): \(error.localizedDescription)") }
+        }
+        for (from, to, _) in plan.aToB {
+            do {
+                if let conn { try await conn.upload(local: URL(fileURLWithPath: from), to: to) }
+                else { try Self.copyKeepingTime(from: from, to: to) }
+                up += 1
+            } catch { errors.append("\((from as NSString).lastPathComponent): \(error.localizedDescription)") }
+        }
+        for (from, to, size) in plan.bToA {
+            do {
+                if let conn {
+                    if FileManager.default.fileExists(atPath: to) { try FileManager.default.trashItem(at: URL(fileURLWithPath: to), resultingItemURL: nil) }
+                    try await conn.download(path: from, isDirectory: false, size: size, to: URL(fileURLWithPath: to))
+                } else { try Self.copyKeepingTime(from: from, to: to) }
+                down += 1
+            } catch { errors.append("\((from as NSString).lastPathComponent): \(error.localizedDescription)") }
+        }
+        let size = ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .file)
+        var text = L("na cíl \(up), ze cíle \(down) souborů (\(size))")
+        if let first = plan.conflicts.first {
+            text += L(", konflikty (přeskočeno) \(plan.conflicts.count): \((first as NSString).lastPathComponent)")
+        }
+        if !errors.isEmpty { text += L(", chyb \(errors.count): \(errors[0])") }
+        return text
+    }
+
     /// Provede synchronizaci: zkopíruje nové a změněné soubory, mazání jen když je zapnuté.
     func runSyncTask(_ task: SyncTask) async throws -> String {
         var source = task.source.trimmingCharacters(in: .whitespaces)
@@ -142,6 +201,9 @@ extension AppModel {
             tolerance = 2
         }
 
+        if task.twoWay {
+            return try await runTwoWay(source: source, dstRoot: dstRoot, dstList: dstList, tolerance: tolerance, conn: conn)
+        }
         let plan = try await TreeMirror.plan(src: TreeMirror.localLister(), srcRoot: source,
                                              dst: dstList, dstRoot: dstRoot, tolerance: tolerance)
         if plan.copies.isEmpty && plan.mkdirs.isEmpty && (!task.deleteExtra || plan.deletes.isEmpty) {
@@ -226,7 +288,14 @@ struct SyncTaskEditSheet: View {
                 }
             }
             .textFieldStyle(.roundedBorder)
-            Toggle(L("Mazat v cíli soubory, které ve zdroji nejsou"), isOn: $task.deleteExtra).font(.system(size: 12))
+            Picker(L("Směr"), selection: $task.twoWay) {
+                Text(L("Jednosměrně (zdroj → cíl)")).tag(false)
+                Text(L("Obousměrně (nové a novější soubory na obě strany, nic se nemaže)")).tag(true)
+            }
+            .pickerStyle(.radioGroup)
+            .onChange(of: task.twoWay) { _, two in if two { task.deleteExtra = false } }
+            Toggle(L("Mazat v cíli soubory, které ve zdroji nejsou"), isOn: $task.deleteExtra)
+                .font(.system(size: 12)).disabled(task.twoWay)
             Text(L("Jednosměrně: zdroj se kopíruje do cíle. Cíl v cloudu zapište jako rclone:název:/cesta (úložiště přidáte v menu Nástroje → Cloudová úložiště)."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             if !error.isEmpty { Text(error).foregroundStyle(.red).font(.system(size: 12)) }
@@ -293,7 +362,7 @@ struct SyncTasksSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(task.name)
-                                Text("\(task.source) → \(task.target)").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
+                                Text("\(task.source) \(task.twoWay ? "⇄" : "→") \(task.target)").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
                                 Text(info(task)).font(.system(size: 10)).foregroundStyle(.secondary)
                             }
                             Spacer()

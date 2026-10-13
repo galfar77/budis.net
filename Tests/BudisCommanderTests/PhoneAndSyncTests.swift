@@ -152,3 +152,58 @@ final class SyncTaskTests: XCTestCase {
         }
     }
 }
+
+@MainActor
+final class TwoWaySyncTests: XCTestCase {
+    private func write(_ path: String, _ text: String, date: Date) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(atPath: (path as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
+        try text.write(toFile: path, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.modificationDate: date], ofItemAtPath: path)
+    }
+
+    func testOldTasksWithoutTheNewFieldStillDecode() throws {
+        let old = #"{"id":"1","name":"x","source":"/a","target":"/b","intervalMinutes":0,"deleteExtra":false,"lastResult":""}"#.data(using: .utf8)!
+        let task = try JSONDecoder().decode(SyncTask.self, from: old)
+        XCTAssertFalse(task.twoWay)
+        var two = task; two.twoWay = true
+        XCTAssertTrue(try JSONDecoder().decode(SyncTask.self, from: JSONEncoder().encode(two)).twoWay)
+    }
+
+    func testBothWaysNewerWinsNothingDeletedAndSecondRunQuiet() async throws {
+        let fm = FileManager.default
+        let base = fm.temporaryDirectory.appendingPathComponent("budis-tw-" + UUID().uuidString)
+        defer { try? fm.removeItem(at: base) }
+        let a = base.appendingPathComponent("a").path, b = base.appendingPathComponent("b").path
+        let old = Date(timeIntervalSince1970: 1_700_000_000), neu = old.addingTimeInterval(7200)
+        try write(a + "/jen-a.txt", "A", date: old)
+        try write(b + "/jen-b.txt", "B", date: old)
+        try write(a + "/s.txt", "NOVE", date: neu); try write(b + "/s.txt", "stare", date: old)
+        try write(a + "/t.txt", "stare", date: old); try write(b + "/t.txt", "NOVE B", date: neu)
+        try write(a + "/podslozka/f.txt", "F", date: old)
+        try write(a + "/konflikt.txt", "aaa", date: old); try write(b + "/konflikt.txt", "bbbbb", date: old)
+
+        let plan = try await TreeMirror.planTwoWay(a: TreeMirror.localLister(), aRoot: a, b: TreeMirror.localLister(), bRoot: b, tolerance: 2)
+        XCTAssertEqual(Set(plan.aToB.map { ($0.from as NSString).lastPathComponent }), ["jen-a.txt", "s.txt", "f.txt"])
+        XCTAssertEqual(Set(plan.bToA.map { ($0.from as NSString).lastPathComponent }), ["jen-b.txt", "t.txt"])
+        XCTAssertEqual(plan.mkdirsB, [b + "/podslozka"])
+        XCTAssertEqual(plan.conflicts.map { ($0 as NSString).lastPathComponent }, ["konflikt.txt"])
+
+        let model = AppModel()
+        var task = SyncTask(name: "obousměrně", source: a, target: b)
+        task.twoWay = true; task.deleteExtra = true
+        let first = try await model.runSyncTask(task)
+        XCTAssertTrue(first.contains("konflikty"), first)
+        XCTAssertEqual(try String(contentsOfFile: a + "/jen-b.txt", encoding: .utf8), "B")
+        XCTAssertEqual(try String(contentsOfFile: b + "/jen-a.txt", encoding: .utf8), "A")
+        XCTAssertEqual(try String(contentsOfFile: b + "/s.txt", encoding: .utf8), "NOVE")
+        XCTAssertEqual(try String(contentsOfFile: a + "/t.txt", encoding: .utf8), "NOVE B")
+        XCTAssertEqual(try String(contentsOfFile: b + "/podslozka/f.txt", encoding: .utf8), "F")
+        XCTAssertEqual(try String(contentsOfFile: a + "/konflikt.txt", encoding: .utf8), "aaa")
+        XCTAssertTrue(fm.fileExists(atPath: a + "/jen-a.txt") && fm.fileExists(atPath: b + "/jen-b.txt"))
+
+        try fm.removeItem(atPath: a + "/konflikt.txt"); try fm.removeItem(atPath: b + "/konflikt.txt")
+        let second = try await model.runSyncTask(task)
+        XCTAssertEqual(second, "beze změn")
+    }
+}

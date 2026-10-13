@@ -730,5 +730,21 @@ Nepodařilo se spustit program:\n\n	Could not start the program:\n\n
 Nepodařilo se otevřít výběr programu:\n\n	Could not open the program chooser:\n\n
 Přetahování pravým tlačítkem: po pustění nabídka Kopírovat sem nebo Přesunout sem (Windows).	Right-button drag: a Copy here / Move here menu appears on drop (Windows).
 Miniatury souborů ve Windows (Nastavení): obrázky, videa, PDF a dokumenty.	File thumbnails on Windows (Settings): images, videos, PDFs and documents.
+Sdílet odkazem (cloud)	Share link (cloud)
+Vytvářím odkaz…	Creating the link…
+Odkaz jde vytvořit jen v panelu připojeném ke cloudu (menu Servery → Cloudová úložiště).	A link can only be created in a panel connected to the cloud (Servers → Cloud storage).
+Odkaz jde vytvořit jen v panelu připojeném ke cloudu (menu Nástroje → Cloudová úložiště).	A link can only be created in a panel connected to the cloud (Tools → Cloud storage).
+Odkaz se nepodařilo vytvořit (úložiště ho možná neumí):\n\n{}	The link could not be created (the storage may not support it):\n\n{}
+Odkaz je ve schránce: {}	The link is in the clipboard: {}
+rclone odkaz nevytvořil.	rclone did not create a link.
+Upravovat soubory uvnitř archivu jde jen u zip (a jar). Ostatní formáty jsou otevřené jen pro čtení; soubor zkopírujte ven (F5).	Files inside an archive can only be edited in zip (and jar). Other formats are read-only; copy the file out (F5).
+Editace „{}“: po uložení se změny zapíšou do archivu	Editing “{}”: changes are written to the archive when you save
+Uloženo do archivu: {}	Saved to the archive: {}
+Změny „{}“ se nepodařilo zapsat do archivu:\n{}	Changes to “{}” could not be written to the archive:\n{}
+Směr	Direction
+Jednosměrně (zdroj → cíl)	One-way (source → target)
+Obousměrně (nové a novější soubory na obě strany, nic se nemaže)	Two-way (new and newer files go both ways, nothing is deleted)
+na cíl {}, ze cíle {} souborů ({})	to target {}, from target {} files ({})
+, konflikty (přeskočeno) {}: {}	, conflicts (skipped) {}: {}
 """;
 }

@@ -18,6 +18,19 @@ struct MirrorPlan {
     var isEmpty: Bool { mkdirs.isEmpty && copies.isEmpty && deletes.isEmpty }
 }
 
+/// Plán obousměrné synchronizace: co kam zkopírovat; nic se nemaže a konflikty se jen hlásí.
+struct TwoWayPlan {
+    var mkdirsA: [String] = []
+    var mkdirsB: [String] = []
+    var aToB: [(from: String, to: String, size: Int64)] = []
+    var bToA: [(from: String, to: String, size: Int64)] = []
+    /// Položky, které se nedají rozhodnout (stejný čas, ale jiná velikost; soubor proti složce).
+    var conflicts: [String] = []
+    var bytes: Int64 = 0
+
+    var isEmpty: Bool { mkdirsA.isEmpty && mkdirsB.isEmpty && aToB.isEmpty && bToA.isEmpty }
+}
+
 enum TreeMirror {
     typealias Lister = @Sendable (String) async throws -> [MirrorEntry]
 
@@ -52,6 +65,52 @@ enum TreeMirror {
         var plan = MirrorPlan()
         try await walk(src, srcRoot, dst, dstRoot, true, tolerance, &plan)
         return plan
+    }
+
+    /// Obousměrné porovnání: soubor jen na jedné straně se zkopíruje na druhou, soubor na obou stranách se přepíše tou
+    /// novější verzí (rozdíl času větší než `tolerance`). Nic se nemaže.
+    static func planTwoWay(a: @escaping Lister, aRoot: String, b: @escaping Lister, bRoot: String,
+                           tolerance: TimeInterval) async throws -> TwoWayPlan {
+        var plan = TwoWayPlan()
+        try await walkTwoWay(a, aRoot, true, b, bRoot, true, tolerance, &plan)
+        return plan
+    }
+
+    private static func walkTwoWay(_ a: Lister, _ aDir: String, _ aExists: Bool, _ b: Lister, _ bDir: String, _ bExists: Bool,
+                                   _ tol: TimeInterval, _ plan: inout TwoWayPlan) async throws {
+        try Task.checkCancellation()
+        let al = aExists ? try await a(aDir) : []
+        let bl = bExists ? try await b(bDir) : []
+        var am: [String: MirrorEntry] = [:], bm: [String: MirrorEntry] = [:]
+        for e in al { am[e.name] = e }
+        for e in bl { bm[e.name] = e }
+        let names = Set(am.keys).union(bm.keys).sorted()
+        for name in names {
+            let pa = (aDir as NSString).appendingPathComponent(name)
+            let pb = (bDir as NSString).appendingPathComponent(name)
+            switch (am[name], bm[name]) {
+            case let (ea?, eb?):
+                if ea.isDir && eb.isDir { try await walkTwoWay(a, pa, true, b, pb, true, tol, &plan); continue }
+                if ea.isDir != eb.isDir { plan.conflicts.append(pa); continue }
+                var diff: TimeInterval?
+                if let da = ea.date, let db = eb.date { diff = da.timeIntervalSince(db) }
+                if ea.size == eb.size, let d = diff, abs(d) <= tol { continue }
+                if let d = diff, d > tol { plan.aToB.append((pa, pb, ea.size)); plan.bytes += ea.size }
+                else if let d = diff, d < -tol { plan.bToA.append((pb, pa, eb.size)); plan.bytes += eb.size }
+                else { plan.conflicts.append(pa) }
+            case let (ea?, nil):
+                if ea.isDir {
+                    plan.mkdirsB.append(pb)
+                    try await walkTwoWay(a, pa, true, b, pb, false, tol, &plan)
+                } else { plan.aToB.append((pa, pb, ea.size)); plan.bytes += ea.size }
+            case let (nil, eb?):
+                if eb.isDir {
+                    plan.mkdirsA.append(pa)
+                    try await walkTwoWay(a, pa, false, b, pb, true, tol, &plan)
+                } else { plan.bToA.append((pb, pa, eb.size)); plan.bytes += eb.size }
+            default: break
+            }
+        }
     }
 
     private static func walk(_ src: Lister, _ srcDir: String, _ dst: Lister, _ dstDir: String, _ dstExists: Bool,
