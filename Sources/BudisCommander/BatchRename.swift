@@ -9,12 +9,46 @@ struct RenameOptions {
     var digits = 1
     /// 0 = beze změny, 1 = malá písmena, 2 = velká písmena
     var caseMode = 0
+    /// Odstranit diakritiku (á → a).
+    var removeDiacritics = false
+    /// Mezery nahradit podtržítkem.
+    var spacesToUnderscore = false
+}
+
+/// Položka k přejmenování včetně údajů pro značky [Y], [M], [D], [h], [m], [s] (datum změny) a [P] (název nadřazené složky).
+struct RenameInput {
+    var name: String
+    var isDirectory: Bool
+    var modified: Date? = nil
+    var parent = ""
 }
 
 enum BatchRename {
     static func newNames(for items: [(name: String, isDirectory: Bool)], _ o: RenameOptions) -> [String] {
+        newNames(for: items.map { RenameInput(name: $0.name, isDirectory: $0.isDirectory) }, o)
+    }
+
+    /// Odstraní diakritiku (včetně písmen jako ł a đ, která se rozkladem neodstraní).
+    static func stripDiacritics(_ s: String) -> String {
+        var out = s.folding(options: .diacriticInsensitive, locale: nil)
+        for (from, to) in [("ł", "l"), ("Ł", "L"), ("đ", "d"), ("Đ", "D"), ("ø", "o"), ("Ø", "O"), ("ß", "s")] {
+            out = out.replacingOccurrences(of: from, with: to)
+        }
+        return out
+    }
+
+    private static func format(_ date: Date?, _ pattern: String) -> String {
+        guard let date else { return "" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = pattern
+        return f.string(from: date)
+    }
+
+    static func newNames(for items: [RenameInput], _ o: RenameOptions) -> [String] {
         let regex: NSRegularExpression? = (o.regex && !o.search.isEmpty)
             ? try? NSRegularExpression(pattern: o.search) : nil
+        let range = try? NSRegularExpression(pattern: #"\[N(\d+)-(\d+)\]"#)
 
         return items.enumerated().map { index, item in
             let ns = item.name as NSString
@@ -28,8 +62,24 @@ enum BatchRename {
             } else {
                 out = out.replacingOccurrences(of: "[E]", with: ext)
             }
+            if let range {
+                let chars = Array(base)
+                for m in range.matches(in: out, range: NSRange(location: 0, length: (out as NSString).length)).reversed() {
+                    let from = Int((out as NSString).substring(with: m.range(at: 1))) ?? 1
+                    let to = Int((out as NSString).substring(with: m.range(at: 2))) ?? 0
+                    var piece = ""
+                    if max(from, 1) <= chars.count && to >= max(from, 1) {
+                        piece = String(chars[(max(from, 1) - 1)..<min(to, chars.count)])
+                    }
+                    out = (out as NSString).replacingCharacters(in: m.range, with: piece)
+                }
+            }
             out = out.replacingOccurrences(of: "[C]", with: counter)
             out = out.replacingOccurrences(of: "[N]", with: base)
+            for (token, pattern) in [("[Y]", "yyyy"), ("[M]", "MM"), ("[D]", "dd"), ("[h]", "HH"), ("[m]", "mm"), ("[s]", "ss")] {
+                out = out.replacingOccurrences(of: token, with: format(item.modified, pattern))
+            }
+            out = out.replacingOccurrences(of: "[P]", with: item.parent)
 
             if !o.search.isEmpty {
                 if let regex {
@@ -44,6 +94,8 @@ enum BatchRename {
             case 2: out = out.uppercased()
             default: break
             }
+            if o.removeDiacritics { out = stripDiacritics(out) }
+            if o.spacesToUnderscore { out = out.replacingOccurrences(of: " ", with: "_") }
             return out.replacingOccurrences(of: "/", with: "-").trimmingCharacters(in: .whitespaces)
         }
     }
@@ -56,7 +108,10 @@ struct BatchRenameSheet: View {
     @State private var busy = false
 
     private var items: [FileItem] { model.batchItems }
-    private var names: [String] { BatchRename.newNames(for: items.map { ($0.name, $0.isDirectory) }, opts) }
+    private var names: [String] { BatchRename.newNames(for: items.map {
+        RenameInput(name: $0.name, isDirectory: $0.isDirectory, modified: $0.modified,
+                    parent: $0.url.deletingLastPathComponent().lastPathComponent)
+    }, opts) }
 
     /// Indexy položek, jejichž nový název je prázdný, duplicitní nebo koliduje s jiným souborem.
     private var problems: Set<Int> {
@@ -92,6 +147,14 @@ struct BatchRenameSheet: View {
                     Toggle(L("Regulární výraz (v náhradě lze použít $1, $2…)"), isOn: $opts.regex)
                 }
                 GridRow {
+                    Text("")
+                    Toggle(L("Odstranit diakritiku (á → a)"), isOn: $opts.removeDiacritics)
+                }
+                GridRow {
+                    Text("")
+                    Toggle(L("Mezery nahradit podtržítkem"), isOn: $opts.spacesToUnderscore)
+                }
+                GridRow {
                     Text(L("Čítač"))
                     HStack {
                         Stepper("od \(opts.start)", value: $opts.start, in: 0...99999)
@@ -111,7 +174,7 @@ struct BatchRenameSheet: View {
             }
             .textFieldStyle(.roundedBorder)
 
-            Text(L("Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač."))
+            Text(L("Maska: [N] = název bez přípony, [N2-5] = znaky 2 až 5 názvu, [E] = přípona, [C] = čítač, [Y] [M] [D] [h] [m] [s] = rok, měsíc, den, hodina, minuta, sekunda změny, [P] = název nadřazené složky."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
 
             ScrollView {

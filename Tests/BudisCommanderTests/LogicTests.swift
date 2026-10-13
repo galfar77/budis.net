@@ -160,3 +160,35 @@ final class ProcessListTests: XCTestCase {
         XCTAssertTrue(all.contains { $0.pid == me })
     }
 }
+
+final class BatchRenameTokenTests: XCTestCase {
+    private func one(_ item: RenameInput, _ o: RenameOptions) -> String { BatchRename.newNames(for: [item], o)[0] }
+
+    func testDateParentAndRangeTokens() {
+        var cal = DateComponents(); cal.year = 2025; cal.month = 7; cal.day = 9; cal.hour = 14; cal.minute = 5; cal.second = 3
+        let date = Calendar.current.date(from: cal)
+        let item = RenameInput(name: "Dovolená u moře.JPG", isDirectory: false, modified: date, parent: "Fotky")
+        var o = RenameOptions(); o.mask = "[Y]-[M]-[D]_[h]-[m]-[s] [P].[E]"
+        XCTAssertEqual(one(item, o), "2025-07-09_14-05-03 Fotky.JPG")
+        o.mask = "[N1-3]-[N12-99].[E]"
+        XCTAssertEqual(one(item, o), "Dov-moře.JPG")
+        o.mask = "[N50-60].[E]"
+        XCTAssertEqual(one(item, o), ".JPG")
+        o.mask = "[Y]-[M]"
+        XCTAssertEqual(one(RenameInput(name: "a.txt", isDirectory: false), o), "-")
+    }
+
+    func testDiacriticsAndSpacesOptions() {
+        let item = RenameInput(name: "Příliš žluťoučký kůň Łódź.txt", isDirectory: false)
+        var o = RenameOptions(); o.removeDiacritics = true; o.spacesToUnderscore = true
+        XCTAssertEqual(one(item, o), "Prilis_zlutoucky_kun_Lodz.txt")
+        var u = RenameOptions(); u.removeDiacritics = true; u.caseMode = 2
+        XCTAssertEqual(one(item, u), "PRILIS ZLUTOUCKY KUN LODZ.TXT")
+        XCTAssertEqual(one(item, RenameOptions()), "Příliš žluťoučký kůň Łódź.txt")
+    }
+
+    func testOldTupleApiStillWorks() {
+        var o = RenameOptions(); o.mask = "[C]_[N].[E]"; o.start = 5; o.digits = 3
+        XCTAssertEqual(BatchRename.newNames(for: [("a.jpg", false), ("b.jpg", false)], o), ["005_a.jpg", "006_b.jpg"])
+    }
+}
