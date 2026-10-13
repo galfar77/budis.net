@@ -315,3 +315,28 @@ public class SettingsTests
         Assert.Single(s.Recents, r => r.Equals("p5", StringComparison.OrdinalIgnoreCase));
     }
 }
+
+public class BatchRenameTokenTests
+{
+    private static string One(RenameItem item, RenameOptions o) => BatchRename.NewNames(new[] { item }, o)[0];
+
+    [Fact]
+    public void DateAndParentAndRangeTokens()
+    {
+        var item = new RenameItem("Dovolená u moře.JPG", false, new DateTime(2025, 7, 9, 14, 5, 3), "Fotky");
+        Assert.Equal("2025-07-09_14-05-03 Fotky.JPG", One(item, new RenameOptions { Mask = "[Y]-[M]-[D]_[h]-[m]-[s] [P].[E]" }));
+        Assert.Equal("Dov-moře.JPG", One(item, new RenameOptions { Mask = "[N1-3]-[N12-99].[E]" }));
+        Assert.Equal(".JPG", One(item, new RenameOptions { Mask = "[N50-60].[E]" }));              // rozsah mimo název je prázdný
+        Assert.Equal("--", One(new RenameItem("a.txt", false), new RenameOptions { Mask = "[Y]-[M]-[D]" }).Replace("--", "--"));   // bez data jsou značky prázdné
+    }
+
+    [Fact]
+    public void DiacriticsAndSpacesOptionsApplyAfterCase()
+    {
+        var item = new RenameItem("Příliš žluťoučký kůň Łódź.txt", false);
+        Assert.Equal("Prilis_zlutoucky_kun_Lodz.txt", One(item, new RenameOptions { RemoveDiacritics = true, SpacesToUnderscore = true }));
+        Assert.Equal("PRILIS ZLUTOUCKY KUN LODZ.TXT", One(item, new RenameOptions { RemoveDiacritics = true, CaseMode = 2 }));
+        Assert.Equal("Příliš žluťoučký kůň Łódź.txt", One(item, new RenameOptions()));
+        Assert.Equal("A-B.txt", One(new RenameItem("a_b.txt", false), new RenameOptions { Mask = "[N].[E]", Search = "a_b", Replace = "A/B" }));
+    }
+}

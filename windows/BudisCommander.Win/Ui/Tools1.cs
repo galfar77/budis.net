@@ -283,17 +283,22 @@ public sealed class BatchRenameWindow : Window
         var start = new NumericUpDown { Value = 1, Minimum = 0, Maximum = 99999, Increment = 1, FormatString = "0" };
         var digits = new NumericUpDown { Value = 1, Minimum = 1, Maximum = 6, Increment = 1, FormatString = "0" };
         var caseBox = new ComboBox { ItemsSource = new[] { "Beze změny", "malá", "VELKÁ" }, SelectedIndex = 0 };
+        var diacritics = new CheckBox { Content = "Odstranit diakritiku (á → a)" };
+        var spaces = new CheckBox { Content = "Mezery nahradit podtržítkem" };
         var preview = new StackPanel { Spacing = 2 };
         var warning = new TextBlock { Foreground = Brushes.Red, Text = "", TextWrapping = TextWrapping.Wrap };
         var apply = UiKit.Button("Přejmenovat", () => { Result = Names(); Close(); }, true);
         var oldNames = items.Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var others = core.Active.AllItems.Where(i => !i.IsParent && !oldNames.Contains(i.Name)).Select(i => i.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        List<string> Names() => BatchRename.NewNames(items.Select(i => (i.Name, i.IsDirectory)).ToList(), new RenameOptions
-        {
-            Mask = mask.Text ?? "", Search = search.Text ?? "", Replace = replace.Text ?? "", Regex = regex.IsChecked == true,
-            Start = (int)(start.Value ?? 1), Digits = (int)(digits.Value ?? 1), CaseMode = caseBox.SelectedIndex,
-        });
+        List<string> Names() => BatchRename.NewNames(
+            items.Select(i => new RenameItem(i.Name, i.IsDirectory, i.Modified, i.IsParent ? "" : Path.GetFileName(Path.GetDirectoryName(i.FullPath.TrimEnd('\\', '/')) ?? "") ?? "")).ToList(),
+            new RenameOptions
+            {
+                Mask = mask.Text ?? "", Search = search.Text ?? "", Replace = replace.Text ?? "", Regex = regex.IsChecked == true,
+                Start = (int)(start.Value ?? 1), Digits = (int)(digits.Value ?? 1), CaseMode = caseBox.SelectedIndex,
+                RemoveDiacritics = diacritics.IsChecked == true, SpacesToUnderscore = spaces.IsChecked == true,
+            });
 
         void Refresh()
         {
@@ -321,17 +326,18 @@ public sealed class BatchRenameWindow : Window
         mask.TextChanged += (_, _) => Refresh(); search.TextChanged += (_, _) => Refresh(); replace.TextChanged += (_, _) => Refresh();
         regex.IsCheckedChanged += (_, _) => Refresh(); start.ValueChanged += (_, _) => Refresh(); digits.ValueChanged += (_, _) => Refresh();
         caseBox.SelectionChanged += (_, _) => Refresh();
+        diacritics.IsCheckedChanged += (_, _) => Refresh(); spaces.IsCheckedChanged += (_, _) => Refresh();
 
-        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 6 };
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 6 };
         void Row(int r, string label, Control c) { var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center }; Grid.SetRow(l, r); Grid.SetRow(c, r); Grid.SetColumn(c, 1); form.Children.Add(l); form.Children.Add(c); }
         Row(0, "Maska", mask); Row(1, "Hledat", search); Row(2, "Nahradit", replace); Row(3, "", regex);
-        Row(4, "Čítač od", start); Row(5, "Číslic", digits); Row(6, "Písmena", caseBox);
+        Row(4, "Čítač od", start); Row(5, "Číslic", digits); Row(6, "Písmena", caseBox); Row(7, "", diacritics); Row(8, "", spaces);
 
         Content = new Border
         {
             Padding = new Thickness(16),
             Child = UiKit.VStack(8, UiKit.Label($"Hromadné přejmenování ({items.Count} položek)", 15, true), form,
-                UiKit.Label("Maska: [N] = název bez přípony, [E] = přípona, [C] = čítač.", dim: true),
+                UiKit.Label("Maska: [N] = název bez přípony, [N2-5] = znaky 2 až 5 názvu, [E] = přípona, [C] = čítač, [Y] [M] [D] [h] [m] [s] = rok, měsíc, den, hodina, minuta, sekunda změny, [P] = název nadřazené složky.", dim: true),
                 UiKit.Frame(UiKit.Scroll(preview, 170)), warning,
                 UiKit.ButtonRow(UiKit.Button("Zrušit", Close), apply)),
         };
