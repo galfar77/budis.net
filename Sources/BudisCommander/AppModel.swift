@@ -515,6 +515,10 @@ final class AppModel: ObservableObject {
     func edit() async {
         let pane = active
         guard let item = pane.current, !item.isParent, !item.isDirectory else { return }
+        if let archive = pane.archive {
+            await editInArchive(archive, item: item)
+            return
+        }
         guard let conn = pane.connection, let path = item.remotePath else {
             openInTextEditor(item.url)
             return
@@ -553,6 +557,38 @@ final class AppModel: ObservableObject {
                 } catch {
                     self.notice = nil
                     Dialogs.error(L("Změny „\(item.name)“ se nepodařilo nahrát:\n\(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+
+    /// Soubor uvnitř archivu (zip) otevře v editoru a po každém uložení ho zapíše zpět do archivu.
+    private func editInArchive(_ archive: ArchiveInfo, item: FileItem) async {
+        let archiveURL = URL(fileURLWithPath: archive.itemID)
+        guard ArchiveEdit.canUpdate(archiveURL) else {
+            Dialogs.error(L("Upravovat soubory uvnitř archivu jde jen u zip (a jar). Ostatní formáty jsou otevřené jen pro čtení; soubor zkopírujte ven (F5)."))
+            return
+        }
+        let file = item.url
+        let entry = ArchiveEdit.entryName(root: archive.root, file: file)
+        let key = "archiv:\(archive.itemID)|\(entry)"
+        editTasks[key]?.cancel()
+        showNotice(L("Editace „\(item.name)“: po uložení se změny zapíšou do archivu"))
+        openInTextEditor(file)
+        editTasks[key] = Task { [weak self] in
+            var last = Self.modificationDate(file)
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard FileManager.default.fileExists(atPath: file.path) else { return }       // panel opustil archiv
+                guard Self.modificationDate(file) != last else { continue }
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                last = Self.modificationDate(file)
+                guard let self else { return }
+                do {
+                    try await Task.detached { try ArchiveEdit.replaceInZip(archive: archiveURL, root: archive.root, entry: entry) }.value
+                    self.showNotice(L("Uloženo do archivu: \(item.name)"))
+                } catch {
+                    Dialogs.error(L("Změny „\(item.name)“ se nepodařilo zapsat do archivu:\n\(error.localizedDescription)"))
                 }
             }
         }
