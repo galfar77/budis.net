@@ -70,6 +70,7 @@ struct ContentView: View {
             case .transfers: TransfersSheet(model: model)
             case .phone: PhoneSheet(model: model)
             case .markAdvanced: MarkAdvancedSheet(model: model)
+            case .connections: ConnectionManagerSheet(model: model)
             case .history: HistorySheet(model: model, onlyDeleted: false)
             case .trash: HistorySheet(model: model, onlyDeleted: true)
             case .syncTasks: SyncTasksSheet(model: model)

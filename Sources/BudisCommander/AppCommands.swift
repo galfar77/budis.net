@@ -24,6 +24,27 @@ struct AppCommands: Commands {
         .disabled(model.sheet != nil || model.viewer != nil)
     }
 
+    /// Podnabídka Rychlé připojení: uložené servery podle skupin.
+    private var quickConnectMenu: some View {
+        let _ = model.serversRevision        // obnoví nabídku po změně uložených serverů
+        let tree = SavedServer.tree(SavedServer.loadAll())
+        return Menu(L("Rychlé připojení")) {
+            if tree.isEmpty {
+                Text(L("Žádný uložený server"))
+            }
+            ForEach(tree, id: \.group) { section in
+                if section.group.isEmpty {
+                    ForEach(section.servers) { s in Button(s.displayName) { model.quickConnect(s) } }
+                } else {
+                    Menu(section.group) {
+                        ForEach(section.servers) { s in Button(s.displayName) { model.quickConnect(s) } }
+                    }
+                }
+            }
+        }
+        .disabled(model.sheet != nil || model.viewer != nil)
+    }
+
     var body: some Commands {
         // Nahradí systémové „Zavřít okno“ (⌘W), aby zavíralo záložku.
         CommandGroup(replacing: .saveItem) {
@@ -96,6 +117,8 @@ struct AppCommands: Commands {
             item(.connect)
             item(.cloud)
             item(.shareLink)
+            item(.connections)
+            quickConnectMenu
             item(.phone)
             item(.network)
             Divider()

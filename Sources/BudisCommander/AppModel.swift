@@ -29,7 +29,7 @@ struct ViewerContent: Identifiable {
 
 enum ActiveSheet: String, Identifiable {
     case server, network, batchRename, search, settings, favorites
-    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone, markAdvanced, history, trash
+    case diff, checksum, attributes, userMenu, duplicates, tags, tabSets, cloud, whatsNew, features, about, processes, transfers, syncTasks, phone, markAdvanced, history, trash, connections
     var id: String { rawValue }
 }
 
@@ -42,6 +42,10 @@ final class AppModel: ObservableObject {
     @Published var progressText = ""
     @Published var viewer: ViewerContent?
     @Published var sheet: ActiveSheet?
+    /// Server, který má okno Připojit k serveru při otevření předvyplnit (ze správce připojení).
+    var prefillServer: SavedServer?
+    /// Zvyšuje se při změně uložených serverů, aby se obnovilo menu Rychlé připojení.
+    @Published var serversRevision = 0
     @Published var notice: String?
     @Published var batchItems: [FileItem] = []
     @Published var canCancel = false
@@ -594,6 +598,21 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Připojí k uloženému serveru; když pro něj není uložené heslo, otevře okno připojení předvyplněné.
+    func quickConnect(_ server: SavedServer) {
+        let password = (server.passwordSaved ?? false) ? Keychain.get(account: server.id) : nil
+        guard password != nil || server.user.isEmpty else {
+            prefillServer = server
+            sheet = .server
+            return
+        }
+        let conn = RemoteConnection(proto: server.proto, host: server.host, port: server.port, user: server.user,
+                                    password: password ?? "", insecure: server.insecure,
+                                    keyPath: server.proto == .sftp ? (server.keyPath ?? "") : "")
+        sheet = nil
+        Task { _ = await connect(conn) }
+    }
+
     /// Vytvoří veřejný odkaz na položku pod kurzorem v cloudovém panelu a zkopíruje ho do schránky.
     func createShareLink() async {
         let pane = active
@@ -654,6 +673,7 @@ final class AppModel: ObservableObject {
         case .terminal: showTerminal.toggle()
         case .markAdvanced: sheet = .markAdvanced
         case .shareLink: Task { await createShareLink() }
+        case .connections: sheet = .connections
         case .history: sheet = .history
         case .trashRestore: sheet = .trash
         case .markSameExt: active.markSameExtension()
