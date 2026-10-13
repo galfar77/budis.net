@@ -150,6 +150,27 @@ public static class ArchiveService
         catch { return false; }
     }
 
+    /// <summary>Jestli jde do archivu zapisovat (zip a jar; ostatní formáty jsou jen pro čtení).</summary>
+    public static bool CanUpdate(string archivePath)
+    {
+        var lower = archivePath.ToLowerInvariant();
+        return lower.EndsWith(".zip") || lower.EndsWith(".jar");
+    }
+
+    /// <summary>Nahradí v zipu jednu položku obsahem souboru (chybějící položku vytvoří). Název položky používá lomítka.</summary>
+    public static void ReplaceInZip(string zipPath, string entryName, string localFile)
+    {
+        entryName = entryName.Replace('\\', '/').TrimStart('/');
+        using var fs = new FileStream(zipPath, FileMode.Open, FileAccess.ReadWrite);
+        using var zip = new ZipArchive(fs, ZipArchiveMode.Update);
+        zip.GetEntry(entryName)?.Delete();
+        zip.CreateEntryFromFile(localFile, entryName, CompressionLevel.Optimal);
+    }
+
+    /// <summary>Název položky v archivu podle cesty souboru v rozbalené dočasné složce.</summary>
+    public static string EntryNameFor(string extractRoot, string file) =>
+        Path.GetRelativePath(extractRoot, file).Replace('\\', '/');
+
     /// <summary>Přidá soubory do existujícího zipu (existující položky stejného jména přepíše).</summary>
     public static void AddToZip(string zipPath, string baseDir, IEnumerable<string> paths, CancellationToken ct)
     {

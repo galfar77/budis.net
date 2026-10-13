@@ -422,6 +422,7 @@ public sealed partial class AppCore
         var pane = Active;
         var item = pane.Current;
         if (item == null || item.IsParent || item.IsDirectory) return;
+        if (pane.IsArchive) { await EditInArchiveAsync(pane, item); return; }
         if (!pane.IsRemote) { OpenEditor(item.FullPath); return; }
 
         var conn = pane.Connection!;
@@ -462,6 +463,49 @@ public sealed partial class AppCore
                     if (ReferenceEquals(pane.Connection, conn) && pane.RemotePath == dir) await pane.ReloadAsync();
                 }
                 catch (Exception e) { await Ui.ShowErrorAsync($"Změny „{item.Name}“ se nepodařilo nahrát:\n{e.Message}"); }
+            }
+        });
+    }
+
+    /// <summary>
+    /// Soubor uvnitř archivu (zip) otevře v editoru a po každém uložení ho zapíše zpět do archivu.
+    /// Ostatní formáty archivů jsou jen pro čtení.
+    /// </summary>
+    public async Task EditInArchiveAsync(PaneState pane, FileEntry item)
+    {
+        var archive = pane.Archive;
+        if (archive == null) return;
+        var archivePath = archive.ItemId;
+        if (!ArchiveService.CanUpdate(archivePath))
+        {
+            await Ui.ShowErrorAsync("Upravovat soubory uvnitř archivu jde jen u zip (a jar). Ostatní formáty jsou otevřené jen pro čtení; soubor zkopírujte ven (F5).");
+            return;
+        }
+        var file = item.FullPath;
+        var entry = ArchiveService.EntryNameFor(archive.Root, file);
+        var key = "archiv:" + archivePath + "|" + entry;
+        if (_editWatchers.TryGetValue(key, out var old)) old.Cancel();
+        ShowNotice($"Editace „{item.Name}“: po uložení se změny zapíšou do archivu");
+        OpenEditor(file);
+        var cts = new CancellationTokenSource();
+        _editWatchers[key] = cts;
+        _ = Task.Run(async () =>
+        {
+            var last = File.Exists(file) ? File.GetLastWriteTimeUtc(file) : DateTime.MinValue;
+            while (!cts.IsCancellationRequested)
+            {
+                await Task.Delay(1000, cts.Token).ContinueWith(_ => { });
+                if (cts.IsCancellationRequested || !File.Exists(file)) break;          // pane opustil archiv a složku smazal
+                var now = File.GetLastWriteTimeUtc(file);
+                if (now == last) continue;
+                await Task.Delay(300);
+                last = File.GetLastWriteTimeUtc(file);
+                try
+                {
+                    await Task.Run(() => ArchiveService.ReplaceInZip(archivePath, entry, file));
+                    ShowNotice($"Uloženo do archivu: {item.Name}");
+                }
+                catch (Exception e) { await Ui.ShowErrorAsync($"Změny „{item.Name}“ se nepodařilo zapsat do archivu:\n{e.Message}"); }
             }
         });
     }

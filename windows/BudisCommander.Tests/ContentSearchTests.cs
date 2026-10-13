@@ -124,3 +124,36 @@ public class ContentSearchTests
         Assert.True(last!.ReadLimitReached);
     }
 }
+
+public class ArchiveEditTests
+{
+    [Fact]
+    public void ReplacesAndAddsEntriesInZipKeepingOthers()
+    {
+        using var t = new TempDir();
+        t.File("src/a.txt", "STARE"); t.File("src/sub/b.txt", "B");
+        var zip = t.Combine("balik.zip");
+        ArchiveService.Create(zip, t.Combine("src"), new[] { t.Combine("src/a.txt"), t.Combine("src/sub") }, null, CancellationToken.None);
+        Assert.True(ArchiveService.CanUpdate(zip));
+        Assert.False(ArchiveService.CanUpdate(t.Combine("x.7z")));
+
+        var edited = t.File("edit/a.txt", "NOVE ěščř");
+        ArchiveService.ReplaceInZip(zip, "a.txt", edited);
+        var fresh = t.File("edit/c.txt", "NOVY SOUBOR");
+        ArchiveService.ReplaceInZip(zip, "sub/c.txt", fresh);
+
+        ArchiveService.Extract(zip, t.Combine("out"), null, CancellationToken.None);
+        Assert.Equal("NOVE ěščř", File.ReadAllText(t.Combine("out/a.txt")));
+        Assert.Equal("B", File.ReadAllText(t.Combine("out/sub/b.txt")));
+        Assert.Equal("NOVY SOUBOR", File.ReadAllText(t.Combine("out/sub/c.txt")));
+        using var z = System.IO.Compression.ZipFile.OpenRead(zip);
+        Assert.Equal(1, z.Entries.Count(e => e.FullName == "a.txt"));              // nevznikl duplikát
+    }
+
+    [Fact]
+    public void EntryNameUsesForwardSlashesRelativeToExtractRoot()
+    {
+        using var t = new TempDir();
+        Assert.Equal("sub/dir/f.txt", ArchiveService.EntryNameFor(t.Combine("root"), Path.Combine(t.Combine("root"), "sub", "dir", "f.txt")));
+    }
+}
