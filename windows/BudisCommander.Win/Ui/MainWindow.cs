@@ -191,8 +191,42 @@ public sealed partial class MainWindow : Window
                 item.Click += async (_, _) => await Run(id);
                 top.Items.Add(item);
             }
+            if (group == Actions.Servers) top.Items.Add(BuildQuickConnectMenu());
             _menu.Items.Add(top);
         }
+    }
+
+    /// <summary>Podnabídka Rychlé připojení: uložené servery podle skupin, naplní se při otevření.</summary>
+    private MenuItem BuildQuickConnectMenu()
+    {
+        var quick = new MenuItem { Header = Tr.T("Rychlé připojení") };
+        quick.Items.Add(new MenuItem { Header = "…" });
+        quick.SubmenuOpened += (_, _) =>
+        {
+            quick.Items.Clear();
+            var servers = _core.Settings.Servers;
+            if (servers.Count == 0) { quick.Items.Add(new MenuItem { Header = Tr.T("Žádný uložený server"), IsEnabled = false }); return; }
+            foreach (var (group, list) in ServerBook.Tree(servers))
+            {
+                var target = quick;
+                if (group.Length > 0) { target = new MenuItem { Header = group }; quick.Items.Add(target); }
+                foreach (var s in list)
+                {
+                    var server = s;
+                    var item = new MenuItem { Header = ServerBook.DisplayName(server) };
+                    item.Click += async (_, _) => await QuickConnectAsync(server);
+                    target.Items.Add(item);
+                }
+            }
+        };
+        return quick;
+    }
+
+    private async Task QuickConnectAsync(SavedServer server)
+    {
+        var password = AppSettings.Unprotect(server.ProtectedPassword);
+        if (password == null && server.User.Length > 0) { await ShowToolAsync(new ConnectWindow(_core, server)); return; }
+        await _core.ConnectAsync(server, password ?? "");
     }
 
     // --- téma, stav, aktivní panel --------------------------------------------------------------------

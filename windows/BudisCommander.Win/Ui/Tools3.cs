@@ -27,7 +27,10 @@ public sealed class ConnectWindow : Window
     private readonly ProgressBar _busy = new() { IsIndeterminate = true, IsVisible = false, Height = 4 };
     private bool _filling;
 
-    public ConnectWindow(AppCore core)
+    private readonly TextBox _name = new() { Watermark = "volitelné, např. Web firmy" };
+    private readonly TextBox _group = new() { Watermark = "volitelné, např. Práce" };
+
+    public ConnectWindow(AppCore core, SavedServer? prefill = null)
     {
         _core = core;
         Title = "Připojit k serveru";
@@ -35,7 +38,7 @@ public sealed class ConnectWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         var servers = core.Settings.Servers;
-        _saved.ItemsSource = servers.Select(s => s.Title).ToList();
+        _saved.ItemsSource = servers.Select(ServerBook.DisplayName).ToList();
         _saved.SelectionChanged += (_, _) =>
         {
             if (_saved.SelectedIndex >= 0 && _saved.SelectedIndex < servers.Count) Fill(servers[_saved.SelectedIndex]);
@@ -48,7 +51,7 @@ public sealed class ConnectWindow : Window
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Soukromý SSH klíč", AllowMultiple = false });
             if (files.Count > 0) _key.Text = files[0].TryGetLocalPath();
         });
-        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 6 };
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"), RowSpacing = 6 };
         void Row(int r, string label, Control c, Control? extra = null)
         {
             var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
@@ -56,6 +59,7 @@ public sealed class ConnectWindow : Window
             form.Children.Add(l); form.Children.Add(c);
             if (extra != null) { Grid.SetRow(extra, r); Grid.SetColumn(extra, 2); form.Children.Add(extra); }
         }
+        Row(6, "Název", _name); Row(7, "Skupina", _group);
         Row(0, "Uložené", _saved); Row(1, "Protokol", _proto); Row(2, "Server", _host, _port);
         Row(3, "Uživatel", _user); Row(4, "Heslo", _password); Row(5, "Klíč", _key, pick);
         _host.Margin = new Thickness(0, 0, 6, 0);
@@ -66,11 +70,36 @@ public sealed class ConnectWindow : Window
             Padding = new Thickness(16),
             Child = UiKit.VStack(8, UiKit.Label("Připojit k serveru", 15, true), form, _insecure, _remember, _busy,
                 UiKit.Label("U SFTP s klíčem je heslo heslem ke klíči. Prázdný uživatel u FTP = anonymní přihlášení.", dim: true),
-                UiKit.ButtonRow(UiKit.Button("Zrušit", Close), _connect)),
+                UiKit.ButtonRow(UiKit.Button("Zrušit", Close), UiKit.Button("Jen uložit", async () => await SaveOnlyAsync()), _connect)),
         };
         _connect.Classes.Add("accent");
         this.CloseOnEscape();
-        Opened += (_, _) => _host.Focus();
+        if (prefill != null) Fill(prefill);
+        Opened += (_, _) => (prefill != null ? (Control)_password : _host).Focus();
+    }
+
+    private SavedServer ReadForm() => new()
+    {
+        Protocol = _proto.SelectedIndex switch { 0 => RemoteProtocol.Ftp, 1 => RemoteProtocol.FtpTls, _ => RemoteProtocol.Sftp },
+        Host = (_host.Text ?? "").Trim(),
+        Port = int.TryParse(_port.Text, out var p) ? p : 0,
+        User = (_user.Text ?? "").Trim(),
+        Insecure = _insecure.IsChecked == true,
+        KeyPath = (_key.Text ?? "").Trim(),
+        Name = (_name.Text ?? "").Trim(),
+        Group = (_group.Text ?? "").Trim(),
+    };
+
+    /// <summary>Uloží server do seznamu (bez připojení).</summary>
+    private async Task SaveOnlyAsync()
+    {
+        var server = ReadForm();
+        if (server.Host.Length == 0) return;
+        if (_remember.IsChecked == true) server.ProtectedPassword = AppSettings.Protect(_password.Text ?? "");
+        ServerBook.Remember(_core.Settings.Servers, server);
+        _core.Settings.Save();
+        await Task.CompletedTask;
+        Close();
     }
 
     private int DefaultPort() => _proto.SelectedIndex == 2 ? 22 : 21;
@@ -81,6 +110,7 @@ public sealed class ConnectWindow : Window
         _proto.SelectedIndex = (int)s.Protocol == 0 ? 0 : (int)s.Protocol == 1 ? 1 : 2;
         _host.Text = s.Host; _port.Text = s.Port > 0 ? s.Port.ToString() : "";
         _user.Text = s.User; _key.Text = s.KeyPath; _insecure.IsChecked = s.Insecure;
+        _name.Text = s.Name; _group.Text = s.Group;
         var pw = AppSettings.Unprotect(s.ProtectedPassword);
         _password.Text = pw ?? ""; _remember.IsChecked = pw != null;
         _filling = false;
@@ -90,25 +120,14 @@ public sealed class ConnectWindow : Window
     {
         var host = (_host.Text ?? "").Trim();
         if (host.Length == 0) return;
-        var server = new SavedServer
-        {
-            Protocol = _proto.SelectedIndex switch { 0 => RemoteProtocol.Ftp, 1 => RemoteProtocol.FtpTls, _ => RemoteProtocol.Sftp },
-            Host = host,
-            Port = int.TryParse(_port.Text, out var p) ? p : 0,
-            User = (_user.Text ?? "").Trim(),
-            Insecure = _insecure.IsChecked == true,
-            KeyPath = (_key.Text ?? "").Trim(),
-        };
+        var server = ReadForm();
         var password = _password.Text ?? "";
         _connect.IsEnabled = false; _busy.IsVisible = true;
         bool ok = await _core.ConnectAsync(server, password);
         _connect.IsEnabled = true; _busy.IsVisible = false;
         if (!ok) return;
         if (_remember.IsChecked == true) server.ProtectedPassword = AppSettings.Protect(password);
-        var list = _core.Settings.Servers;
-        list.RemoveAll(s => s.Title == server.Title);
-        list.Insert(0, server);
-        if (list.Count > 20) list.RemoveRange(20, list.Count - 20);
+        ServerBook.Remember(_core.Settings.Servers, server);
         _core.Settings.Save();
         Close();
     }

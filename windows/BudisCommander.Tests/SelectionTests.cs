@@ -181,3 +181,46 @@ public class ColumnLayoutTests
         Assert.True(p.Columns.IsDefault);
     }
 }
+
+public class ServerBookTests
+{
+    private static SavedServer S(string host, string name = "", string group = "", string user = "u") =>
+        new() { Protocol = BudisCommander.Remote.RemoteProtocol.Sftp, Host = host, User = user, Name = name, Group = group };
+
+    [Fact]
+    public void TreePutsUngroupedFirstThenGroupsAlphabetically()
+    {
+        var list = new List<SavedServer> { S("z.cz", group: "Práce"), S("a.cz"), S("m.cz", "Moje", "Doma"), S("b.cz", group: "práce") };
+        var tree = ServerBook.Tree(list);
+        Assert.Equal(new[] { "", "Doma", "Práce" }, tree.Select(g => g.Group).ToArray());
+        Assert.Equal(2, tree[2].Servers.Count);                                  // „Práce“ a „práce“ jsou jedna skupina
+        Assert.Equal(new[] { "Doma", "Práce" }, ServerBook.Groups(list).Select(g => g).ToArray()[..2]);
+        Assert.StartsWith("Moje", ServerBook.DisplayName(S("m.cz", "Moje")));
+        Assert.Equal(S("x.cz").Title, ServerBook.DisplayName(S("x.cz")));
+    }
+
+    [Fact]
+    public void RememberReplacesInPlaceKeepsNameAndGroupAndTrimsOnlyUnmanaged()
+    {
+        var list = new List<SavedServer> { S("a.cz", "Moje A", "Práce"), S("b.cz") };
+        var again = S("a.cz");                                                   // stejný server po novém připojení
+        ServerBook.Remember(list, again);
+        Assert.Equal(2, list.Count);
+        Assert.Equal("a.cz", list[0].Host); Assert.Equal("Moje A", list[0].Name); Assert.Equal("Práce", list[0].Group);
+
+        for (var i = 0; i < 30; i++) ServerBook.Remember(list, S($"h{i}.cz"));
+        Assert.Contains(list, s => s.Host == "a.cz" && s.Name == "Moje A");      // spravovaný server zůstal
+        Assert.Equal(ServerBook.MaxUnmanaged, list.Count(s => !ServerBook.IsManaged(s)));
+        Assert.Equal("h29.cz", list[0].Host);                                     // nejnovější nahoře
+    }
+
+    [Fact]
+    public void DuplicateGetsCopyNameAndOldSettingsStillLoad()
+    {
+        var dup = ServerBook.Duplicate(S("a.cz", "Moje", "Doma"));
+        Assert.Equal("Moje (kopie)", dup.Name); Assert.Equal("Doma", dup.Group);
+        Assert.Equal("a.cz (kopie)", ServerBook.Duplicate(S("a.cz")).Name);
+        var old = System.Text.Json.JsonSerializer.Deserialize<SavedServer>("{\"Host\":\"x.cz\",\"User\":\"u\",\"Port\":22}")!;
+        Assert.Equal("", old.Name); Assert.Equal("", old.Group); Assert.False(ServerBook.IsManaged(old));
+    }
+}

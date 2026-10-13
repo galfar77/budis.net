@@ -101,6 +101,7 @@ public static class Actions
         new("focusPath", "Přejít do pole s cestou", "Alt+D", View),
 
         new("connect", "Připojit k serveru FTP/SFTP…", "Ctrl+N", Servers),
+        new("connections", "Správce připojení…", null, Servers),
         new("phone", "Telefon (Android)…", null, Servers),
         new("cloud", "Cloudová úložiště (rclone)…", null, Servers),
         new("network", "Síť a disky…", "Ctrl+Shift+N", Servers),

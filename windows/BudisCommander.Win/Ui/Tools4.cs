@@ -138,3 +138,75 @@ public sealed class RecycleBinWindow : Window
         await _core.Right.Current.ReloadAsync(true);
     }
 }
+
+/// <summary>Správce připojení: uložené servery ve stromu se složkami, rychlé připojení dvojklikem.</summary>
+public sealed class ConnectionManagerWindow : Window
+{
+    private readonly AppCore _core;
+    private readonly TreeView _tree = new() { Height = 340 };
+    private readonly TextBlock _status = new() { Opacity = 0.85, TextWrapping = TextWrapping.Wrap };
+
+    public ConnectionManagerWindow(AppCore core)
+    {
+        _core = core;
+        Title = "Správce připojení";
+        Width = 620; SizeToContent = SizeToContent.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        var connect = UiKit.Button("Připojit", async () => await ConnectSelectedAsync(), true);
+        var add = UiKit.Button("Nový…", async () => { await new ConnectWindow(_core).ShowDialog(this); Fill(); });
+        var edit = UiKit.Button("Upravit…", async () => { if (Selected() is { } s) { await new ConnectWindow(_core, s).ShowDialog(this); Fill(); } });
+        var dup = UiKit.Button("Duplikovat", () =>
+        {
+            if (Selected() is not { } s) return;
+            var copy = ServerBook.Duplicate(s);
+            _core.Settings.Servers.Add(copy); _core.Settings.Save(); Fill();
+        });
+        var del = UiKit.Button("Smazat", async () =>
+        {
+            if (Selected() is not { } s) return;
+            if (!await _core.Ui.ConfirmAsync($"Smazat uložený server „{ServerBook.DisplayName(s)}“?", "", "Smazat")) return;
+            _core.Settings.Servers.Remove(s); _core.Settings.Save(); Fill();
+        });
+        _tree.DoubleTapped += async (_, _) => await ConnectSelectedAsync();
+        _tree.KeyDown += async (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { e.Handled = true; await ConnectSelectedAsync(); } };
+        Content = new Border
+        {
+            Padding = new Thickness(16),
+            Child = UiKit.VStack(8, UiKit.Label("Správce připojení", 15, true), UiKit.Frame(_tree), _status,
+                UiKit.HStack(8, connect, add, edit, dup, del, UiKit.Button("Zavřít", Close)),
+                UiKit.Label("Dvojklik se připojí. Název a skupinu nastavíte v okně Upravit; servery ve skupinách se samy nemažou. Rychlé připojení je i v menu Servery.", dim: true)),
+        };
+        this.CloseOnEscape();
+        Opened += (_, _) => Fill();
+    }
+
+    private SavedServer? Selected() => (_tree.SelectedItem as TreeViewItem)?.Tag as SavedServer;
+
+    private void Fill()
+    {
+        var items = new List<TreeViewItem>();
+        foreach (var (group, servers) in ServerBook.Tree(_core.Settings.Servers))
+        {
+            var nodes = servers.Select(s => new TreeViewItem { Header = ServerBook.DisplayName(s), Tag = s }).ToList();
+            if (group.Length == 0) items.AddRange(nodes);
+            else items.Add(new TreeViewItem { Header = "📁 " + group, ItemsSource = nodes, IsExpanded = true });
+        }
+        _tree.ItemsSource = items;
+        _status.Text = _core.Settings.Servers.Count == 0 ? Tr.T("Zatím žádný uložený server. Přidejte ho tlačítkem Nový.") : "";
+    }
+
+    private async Task ConnectSelectedAsync()
+    {
+        if (Selected() is not { } s) return;
+        var password = AppSettings.Unprotect(s.ProtectedPassword);
+        if (password == null && s.User.Length > 0)                       // bez uloženého hesla se zeptá okno připojení
+        {
+            await new ConnectWindow(_core, s).ShowDialog(this);
+            Fill();
+            return;
+        }
+        _status.Text = Tr.T("Připojuji…");
+        var ok = await _core.ConnectAsync(s, password ?? "");
+        if (ok) Close(); else _status.Text = "";
+    }
+}

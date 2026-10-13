@@ -17,6 +17,13 @@ public sealed class SavedServer
     public string KeyPath { get; set; } = "";
     /// <summary>Heslo zašifrované přes DPAPI (jen aktuální uživatel Windows); prázdné = neuloženo.</summary>
     public string? ProtectedPassword { get; set; }
+    /// <summary>Vlastní název v seznamu (prázdný = jen adresa).</summary>
+    public string Name { get; set; } = "";
+    /// <summary>Složka ve správci připojení (prázdná = bez skupiny).</summary>
+    public string Group { get; set; } = "";
+    /// <summary>Při nahrazení záznamu ponechat dříve uložené heslo (nastaví se, když uživatel heslo znovu nezadal).</summary>
+    [JsonIgnore]
+    public bool KeepPassword { get; set; }
 
     [JsonIgnore]
     public string Title => $"{Protocol.ToString().ToUpperInvariant()}  {(User.Length > 0 ? User + "@" : "")}{Host}:{EffectivePort}";
