@@ -50,6 +50,63 @@ public sealed partial class AppCore
         return result;
     }
 
+    /// <summary>Obousměrná synchronizace: nové a novější soubory jdou na obě strany, nic se nemaže, starší verze přepsaná na místní straně jde do Koše.</summary>
+    private async Task<string> RunTwoWayAsync(string source, string dstRoot, TreeMirror.Lister dstList, Func<string, string, string> dstChild,
+                                              double tolerance, RemoteSession? session, CancellationToken ct)
+    {
+        var plan = await TreeMirror.PlanTwoWayAsync(TreeMirror.LocalLister, source, Path.Combine, dstList, dstRoot, dstChild, tolerance, ct);
+        if (plan.IsEmpty && plan.Conflicts.Count == 0) return "beze změn";
+        int up = 0, down = 0; var errors = new List<string>();
+
+        foreach (var dir in plan.MkdirsA)
+            try { Directory.CreateDirectory(dir); } catch (Exception e) when (e is not OperationCanceledException) { errors.Add($"{Path.GetFileName(dir)}: {e.Message}"); }
+        foreach (var dir in plan.MkdirsB)
+        {
+            ct.ThrowIfCancellationRequested();
+            try { if (session != null) await session.MkdirAsync(dir, ct); else Directory.CreateDirectory(dir); }
+            catch (Exception e) when (e is not OperationCanceledException) { errors.Add($"{Path.GetFileName(dir)}: {e.Message}"); }
+        }
+        foreach (var (from, to, _) in plan.AToB)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                if (session != null) await session.UploadAsync(from, to, null, ct);
+                else CopyKeepingTime(from, to);
+                up++;
+            }
+            catch (Exception e) when (e is not OperationCanceledException) { errors.Add($"{Path.GetFileName(from)}: {e.Message}"); }
+        }
+        foreach (var (from, to, size) in plan.BToA)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                if (session != null)
+                {
+                    if (File.Exists(to)) FileOps.DeleteToRecycleBin(to);
+                    await session.DownloadAsync(from, false, size, to, null, ct);
+                }
+                else CopyKeepingTime(from, to);
+                down++;
+            }
+            catch (Exception e) when (e is not OperationCanceledException) { errors.Add($"{Path.GetFileName(from)}: {e.Message}"); }
+        }
+        var text = $"na cíl {up}, ze cíle {down} souborů ({Formatting.Size(plan.Bytes)})";
+        if (plan.Conflicts.Count > 0) text += $", konflikty (přeskočeno) {plan.Conflicts.Count}: {Path.GetFileName(plan.Conflicts[0])}";
+        if (errors.Count > 0) text += $", chyb {errors.Count}: {errors[0]}";
+        return text;
+    }
+
+    /// <summary>Zkopíruje soubor, starší verzi na cíli pošle do Koše a zachová čas změny (jinak by se kopie příště považovala za novější a vracela zpět).</summary>
+    private static void CopyKeepingTime(string from, string to)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+        if (File.Exists(to)) FileOps.DeleteToRecycleBin(to);
+        File.Copy(from, to, true);
+        File.SetLastWriteTimeUtc(to, File.GetLastWriteTimeUtc(from));
+    }
+
     /// <summary>Provede synchronizaci: zkopíruje nové a změněné soubory, mazání jen když je zapnuté.</summary>
     public async Task<string> RunSyncTaskAsync(SyncTask task, CancellationToken ct)
     {
@@ -79,6 +136,8 @@ public sealed partial class AppCore
                 Directory.CreateDirectory(dstRoot);
                 dstList = TreeMirror.LocalLister; dstChild = Path.Combine; tolerance = 2;
             }
+
+            if (task.TwoWay) return await RunTwoWayAsync(source, dstRoot, dstList, dstChild, tolerance, session, ct);
 
             var plan = await TreeMirror.PlanAsync(TreeMirror.LocalLister, source, Path.Combine, dstList, dstRoot, dstChild, tolerance, ct);
             if (plan.Copies.Count == 0 && plan.Mkdirs.Count == 0 && (!task.DeleteExtra || plan.Deletes.Count == 0)) return "beze změn";

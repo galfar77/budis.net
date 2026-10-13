@@ -903,3 +903,65 @@ public class AdbTests
         }
     }
 }
+
+public class TwoWaySyncTests
+{
+    private static void Touch(string path, DateTime utc) => File.SetLastWriteTimeUtc(path, utc);
+
+    [Fact]
+    public async Task PlanCopiesNewFilesBothWaysAndNewerWins()
+    {
+        using var t = new TempDir();
+        var old = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc); var neu = old.AddHours(2);
+        Touch(t.File("a/jen-a.txt", "A"), old); Touch(t.File("b/jen-b.txt", "BB"), old);
+        Touch(t.File("a/sdilene-a-novejsi.txt", "NOVE A"), neu); Touch(t.File("b/sdilene-a-novejsi.txt", "star"), old);
+        Touch(t.File("a/sdilene-b-novejsi.txt", "star"), old); Touch(t.File("b/sdilene-b-novejsi.txt", "NOVE B"), neu);
+        Touch(t.File("a/stejne.txt", "x"), old); Touch(t.File("b/stejne.txt", "x"), old);
+        Touch(t.File("a/podslozka-a/f.txt", "F"), old);
+        Touch(t.File("b/podslozka-b/g.txt", "G"), old);
+        Touch(t.File("a/konflikt.txt", "aaa"), old); Touch(t.File("b/konflikt.txt", "bbbbb"), old);   // stejný čas, jiná velikost
+
+        var plan = await TreeMirror.PlanTwoWayAsync(TreeMirror.LocalLister, t.Combine("a"), Path.Combine, TreeMirror.LocalLister, t.Combine("b"), Path.Combine, 2, CancellationToken.None);
+        Assert.Equal(new[] { "jen-a.txt", "podslozka-a/f.txt".Replace('/', Path.DirectorySeparatorChar), "sdilene-a-novejsi.txt" }.OrderBy(x => x),
+                     plan.AToB.Select(c => Path.GetRelativePath(t.Combine("a"), c.From)).OrderBy(x => x));
+        Assert.Equal(new[] { "jen-b.txt", Path.Combine("podslozka-b", "g.txt"), "sdilene-b-novejsi.txt" }.OrderBy(x => x),
+                     plan.BToA.Select(c => Path.GetRelativePath(t.Combine("b"), c.From)).OrderBy(x => x));
+        Assert.Equal(new[] { t.Combine("b", "podslozka-a") }, plan.MkdirsB);
+        Assert.Equal(new[] { t.Combine("a", "podslozka-b") }, plan.MkdirsA);
+        Assert.Equal("konflikt.txt", Path.GetFileName(Assert.Single(plan.Conflicts)));
+    }
+
+    [Fact]
+    public async Task TaskSyncsBothDirectionsNeverDeletesAndSecondRunIsQuiet()
+    {
+        using var t = new TempDir();
+        var old = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        Touch(t.File("a/jen-a.txt", "A"), old); Touch(t.File("b/jen-b.txt", "B"), old);
+        Touch(t.File("a/s.txt", "NOVE"), old.AddHours(1)); Touch(t.File("b/s.txt", "stare"), old);
+        Touch(t.File("a/konflikt.txt", "aaa"), old); Touch(t.File("b/konflikt.txt", "bbbbb"), old);
+        var core = Helpers.NewCore(t.Dir("l"), t.Dir("r"));
+        var task = new SyncTask { Name = "oboustranne", Source = t.Combine("a"), Target = t.Combine("b"), TwoWay = true, DeleteExtra = true };
+
+        var first = await core.RunSyncTaskAsync(task, CancellationToken.None);
+        Assert.Contains("na cíl 2", first); Assert.Contains("ze cíle 1", first); Assert.Contains("konflikty", first);
+        Assert.Equal("B", File.ReadAllText(t.Combine("a/jen-b.txt")));
+        Assert.Equal("A", File.ReadAllText(t.Combine("b/jen-a.txt")));
+        Assert.Equal("NOVE", File.ReadAllText(t.Combine("b/s.txt")));
+        Assert.Equal("aaa", File.ReadAllText(t.Combine("a/konflikt.txt")));             // konflikt se nepřepíše
+        Assert.Equal("bbbbb", File.ReadAllText(t.Combine("b/konflikt.txt")));
+        Assert.True(File.Exists(t.Combine("a/jen-a.txt")) && File.Exists(t.Combine("b/jen-b.txt")));   // nic se nesmazalo
+
+        File.Delete(t.Combine("a/konflikt.txt")); File.Delete(t.Combine("b/konflikt.txt"));
+        Assert.Equal("beze změn", await core.RunSyncTaskAsync(task, CancellationToken.None));   // čas kopií zůstal zachovaný
+    }
+
+    [Fact]
+    public void TwoWayTaskIsDescribedWithTwoArrowsAndSurvivesSerialization()
+    {
+        var t = new SyncTask { Name = "x", Source = "A", Target = "B", TwoWay = true };
+        Assert.Contains("⇄", t.Describe());
+        var back = System.Text.Json.JsonSerializer.Deserialize<SyncTask>(System.Text.Json.JsonSerializer.Serialize(t))!;
+        Assert.True(back.TwoWay);
+        Assert.False(System.Text.Json.JsonSerializer.Deserialize<SyncTask>("{\"Name\":\"stara\"}")!.TwoWay);
+    }
+}

@@ -539,6 +539,9 @@ public sealed class SyncTaskEditWindow : Window
         var target = new TextBox { Text = task.Target, Watermark = @"složka, nebo rclone:název:/cesta" };
         var interval = new ComboBox { ItemsSource = Intervals.Select(i => i.Label).ToList(), SelectedIndex = Math.Max(0, Array.FindIndex(Intervals, i => i.Minutes == task.IntervalMinutes)) };
         var delete = new CheckBox { Content = "Mazat v cíli soubory, které ve zdroji nejsou", IsChecked = task.DeleteExtra };
+        var mode = new ComboBox { ItemsSource = new[] { "Jednosměrně (zdroj → cíl)", "Obousměrně (nové a novější soubory na obě strany, nic se nemaže)" }, SelectedIndex = task.TwoWay ? 1 : 0 };
+        mode.SelectionChanged += (_, _) => { delete.IsEnabled = mode.SelectedIndex == 0; if (mode.SelectedIndex == 1) delete.IsChecked = false; };
+        delete.IsEnabled = !task.TwoWay;
         var error = new TextBlock { Foreground = Brushes.Red, TextWrapping = TextWrapping.Wrap };
         var pickSource = UiKit.Button("Vybrat…", async () =>
         {
@@ -550,14 +553,14 @@ public sealed class SyncTaskEditWindow : Window
             var f = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Cílová složka" });
             if (f.Count > 0 && f[0].TryGetLocalPath() is { } p) target.Text = p;
         });
-        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto"), RowSpacing = 6 };
+        var form = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto"), RowSpacing = 6 };
         void Row(int r, string label, Control c, Control? extra = null)
         {
             var l = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetRow(l, r); Grid.SetRow(c, r); Grid.SetColumn(c, 1); form.Children.Add(l); form.Children.Add(c);
             if (extra != null) { Grid.SetRow(extra, r); Grid.SetColumn(extra, 2); form.Children.Add(extra); }
         }
-        Row(0, "Název", name); Row(1, "Zdroj", source, pickSource); Row(2, "Cíl", target, pickTarget); Row(3, "Spouštět", interval);
+        Row(0, "Název", name); Row(1, "Zdroj", source, pickSource); Row(2, "Cíl", target, pickTarget); Row(3, "Směr", mode); Row(4, "Spouštět", interval);
         var save = UiKit.Button("Uložit", () =>
         {
             if (string.IsNullOrWhiteSpace(name.Text)) { error.Text = "Zadejte název."; return; }
@@ -565,7 +568,7 @@ public sealed class SyncTaskEditWindow : Window
             if (string.IsNullOrWhiteSpace(target.Text)) { error.Text = "Zadejte cíl."; return; }
             if (target.Text!.StartsWith("rclone:", StringComparison.OrdinalIgnoreCase) && SyncTask.ParseRclone(target.Text) == null) { error.Text = "Cíl v cloudu zapište jako rclone:název:/cesta."; return; }
             task.Name = name.Text!.Trim(); task.Source = source.Text!.Trim(); task.Target = target.Text!.Trim();
-            task.IntervalMinutes = Intervals[Math.Max(0, interval.SelectedIndex)].Minutes; task.DeleteExtra = delete.IsChecked == true;
+            task.IntervalMinutes = Intervals[Math.Max(0, interval.SelectedIndex)].Minutes; task.DeleteExtra = delete.IsChecked == true; task.TwoWay = mode.SelectedIndex == 1;
             Saved = true; Close();
         }, true);
         Content = new Border

@@ -12,6 +12,8 @@ public sealed class SyncTask
     public int IntervalMinutes { get; set; }
     /// <summary>Mazat v cíli soubory, které ve zdroji nejsou (jinak se jen přidává a přepisuje).</summary>
     public bool DeleteExtra { get; set; }
+    /// <summary>Obousměrně: nové a novější soubory se kopírují na obě strany, nic se nemaže.</summary>
+    public bool TwoWay { get; set; }
     public DateTime? LastRun { get; set; }
     public string LastResult { get; set; } = "";
 
@@ -28,5 +30,5 @@ public sealed class SyncTask
         return (rest[..i], path.Length == 0 ? "/" : (path.StartsWith('/') ? path : "/" + path));
     }
 
-    public string Describe() => $"{Name}   {Source} → {Target}   ({(IntervalMinutes > 0 ? $"každých {IntervalMinutes} min" : "ručně")})";
+    public string Describe() => $"{Name}   {Source} {(TwoWay ? "⇄" : "→")} {Target}   ({(IntervalMinutes > 0 ? $"každých {IntervalMinutes} min" : "ručně")})";
 }
