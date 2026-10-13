@@ -36,11 +36,12 @@ enum ContextEntry: Hashable {
 
 /// Obsah místní nabídky (pravé tlačítko) v seznamu souborů podle toho, co je pod ukazatelem.
 enum ContextMenus {
-    static func entries(kind: ContextKind, remote: Bool) -> [ContextEntry] {
+    static func entries(kind: ContextKind, remote: Bool, cloud: Bool = false) -> [ContextEntry] {
         var list: [ContextEntry] = []
         func add(_ c: ContextCommand...) { list.append(contentsOf: c.map { .command($0) }) }
         func act(_ a: ShortcutAction...) { list.append(contentsOf: a.map { .command(.action($0)) }) }
         func local(_ a: ShortcutAction...) { if !remote { list.append(contentsOf: a.map { .command(.action($0)) }) } }
+        func cloudOnly(_ a: ShortcutAction...) { if cloud { list.append(contentsOf: a.map { .command(.action($0)) }) } }
         func sep() { if let last = list.last, last != .divider { list.append(.divider) } }
 
         switch kind {
@@ -59,19 +60,19 @@ enum ContextMenus {
             add(.open); sep()
             add(.copy, .move); sep()
             local(.copyFiles, .cutFiles, .pasteFiles); act(.copyPath); sep()
-            add(.rename, .delete); sep()
+            add(.rename, .delete); cloudOnly(.shareLink); sep()
             local(.pack, .dirSizes, .attributes, .tags)
         case .archive:
             add(.open); if !remote { list.append(.openWith) }; sep()
             add(.copy, .move); sep()
             local(.copyFiles, .cutFiles); act(.copyPath, .copyName); sep()
-            add(.rename, .delete); sep()
+            add(.rename, .delete); cloudOnly(.shareLink); sep()
             local(.unpack, .pack, .checksum, .attributes, .tags)
         case .file:
             add(.open, .view, .edit); if !remote { list.append(.openWith) }; sep()
             add(.copy, .move); sep()
             local(.copyFiles, .cutFiles); act(.copyPath, .copyName); sep()
-            add(.rename, .delete); sep()
+            add(.rename, .delete); cloudOnly(.shareLink); sep()
             local(.quickLook, .pack, .checksum, .attributes, .tags)
         }
         while list.last == .divider { list.removeLast() }

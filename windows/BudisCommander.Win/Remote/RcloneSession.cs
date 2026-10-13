@@ -79,6 +79,10 @@ public static class Rclone
         return r.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim().TrimEnd(':')).Where(l => l.Length > 0).ToList();
     }
 
+    /// <summary>Z výstupu příkazu rclone link vybere odkaz (první řádek, který začíná http).</summary>
+    public static string? ParseLink(string output) =>
+        output.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || l.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+
     public static string FirstLine(string text, string fallback)
     {
         var line = text.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0);
@@ -161,6 +165,19 @@ public sealed class RcloneSession : RemoteSession
     {
         await Run(new[] { "copyto" }.Concat(ProgressArgs).Concat(new[] { local, Spec(remote) }), ct, ProgressParser(progress));
         progress?.Invoke(1);
+    }
+
+    /// <summary>Vytvoří veřejný odkaz na soubor nebo složku (rclone link). Ne každé úložiště odkazy umí.</summary>
+    public async Task<string> LinkAsync(string path, CancellationToken ct)
+    {
+        var r = await Rclone.RunAsync(_exe, new[] { "link", Spec(path) }, ct);
+        var link = r.Code == 0 ? Rclone.ParseLink(r.Text) : null;
+        if (link == null)
+        {
+            var reason = Rclone.FirstLine(r.Err.Split('\n').LastOrDefault(l => l.Contains("ERROR") || l.Contains("Failed") || l.Contains("couldn't")) ?? r.Err, "rclone odkaz nevytvořil.");
+            throw new IOException(reason);
+        }
+        return link;
     }
 
     protected override Task DeleteFileAsync(string path, CancellationToken ct) => Run(new[] { "deletefile", Spec(path) }, ct);

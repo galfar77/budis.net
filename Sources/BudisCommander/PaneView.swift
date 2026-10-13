@@ -145,7 +145,7 @@ struct PaneView: View {
     private func contextMenu(for item: FileItem?, index: Int?) -> some View {
         let underMarked = item.map { pane.marked.contains($0.id) } ?? false
         let kind = ContextMenus.kind(markedCount: pane.marked.count, underIsMarked: underMarked, under: item)
-        let entries = ContextMenus.entries(kind: kind, remote: pane.connection != nil)
+        let entries = ContextMenus.entries(kind: kind, remote: pane.connection != nil, cloud: pane.connection?.proto == .rclone)
         ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
             switch entry {
             case .divider:

@@ -104,6 +104,7 @@ public static class Actions
         new("phone", "Telefon (Android)…", null, Servers),
         new("cloud", "Cloudová úložiště (rclone)…", null, Servers),
         new("network", "Síť a disky…", "Ctrl+Shift+N", Servers),
+        new("shareLink", "Sdílet odkazem (cloud)", null, Servers),
     };
 
     public static ActionDef? Get(string id) => All.FirstOrDefault(a => a.Id == id);

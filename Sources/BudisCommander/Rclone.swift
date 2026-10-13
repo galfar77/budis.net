@@ -119,6 +119,12 @@ enum Rclone {
             .filter { !$0.isEmpty }
     }
 
+    /// Z výstupu příkazu rclone link vybere odkaz (první řádek, který začíná http).
+    static func parseLink(_ output: String) -> String? {
+        output.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { $0.lowercased().hasPrefix("http://") || $0.lowercased().hasPrefix("https://") }
+    }
+
     static func message(from err: String, fallback: String) -> String {
         let lines = err.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         let pick = lines.last(where: { $0.contains("ERROR") || $0.contains("Failed") || $0.contains("error") }) ?? lines.last
@@ -197,6 +203,15 @@ extension RemoteConnection {
         _ = try await rclone(["copyto", "--use-json-log", "--stats", "300ms", "-v", local.path, spec(path)],
                              onErrLine: Rclone.progressParser(onProgress))
         onProgress?(1)
+    }
+
+    /// Vytvoří veřejný odkaz na soubor nebo složku (rclone link). Ne každé úložiště odkazy umí.
+    func rcloneLink(_ path: String) async throws -> String {
+        let r = try await Rclone.run(rcloneExe, ["link", spec(path)])
+        guard r.status == 0, let link = Rclone.parseLink(String(decoding: r.out, as: UTF8.self)) else {
+            throw RemoteError(message: Rclone.message(from: r.err, fallback: L("rclone odkaz nevytvořil.")))
+        }
+        return link
     }
 
     func rcloneMkdir(_ path: String) async throws { _ = try await rclone(["mkdir", spec(path)]) }

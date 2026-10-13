@@ -594,6 +594,26 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Vytvoří veřejný odkaz na položku pod kurzorem v cloudovém panelu a zkopíruje ho do schránky.
+    func createShareLink() async {
+        let pane = active
+        guard let conn = pane.connection, conn.proto == .rclone else {
+            Dialogs.error(L("Odkaz jde vytvořit jen v panelu připojeném ke cloudu (menu Nástroje → Cloudová úložiště)."))
+            return
+        }
+        guard let item = pane.current, !item.isParent, let path = item.remotePath else { return }
+        notice = L("Vytvářím odkaz…")
+        defer { if notice == L("Vytvářím odkaz…") { notice = nil } }
+        do {
+            let link = try await conn.rcloneLink(path)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(link, forType: .string)
+            showNotice(L("Odkaz je ve schránce: \(link)"))
+        } catch {
+            Dialogs.error(L("Odkaz se nepodařilo vytvořit (úložiště ho možná neumí):\n\n\(error.localizedDescription)"))
+        }
+    }
+
     // MARK: Označování podle masky
 
     func markByMask(on: Bool) {
@@ -633,6 +653,7 @@ final class AppModel: ObservableObject {
         case .phone: sheet = .phone
         case .terminal: showTerminal.toggle()
         case .markAdvanced: sheet = .markAdvanced
+        case .shareLink: Task { await createShareLink() }
         case .history: sheet = .history
         case .trashRestore: sheet = .trash
         case .markSameExt: active.markSameExtension()

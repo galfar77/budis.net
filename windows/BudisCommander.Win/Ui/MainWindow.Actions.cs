@@ -79,6 +79,13 @@ public sealed partial class MainWindow
         });
         H("syncTasks", () => ShowToolAsync(new SyncTasksWindow(_core)));
         H("transfers", () => ShowToolAsync(new TransfersWindow(_core)));
+        H("shareLink", async () =>
+        {
+            var link = await _core.CreateShareLinkAsync();
+            if (link == null) return;
+            await CopyTextAsync(link);
+            _core.ShowNotice("Odkaz je ve schránce: " + link);
+        });
         H("history", () => ShowToolAsync(new HistoryWindow(_core)));
         H("recycleBin", () => ShowToolAsync(new RecycleBinWindow(_core)));
         H("processes", () => ShowToolAsync(new ProcessWindow(_core)));

@@ -157,3 +157,42 @@ public class ArchiveEditTests
         Assert.Equal("sub/dir/f.txt", ArchiveService.EntryNameFor(t.Combine("root"), Path.Combine(t.Combine("root"), "sub", "dir", "f.txt")));
     }
 }
+
+public class ShareLinkTests
+{
+    [Fact]
+    public void ParseLinkTakesTheFirstUrlLine()
+    {
+        Assert.Equal("https://www.dropbox.com/s/abc/file.txt?dl=0", Rclone.ParseLink("\nhttps://www.dropbox.com/s/abc/file.txt?dl=0\n"));
+        Assert.Equal("http://x.test/a", Rclone.ParseLink("Link:\nhttp://x.test/a\nhttps://y.test/b"));
+        Assert.Null(Rclone.ParseLink("žádný odkaz"));
+        Assert.Null(Rclone.ParseLink(""));
+    }
+
+    [Fact]
+    public async Task LinkAsyncRunsRcloneLinkAndReportsFailures()
+    {
+        if (OperatingSystem.IsWindows()) return;                          // napodobenina rclone je skript pro bash
+        using var t = new TempDir();
+        var script = t.Combine("rclone");
+        File.WriteAllText(script, "#!/bin/bash\nif [ \"$1\" != link ]; then exit 2; fi\ncase \"$2\" in\n  nuceny:*) echo 'ERROR : Failed to link: this backend can not create public links' >&2; exit 1;;\n  *) echo \"https://share.test/$2\";;\nesac\n");
+        File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        using var ok = new RcloneSession(script, "gdrive");
+        Assert.Equal("https://share.test/gdrive:Fotky/a.jpg", await ok.LinkAsync("/Fotky/a.jpg", CancellationToken.None));
+
+        using var bad = new RcloneSession(script, "nuceny");
+        var ex = await Assert.ThrowsAsync<IOException>(() => bad.LinkAsync("/x", CancellationToken.None));
+        Assert.Contains("public links", ex.Message);
+    }
+
+    [Fact]
+    public void CloudPanesOfferShareLinkOthersDoNot()
+    {
+        Assert.Contains("shareLink", ContextMenus.For(ContextKind.File, remote: true, cloud: true));
+        Assert.Contains("shareLink", ContextMenus.For(ContextKind.Folder, remote: true, cloud: true));
+        Assert.DoesNotContain("shareLink", ContextMenus.For(ContextKind.File, remote: true, cloud: false));
+        Assert.DoesNotContain("shareLink", ContextMenus.For(ContextKind.File, remote: false));
+        Assert.DoesNotContain("shareLink", ContextMenus.For(ContextKind.Empty, remote: true, cloud: true));
+    }
+}

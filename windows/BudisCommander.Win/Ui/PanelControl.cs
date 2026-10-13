@@ -561,7 +561,7 @@ public sealed class PanelControl : UserControl
         var kind = ContextMenus.KindOf(_pane.Marked.Count(), underIsMarked, under);
         var settings = _core.Settings;
         var menu = new ContextMenu();
-        foreach (var id in ContextMenus.For(kind, _pane.IsRemote, under != null && ContextMenus.IsRunnable(under.Name)))
+        foreach (var id in ContextMenus.For(kind, _pane.IsRemote, under != null && ContextMenus.IsRunnable(under.Name), _pane.Connection is BudisCommander.Remote.RcloneSession))
         {
             if (id == ContextMenus.Separator) { menu.Items.Add(new Separator()); continue; }
             var def = Actions.All.FirstOrDefault(a => a.Id == id);

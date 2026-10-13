@@ -9,7 +9,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     case undo, copyFiles, cutFiles, pasteFiles, copyPath, copyName, copyDirPath
     case quickLook, duplicates, addToArchive, tags
     case tabSets, cloud, checkUpdate, sortByType, processes, transfers, syncTasks, phone, terminal
-    case markAdvanced, markSameExt, invertMarks, rollbackVersion, history, trashRestore
+    case markAdvanced, markSameExt, invertMarks, rollbackVersion, history, trashRestore, shareLink
 
     var id: String { rawValue }
 
@@ -71,6 +71,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .markSameExt: return L("Označit stejnou příponu")
         case .invertMarks: return L("Převrátit označení")
         case .rollbackVersion: return L("Vrátit předchozí verzi…")
+        case .shareLink: return L("Sdílet odkazem (cloud)")
         case .history: return L("Historie operací…")
         case .trashRestore: return L("Obnovit z Koše…")
         }
@@ -109,7 +110,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .quickLook, .duplicates, .addToArchive, .tags: return ""
         case .tabSets, .cloud, .checkUpdate, .sortByType, .processes, .transfers, .syncTasks, .phone: return ""
         case .terminal: return "'"
-        case .markAdvanced, .markSameExt, .invertMarks, .rollbackVersion, .history, .trashRestore: return ""
+        case .markAdvanced, .markSameExt, .invertMarks, .rollbackVersion, .history, .trashRestore, .shareLink: return ""
         }
     }
 }

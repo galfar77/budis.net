@@ -8,12 +8,13 @@ public static class ContextMenus
 {
     public const string Separator = "-";
 
-    public static IReadOnlyList<string> For(ContextKind kind, bool remote, bool executable = false)
+    public static IReadOnlyList<string> For(ContextKind kind, bool remote, bool executable = false, bool cloud = false)
     {
         var list = new List<string>();
         void Add(params string[] ids) => list.AddRange(ids);
         void Sep() { if (list.Count > 0 && list[^1] != Separator) list.Add(Separator); }
         void Local(params string[] ids) { if (!remote) list.AddRange(ids); }
+        void Cloud(params string[] ids) { if (cloud) list.AddRange(ids); }
         void Windows(params string[] ids) { if (!remote && OperatingSystem.IsWindows()) list.AddRange(ids); }
 
         switch (kind)
@@ -35,21 +36,21 @@ public static class ContextMenus
                 Add("open"); Sep();
                 Add("copy", "move"); Sep();
                 Local("copyFiles", "cutFiles", "pasteFiles"); Add("copyPath"); Sep();
-                Add("rename", "delete"); Sep();
+                Add("rename", "delete"); Cloud("shareLink"); Sep();
                 Local("pack", "dirSizes", "attributes");
                 break;
             case ContextKind.Archive:
                 Add("open"); Windows("openWith"); Sep();
                 Add("copy", "move"); Sep();
                 Local("copyFiles", "cutFiles"); Add("copyPath", "copyName"); Sep();
-                Add("rename", "delete"); Sep();
+                Add("rename", "delete"); Cloud("shareLink"); Sep();
                 Local("unpack", "pack", "checksum", "attributes");
                 break;
             default:    // soubor
                 Add("open", "view", "edit"); Windows("openWith"); if (executable) Windows("runAsAdmin"); Sep();
                 Add("copy", "move"); Sep();
                 Local("copyFiles", "cutFiles"); Add("copyPath", "copyName"); Sep();
-                Add("rename", "delete"); Sep();
+                Add("rename", "delete"); Cloud("shareLink"); Sep();
                 Local("pack", "checksum", "attributes");
                 break;
         }

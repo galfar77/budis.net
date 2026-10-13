@@ -95,6 +95,7 @@ struct AppCommands: Commands {
             Divider()
             item(.connect)
             item(.cloud)
+            item(.shareLink)
             item(.phone)
             item(.network)
             Divider()
