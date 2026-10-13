@@ -196,3 +196,47 @@ public class ShareLinkTests
         Assert.DoesNotContain("shareLink", ContextMenus.For(ContextKind.Empty, remote: true, cloud: true));
     }
 }
+
+public class LanScannerTests
+{
+    [Fact]
+    public void SubnetAddressesSkipNetworkBroadcastAndSelf()
+    {
+        var list = LanScanner.SubnetAddresses(System.Net.IPAddress.Parse("192.168.1.10"), System.Net.IPAddress.Parse("255.255.255.0"));
+        Assert.Equal(253, list.Count);                                            // 254 počítačů bez vlastní adresy
+        Assert.DoesNotContain("192.168.1.10", list); Assert.DoesNotContain("192.168.1.0", list); Assert.DoesNotContain("192.168.1.255", list);
+        Assert.Contains("192.168.1.1", list); Assert.Contains("192.168.1.254", list);
+        var small = LanScanner.SubnetAddresses(System.Net.IPAddress.Parse("10.0.0.5"), System.Net.IPAddress.Parse("255.255.255.248"));
+        Assert.Equal(5, small.Count);                                             // /29 má šest počítačů, bez vlastní adresy pět
+        var big = LanScanner.SubnetAddresses(System.Net.IPAddress.Parse("10.1.2.3"), System.Net.IPAddress.Parse("255.0.0.0"));
+        Assert.Equal(253, big.Count);                                             // velké sítě se zúží na /24
+        Assert.All(big, a => Assert.StartsWith("10.1.2.", a));
+    }
+
+    [Fact]
+    public async Task ScanFindsOnlyAddressesWithOpenPort()
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            var hosts = await LanScanner.ScanAsync(new[] { "127.0.0.1" }, port, 800);
+            Assert.Equal("127.0.0.1", Assert.Single(hosts).Address);
+            Assert.True(await LanScanner.IsOpenAsync("127.0.0.1", port, 800, CancellationToken.None));
+        }
+        finally { listener.Stop(); }
+        // po zavření listeneru je port zavřený
+        Assert.Empty(await LanScanner.ScanAsync(new[] { "127.0.0.1" }, 9, 300));
+    }
+
+    [Fact]
+    public void OnlyDiskSharesWithoutDollarAreBrowsable()
+    {
+        Assert.True(new ShareInfo("Dokumenty", "", true).IsBrowsable);
+        Assert.False(new ShareInfo("C$", "Výchozí sdílení", true).IsBrowsable);
+        Assert.False(new ShareInfo("IPC$", "", false).IsBrowsable);
+        Assert.False(new ShareInfo("Tiskárna", "", false).IsBrowsable);
+        Assert.Empty(LanScanner.ListShares("neexistuje.invalid").Where(_ => !OperatingSystem.IsWindows()));
+    }
+}

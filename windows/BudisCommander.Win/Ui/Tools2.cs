@@ -381,7 +381,7 @@ public sealed class NetworkWindow : Window
     public NetworkWindow(AppCore core)
     {
         Title = "Síť a disky";
-        Width = 560; SizeToContent = SizeToContent.Height;
+        Width = 600; SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var drives = new ListBox { Height = 140 };
         var items = new List<(string Text, string Path)>();
@@ -399,6 +399,54 @@ public sealed class NetworkWindow : Window
         {
             if (drives.SelectedIndex >= 0) { var p = items[drives.SelectedIndex].Path; Close(); await core.Active.NavigateAsync(p); }
         };
+        // --- počítače v síti a jejich sdílené složky ---
+        var hosts = new List<LanHost>();
+        var hostList = new ListBox { Height = 110 };
+        var shares = new List<ShareInfo>();
+        var shareList = new ListBox { Height = 90 };
+        var scanStatus = new TextBlock { Opacity = 0.7, TextWrapping = TextWrapping.Wrap };
+        string? currentHost = null;
+        CancellationTokenSource? scanCts = null;
+        var scan = UiKit.Button("Prohledat síť", async () =>
+        {
+            if (scanCts != null) { scanCts.Cancel(); return; }
+            var cts = scanCts = new CancellationTokenSource();
+            hosts.Clear(); hostList.ItemsSource = null; shares.Clear(); shareList.ItemsSource = null;
+            var addresses = LanScanner.LocalNetworks().SelectMany(n => LanScanner.SubnetAddresses(n.Ip, n.Mask)).Distinct().ToList();
+            scanStatus.Text = addresses.Count == 0 ? "Žádná aktivní síť." : $"Hledám mezi {addresses.Count} adresami (otevřený port 445)…";
+            if (addresses.Count > 0)
+            {
+                var found = new Progress<int>(n => scanStatus.Text = $"Nalezeno počítačů: {n}…");
+                var result = await LanScanner.ScanAsync(addresses, LanScanner.SmbPort, 500, 64, found, cts.Token);
+                hosts.AddRange(result);
+                hostList.ItemsSource = hosts.Select(h => h.Name == h.Address ? h.Address : $"{h.Name}  ({h.Address})").ToList();
+                scanStatus.Text = cts.IsCancellationRequested ? "Hledání zastaveno." : $"Nalezeno počítačů: {hosts.Count}. Dvojklikem na počítač se zobrazí jeho sdílené složky.";
+            }
+            scanCts = null;
+        });
+        hostList.DoubleTapped += async (_, _) =>
+        {
+            if (hostList.SelectedIndex < 0 || hostList.SelectedIndex >= hosts.Count) return;
+            var h = hosts[hostList.SelectedIndex]; currentHost = h.Address;
+            scanStatus.Text = $"Zjišťuji sdílené složky {h.Name}…";
+            try
+            {
+                var list = await Task.Run(() => LanScanner.ListShares(h.Address));
+                shares.Clear(); shares.AddRange(list.Where(s => s.IsBrowsable));
+                shareList.ItemsSource = shares.Select(s => s.Remark.Length > 0 ? $"{s.Name}   –   {s.Remark}" : s.Name).ToList();
+                scanStatus.Text = shares.Count == 0 ? "Počítač nesdílí žádné složky." : $"Sdílené složky počítače {h.Name}: {shares.Count} (dvojklik otevře).";
+            }
+            catch (Exception e) { scanStatus.Text = e.Message; }
+        };
+        shareList.DoubleTapped += async (_, _) =>
+        {
+            if (shareList.SelectedIndex < 0 || shareList.SelectedIndex >= shares.Count || currentHost == null) return;
+            var path = @"\\" + currentHost + @"\" + shares[shareList.SelectedIndex].Name;
+            if (!Directory.Exists(path)) { scanStatus.Text = "Sdílenou složku se nepodařilo otevřít (možná je nutné přihlášení – zadejte ho níže)."; return; }
+            Close();
+            await core.Active.NavigateAsync(path);
+        };
+        Closed += (_, _) => scanCts?.Cancel();
         var unc = new TextBox { Watermark = @"\\server\sdileni", Text = @"\\" };
         var user = new TextBox { Watermark = "uživatel (volitelné, např. DOMENA\\jmeno)" };
         var pass = new TextBox { Watermark = "heslo (volitelné)", PasswordChar = '•' };
@@ -421,6 +469,7 @@ public sealed class NetworkWindow : Window
         {
             Padding = new Thickness(16),
             Child = UiKit.VStack(8, UiKit.Label("Síť a disky", 15, true), UiKit.Label("Disky (dvojklik otevře)", dim: true), UiKit.Frame(drives),
+                UiKit.HStack(8, UiKit.Label("Počítače v síti", dim: true), scan), UiKit.Frame(hostList), UiKit.Label("Sdílené složky vybraného počítače", dim: true), UiKit.Frame(shareList), scanStatus,
                 UiKit.Label("Sdílená složka v síti", dim: true), unc, user, pass, status,
                 UiKit.Label("Přihlášení se uloží jen pro tuto relaci Windows (příkaz net use).", dim: true),
                 UiKit.ButtonRow(UiKit.Button("Zavřít", Close), go)),
