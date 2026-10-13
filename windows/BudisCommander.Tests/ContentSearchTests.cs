@@ -237,6 +237,8 @@ public class LanScannerTests
         Assert.False(new ShareInfo("C$", "Výchozí sdílení", true).IsBrowsable);
         Assert.False(new ShareInfo("IPC$", "", false).IsBrowsable);
         Assert.False(new ShareInfo("Tiskárna", "", false).IsBrowsable);
-        Assert.Empty(LanScanner.ListShares("neexistuje.invalid").Where(_ => !OperatingSystem.IsWindows()));
+        // nedostupný počítač: na Windows chyba, jinde prázdný seznam
+        if (OperatingSystem.IsWindows()) Assert.ThrowsAny<Exception>(() => LanScanner.ListShares("neexistuje.invalid"));
+        else Assert.Empty(LanScanner.ListShares("neexistuje.invalid"));
     }
 }
