@@ -37,7 +37,7 @@ struct ContentView: View {
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
-        .overlay(alignment: .bottomTrailing) { progressCard.padding(.trailing, 12).padding(.bottom, 60) }
+        .overlay { progressCard }
         .onAppear { focused = true }
         .onChange(of: model.showCommandLine) { _, shown in
             if !shown { focused = true }
