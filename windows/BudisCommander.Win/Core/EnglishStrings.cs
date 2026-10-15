@@ -784,5 +784,8 @@ Sdílenou složku se nepodařilo otevřít (možná je nutné přihlášení –
 Počítač vyžaduje přihlášení (zadejte uživatele a heslo níže a zkuste to znovu).	The computer requires sign-in (enter a user and password below and try again).
 Sdílené složky se nepodařilo zjistit (kód {}).	Could not list the shared folders (code {}).
 Hledání počítačů v síti a jejich sdílených složek (Servery → Síť a disky).	Finding computers on the network and their shared folders (Servers → Network and disks).
+Probíhá operace	Operation in progress
+Minimalizovat	Minimize
+Průběh kopírování a dalších delších operací je v okně s tlačítky Zrušit a Minimalizovat; po minimalizaci je průběh ve stavovém řádku jako dřív.	Progress of copying and other longer operations is shown in a window with Cancel and Minimize buttons; after minimizing it appears in the status bar as before.
 """;
 }

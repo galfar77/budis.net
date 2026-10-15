@@ -8,6 +8,7 @@ enum InfoTexts {
         L("Úprava souboru uvnitř zip archivu: F4 ho otevře v editoru a po uložení zapíše zpět do archivu."),
         L("Sdílení odkazem: na cloudu pravé tlačítko → Sdílet odkazem, odkaz se zkopíruje do schránky."),
         L("Synchronizace na pozadí umí i obousměrný režim (nové a novější soubory na obě strany, nic se nemaže)."),
+        L("Průběh kopírování a dalších delších operací je v okně s tlačítky Zrušit a Minimalizovat; po minimalizaci je průběh ve stavovém řádku jako dřív."),
         L("Hromadné přejmenování: značky data a času změny, nadřazené složky a rozsahu znaků, volby bez diakritiky a mezer."),
         L("Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje)."),
         L("Obnovení z Koše přímo v aplikaci (Windows: celý Koš, Mac: soubory smazané aplikací)."),

@@ -295,13 +295,41 @@ public sealed partial class MainWindow : Window
 
     private bool IsTextFocused() => FocusManager?.GetFocusedElement() is TextBox;
 
+    private ProgressWindow? _progressWindow;
+    private bool _progressMinimized;
+    private DateTime? _progressSince;
+
     private void UpdateStatus()
     {
-        _progress.IsVisible = _core.Progress.HasValue;
-        if (_core.Progress.HasValue) _progress.Value = _core.Progress.Value;
-        _notice.Text = _core.Notice ?? _core.ProgressText;
-        _queueText.Text = _core.QueueCount > 0 ? $"ve frontě: {_core.QueueCount}" : "";
-        _cancel.IsVisible = _core.CanCancel && _core.Progress.HasValue;
+        var active = _core.Progress.HasValue;
+        if (!active) { _progressMinimized = false; _progressSince = null; }
+        else _progressSince ??= DateTime.UtcNow;
+        // okno se neukazuje u rychlých operací: až když trvá déle než 0,4 s (do té doby je průběh ve stavovém řádku)
+        var waited = active && (DateTime.UtcNow - _progressSince!.Value).TotalMilliseconds >= 400;
+        if (active && !waited && !_progressMinimized)
+            DispatcherTimer.RunOnce(UpdateStatus, TimeSpan.FromMilliseconds(420));
+        var inWindow = waited && !_progressMinimized;
+        if (inWindow)
+        {
+            if (_progressWindow == null)
+            {
+                _progressWindow = new ProgressWindow(_core, () => { _progressMinimized = true; UpdateStatus(); });
+                _progressWindow.Show(this);
+            }
+            _progressWindow.Update(_core);
+        }
+        else if (_progressWindow != null)
+        {
+            var w = _progressWindow; _progressWindow = null;
+            w.CloseForReal();
+            FocusActiveList();
+        }
+        var inBar = active && !inWindow;
+        _progress.IsVisible = inBar;
+        if (inBar) _progress.Value = _core.Progress!.Value;
+        _notice.Text = _core.Notice ?? (inBar ? _core.ProgressText : "");
+        _queueText.Text = inBar && _core.QueueCount > 0 ? $"ve frontě: {_core.QueueCount}" : "";
+        _cancel.IsVisible = _core.CanCancel && inBar;
         _cancelAll.IsVisible = _cancel.IsVisible && _core.QueueCount > 0;
     }
 

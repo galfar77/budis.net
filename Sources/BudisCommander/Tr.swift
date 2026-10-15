@@ -306,6 +306,7 @@ Mezery nahradit podtržítkem	Replace spaces with underscores
 Microsoft OneDrive	Microsoft OneDrive
 Miniatury souborů	File thumbnails
 Miniatury souborů místo ikon	File thumbnails instead of icons
+Minimalizovat	Minimize
 Máte nejnovější verzi.	You have the latest version.
 Nahradit	Replace
 Nahrát	Upload
@@ -426,6 +427,7 @@ Počítače v síti (SMB)	Computers on the network (SMB)
 Počítám rozdíly…	Calculating differences…
 Pravé tlačítko myši: nabídka s funkcemi podle toho, co je pod ukazatelem (soubor, složka, archiv, více označených, prázdné místo).	Right-click menu: functions depend on what is under the pointer (file, folder, archive, several marked items, empty space).
 Pravé tlačítko: Otevřít v programu nebo aplikaci; ve Windows i Spustit jako správce.	Right-click: Open with a program or app; on Windows also Run as administrator.
+Probíhá operace	Operation in progress
 Proces bude okamžitě ukončen. Neuložená práce se ztratí.	The process will be ended immediately. Unsaved work will be lost.
 Procesu se pošle požadavek na ukončení.	The process is asked to quit.
 Procházím složky…	Browsing folders…
@@ -444,6 +446,7 @@ Práva	Permissions
 Práva zadejte osmičkově, např. 644.	Enter the permissions in octal, e.g. 644.
 Právě probíhá jiná operace.	Another operation is running.
 Prázdný soubor.	Empty file.
+Průběh kopírování a dalších delších operací je v okně s tlačítky Zrušit a Minimalizovat; po minimalizaci je průběh ve stavovém řádku jako dřív.	Progress of copying and other longer operations is shown in a window with Cancel and Minimize buttons; after minimizing it appears in the status bar as before.
 Průhledné okno ve stylu skla	Glass-style translucent window
 Průhledné okno ve stylu skla (jde vypnout v Nastavení).	Glass-style translucent window (can be turned off in Settings).
 Písmena	Letters

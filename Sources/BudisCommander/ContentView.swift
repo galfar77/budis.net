@@ -37,6 +37,7 @@ struct ContentView: View {
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
+        .overlay { progressCard }
         .onAppear { focused = true }
         .onChange(of: model.showCommandLine) { _, shown in
             if !shown { focused = true }
@@ -79,19 +80,47 @@ struct ContentView: View {
         }
     }
 
+    // MARK: Okno s průběhem
+
+    @ViewBuilder
+    private var progressCard: some View {
+        if model.showsProgressWindow, let p = model.progress {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(L("Probíhá operace")).font(.headline)
+                Text(model.progressText).font(.system(size: 12)).lineLimit(3)
+                ProgressView(value: p).frame(width: 360)
+                if model.queueCount > 0 {
+                    Text(L("ve frontě: \(model.queueCount)")).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                HStack {
+                    if model.canCancel {
+                        Button(L("Zrušit")) { model.cancelTransfer() }
+                        if model.queueCount > 0 { Button(L("Zrušit vše")) { model.cancelTransfer(all: true) } }
+                    }
+                    Spacer()
+                    Button(L("Minimalizovat")) { model.progressMinimized = true; focused = true }
+                }
+            }
+            .padding(16)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+            .shadow(radius: 12)
+        }
+    }
+
     // MARK: Spodní lišty
 
     @ViewBuilder
     private var statusBar: some View {
-        if model.progress != nil || model.notice != nil {
+        let inBar = model.progress != nil && !model.showsProgressWindow
+        if inBar || model.notice != nil {
             HStack {
-                if let p = model.progress { ProgressView(value: p).frame(width: 200) }
-                Text(model.notice ?? model.progressText).font(.system(size: 11))
+                if inBar, let p = model.progress { ProgressView(value: p).frame(width: 200) }
+                Text(model.notice ?? (inBar ? model.progressText : "")).font(.system(size: 11))
                 Spacer()
                 if model.queueCount > 0 {
                     Text(L("ve frontě: \(model.queueCount)")).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
-                if model.canCancel && model.progress != nil {
+                if model.canCancel && inBar {
                     Button(L("Zrušit")) { model.cancelTransfer() }.controlSize(.small)
                     if model.queueCount > 0 {
                         Button(L("Zrušit vše")) { model.cancelTransfer(all: true) }.controlSize(.small)

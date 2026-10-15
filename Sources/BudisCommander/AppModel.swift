@@ -38,7 +38,13 @@ final class AppModel: ObservableObject {
     let leftTabs: TabGroup
     let rightTabs: TabGroup
     @Published var activeIsLeft = true
-    @Published var progress: Double?
+    @Published var progress: Double? {
+        didSet { progressChanged(wasActive: oldValue != nil) }
+    }
+    /// Průběh se ukazuje v okně (až po 0,4 s, aby neblikalo u rychlých operací); Minimalizovat ho schová do stavového řádku.
+    @Published var progressWindowReady = false
+    @Published var progressMinimized = false
+    var showsProgressWindow: Bool { progress != nil && progressWindowReady && !progressMinimized }
     @Published var progressText = ""
     @Published var viewer: ViewerContent?
     @Published var sheet: ActiveSheet?
@@ -773,6 +779,21 @@ final class AppModel: ObservableObject {
 
     func startDelete() { runCancellable(title: L("Mazání")) { await self.delete() } }
     func startSync() { runCancellable(title: L("Zrcadlení")) { await self.syncMirror() } }
+
+    private func progressChanged(wasActive: Bool) {
+        if progress == nil {
+            progressWindowReady = false
+            progressMinimized = false
+        } else if !wasActive {
+            progressMinimized = false
+            progressWindowReady = false
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                guard let self, self.progress != nil else { return }
+                self.progressWindowReady = true
+            }
+        }
+    }
 
     /// Zruší běžící úlohu; `all` zruší i celou frontu.
     func cancelTransfer(all: Bool = false) {

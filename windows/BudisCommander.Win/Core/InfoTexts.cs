@@ -14,6 +14,7 @@ public static class InfoTexts
             "Úprava souboru uvnitř zip archivu: F4 ho otevře v editoru a po uložení zapíše zpět do archivu.",
             "Sdílení odkazem: na cloudu pravé tlačítko → Sdílet odkazem, odkaz se zkopíruje do schránky.",
             "Synchronizace na pozadí umí i obousměrný režim (nové a novější soubory na obě strany, nic se nemaže).",
+            "Průběh kopírování a dalších delších operací je v okně s tlačítky Zrušit a Minimalizovat; po minimalizaci je průběh ve stavovém řádku jako dřív.",
             "Hromadné přejmenování: značky data a času změny, nadřazené složky a rozsahu znaků, volby bez diakritiky a mezer.",
             "Hledání počítačů v síti a jejich sdílených složek (Servery → Síť a disky).",
             "Historie operací: seznam kopírování, přesunů, mazání a přejmenování; kopírování jde zopakovat, ostatní vrátit zpět (menu Nástroje).",
