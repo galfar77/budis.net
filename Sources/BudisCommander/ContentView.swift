@@ -37,7 +37,7 @@ struct ContentView: View {
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
-        .overlay { progressCard }
+        .overlay(alignment: .bottomTrailing) { progressCard.padding(.trailing, 12).padding(.bottom, 60) }
         .onAppear { focused = true }
         .onChange(of: model.showCommandLine) { _, shown in
             if !shown { focused = true }
@@ -85,25 +85,26 @@ struct ContentView: View {
     @ViewBuilder
     private var progressCard: some View {
         if model.showsProgressWindow, let p = model.progress {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(L("Probíhá operace")).font(.headline)
-                Text(model.progressText).font(.system(size: 12)).lineLimit(3)
-                ProgressView(value: p).frame(width: 360)
-                if model.queueCount > 0 {
-                    Text(L("ve frontě: \(model.queueCount)")).font(.system(size: 11)).foregroundStyle(.secondary)
-                }
-                HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(model.progressText).font(.system(size: 11)).lineLimit(2)
+                ProgressView(value: p)
+                HStack(spacing: 6) {
+                    if model.queueCount > 0 {
+                        Text(L("ve frontě: \(model.queueCount)")).font(.system(size: 10)).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
                     if model.canCancel {
                         Button(L("Zrušit")) { model.cancelTransfer() }
                         if model.queueCount > 0 { Button(L("Zrušit vše")) { model.cancelTransfer(all: true) } }
                     }
-                    Spacer()
                     Button(L("Minimalizovat")) { model.progressMinimized = true; focused = true }
                 }
+                .controlSize(.small)
             }
-            .padding(16)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-            .shadow(radius: 12)
+            .padding(10)
+            .frame(width: 300)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .shadow(radius: 8)
         }
     }
 

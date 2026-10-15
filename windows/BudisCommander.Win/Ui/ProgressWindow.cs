@@ -8,7 +8,7 @@ namespace BudisCommander.Ui;
 /// <summary>Okno s průběhem kopírování a dalších delších operací; Minimalizovat ho schová do stavového řádku.</summary>
 public sealed class ProgressWindow : Window
 {
-    private readonly ProgressBar _bar = new() { Maximum = 1, Height = 16, MinWidth = 380 };
+    private readonly ProgressBar _bar = new() { Maximum = 1, Height = 10, MinWidth = 300 };
     private readonly TextBlock _text = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private readonly TextBlock _queue = new() { Opacity = 0.7 };
     private readonly Button _cancel;
@@ -20,7 +20,7 @@ public sealed class ProgressWindow : Window
     {
         _onMinimize = onMinimize;
         Title = "Probíhá operace";
-        Width = 440; SizeToContent = SizeToContent.Height;
+        Width = 340; SizeToContent = SizeToContent.Height;
         CanResize = false; ShowInTaskbar = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         _cancel = UiKit.Button("Zrušit", () => core.CancelJob());
@@ -28,8 +28,8 @@ public sealed class ProgressWindow : Window
         var minimize = UiKit.Button("Minimalizovat", Minimize);
         Content = new Border
         {
-            Padding = new Thickness(16),
-            Child = UiKit.VStack(10, _text, _bar, _queue, UiKit.HStack(8, _cancel, _cancelAll, minimize)),
+            Padding = new Thickness(12),
+            Child = UiKit.VStack(6, _text, _bar, _queue, UiKit.HStack(8, _cancel, _cancelAll, minimize)),
         };
         // křížek znamená minimalizaci, ne zrušení operace
         Closing += (_, e) => { if (!_closing) { e.Cancel = true; Minimize(); } };
