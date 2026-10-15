@@ -787,5 +787,9 @@ Hledání počítačů v síti a jejich sdílených složek (Servery → Síť a
 Probíhá operace	Operation in progress
 Minimalizovat	Minimize
 Průběh kopírování a dalších delších operací je v okně s tlačítky Zrušit a Minimalizovat; po minimalizaci je průběh ve stavovém řádku jako dřív.	Progress of copying and other longer operations is shown in a window with Cancel and Minimize buttons; after minimizing it appears in the status bar as before.
+Nastavení úložiště „{}“ není dokončené	Setup of storage "{}" is not finished
+Chybí výběr disku. Otevře se okno rclone, ve kterém se znovu přihlásíte a disk vyberete (u OneDrive obvykle typ účtu a první možnost). Potom se k úložišti připojte znovu.	The drive selection is missing. An rclone window opens where you sign in again and choose the drive (for OneDrive usually the account type and the first option). Then connect to the storage again.
+Chybí výběr disku. Otevře se Terminál s rclone, ve kterém se znovu přihlásíte a disk vyberete (u OneDrive obvykle typ účtu a první možnost). Potom se k úložišti připojte znovu.	The drive selection is missing. Terminal opens with rclone where you sign in again and choose the drive (for OneDrive usually the account type and the first option). Then connect to the storage again.
+Opravit	Repair
 """;
 }

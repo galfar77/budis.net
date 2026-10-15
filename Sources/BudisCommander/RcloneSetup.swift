@@ -158,4 +158,22 @@ enum RcloneSetup {
                        "-e", "tell application \"Terminal\" to do script \"\(escaped)\""]
         try p.run()
     }
+
+    /// Chyba rclone, kterou řeší znovu dokončené přihlášení (OneDrive bez vybraného disku).
+    static func needsReconnect(_ message: String) -> Bool {
+        message.localizedCaseInsensitiveContains("drive_id") || message.localizedCaseInsensitiveContains("config reconnect")
+    }
+
+    /// Otevře Terminál s příkazem „rclone config reconnect“: znovu proběhne přihlášení a výběr disku.
+    static func reconnect(exe: String, remote: String) throws {
+        let name = remote.hasSuffix(":") ? String(remote.dropLast()) : remote
+        guard isValidName(name) else { throw RemoteError(message: L("Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.")) }
+        let command = "\"\(exe)\" config reconnect \(name):"
+        let escaped = command.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        p.arguments = ["-e", "tell application \"Terminal\" to activate",
+                       "-e", "tell application \"Terminal\" to do script \"\(escaped)\""]
+        try p.run()
+    }
 }

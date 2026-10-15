@@ -35,6 +35,12 @@ public sealed partial class AppCore
         {
             SetProgress(null, "");
             session.Dispose();
+            if (RcloneSetup.NeedsReconnect(e.Message)
+                && await Ui.ConfirmAsync($"Nastavení úložiště „{remote}“ není dokončené", "Chybí výběr disku. Otevře se okno rclone, ve kterém se znovu přihlásíte a disk vyberete (u OneDrive obvykle typ účtu a první možnost). Potom se k úložišti připojte znovu.", "Opravit"))
+            {
+                try { RcloneSetup.Reconnect(exe, remote); } catch (Exception ex) { await Ui.ShowErrorAsync(ex.Message); }
+                return false;
+            }
             await Ui.ShowErrorAsync($"Připojení k úložišti „{remote}“ se nezdařilo:\n\n{e.Message}");
             return false;
         }

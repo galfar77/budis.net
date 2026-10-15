@@ -397,6 +397,13 @@ extension AppModel {
         } catch {
             progress = nil
             progressText = ""
+            if RcloneSetup.needsReconnect(error.localizedDescription),
+               Dialogs.confirm(L("Nastavení úložiště „\(remote)“ není dokončené"),
+                               info: L("Chybí výběr disku. Otevře se Terminál s rclone, ve kterém se znovu přihlásíte a disk vyberete (u OneDrive obvykle typ účtu a první možnost). Potom se k úložišti připojte znovu."),
+                               ok: L("Opravit")) {
+                do { try RcloneSetup.reconnect(exe: exe, remote: remote) } catch { Dialogs.error(error.localizedDescription) }
+                return
+            }
             Dialogs.error(L("Připojení k úložišti „\(remote)“ se nezdařilo:\n\n\(error.localizedDescription)"))
             return
         }

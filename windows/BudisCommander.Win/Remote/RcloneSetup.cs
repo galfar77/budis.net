@@ -118,4 +118,18 @@ public static class RcloneSetup
         psi.Arguments = $"/c \"\"{exe}\" config create {name} {provider.RcloneType} & echo. & echo Hotovo. Toto okno zavrete a v aplikaci kliknete na Obnovit. & pause\"";
         Process.Start(psi);
     }
+
+    /// <summary>Chyba rclone, kterou řeší znovu dokončené přihlášení (OneDrive bez vybraného disku).</summary>
+    public static bool NeedsReconnect(string message) =>
+        message.Contains("drive_id", StringComparison.OrdinalIgnoreCase) || message.Contains("config reconnect", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Otevře konzoli s příkazem „rclone config reconnect“: znovu proběhne přihlášení a výběr disku.</summary>
+    public static void Reconnect(string exe, string remote)
+    {
+        var name = remote.TrimEnd(':');
+        if (!IsValidName(name)) throw new ArgumentException("Název smí obsahovat jen písmena, číslice, pomlčku a podtržítko.");
+        var psi = new ProcessStartInfo("cmd.exe") { UseShellExecute = true };
+        psi.Arguments = $"/c \"\"{exe}\" config reconnect {name}: & echo. & echo Hotovo. Toto okno zavrete a v aplikaci se pripojte znovu. & pause\"";
+        Process.Start(psi);
+    }
 }

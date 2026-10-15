@@ -176,6 +176,8 @@ CPU	CPU
 Chcete existující položku přepsat?	Do you want to overwrite the existing item?
 Chyba	Error
 Chyba: {}	Error: {}
+Chybí výběr disku. Otevře se Terminál s rclone, ve kterém se znovu přihlásíte a disk vyberete (u OneDrive obvykle typ účtu a první možnost). Potom se k úložišti připojte znovu.	The drive selection is missing. Terminal opens with rclone where you sign in again and choose the drive (for OneDrive usually the account type and the first option). Then connect to the storage again.
+Chybí výběr disku. Otevře se okno rclone, ve kterém se znovu přihlásíte a disk vyberete (u OneDrive obvykle typ účtu a první možnost). Potom se k úložišti připojte znovu.	The drive selection is missing. An rclone window opens where you sign in again and choose the drive (for OneDrive usually the account type and the first option). Then connect to the storage again.
 Cloud bez ručního nastavování: aplikace si sama stáhne rclone a přidá Google Disk, Dropbox, OneDrive, Box, S3, WebDAV nebo B2.	Cloud without manual setup: the application downloads rclone by itself and adds Google Drive, Dropbox, OneDrive, Box, S3, WebDAV or B2.
 Cloudová úložiště (Dropbox, Google Drive, OneDrive…) přes program rclone.	Cloud storage (Dropbox, Google Drive, OneDrive…) through the rclone program.
 Cloudová úložiště (rclone)	Cloud storage (rclone)
@@ -323,6 +325,7 @@ Nalezeno {}, prohledáno {}	Found {}, searched {}
 Naposledy navštívené	Recently visited
 Např. *.jpg	E.g. *.jpg
 Nastavení	Settings
+Nastavení úložiště „{}“ není dokončené	Setup of storage "{}" is not finished
 Nastavit datum a čas změny	Set modification date and time
 Nastavit práva (osmičkově, např. 644 nebo 755)	Set permissions (octal, e.g. 644 or 755)
 Nastavit úložiště…	Set up storage…
@@ -381,6 +384,7 @@ Odznačeno: 	Unmarked:
 Odznačit	Unmark
 Odznačit podle masky	Unmark by mask
 Operace	Operation
+Opravit	Repair
 Otevře se Terminál s programem rclone a prohlížeč s přihlášením ke službě. Po dokončení klikněte na Obnovit.	Terminal with rclone and a browser with the service login will open. When done, click Refresh.
 Otevřít	Open
 Otevřít v aplikaci	Open with
